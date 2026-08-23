@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.0 — High-Performance Speedometer & Flight Gauge
+    LazySpeedBiggins v3.1 — High-Performance Speedometer & Flight Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
@@ -23,6 +23,7 @@
 -- boosting function execution speed by ~30% and eliminating global table churn.
 -- ==============================================================================
 local GetGlidingInfo      = C_PlayerInfo.GetGlidingInfo
+local IsFlying            = IsFlying
 local GetUnitSpeed        = GetUnitSpeed
 local InCombatLockdown    = InCombatLockdown
 local min                 = math.min
@@ -196,6 +197,7 @@ local function SpeedometerUpdateLoop(self, elapsed)
     -- Query Flight & Ground Velocities
     local isGliding, _, forwardSpeed = GetGlidingInfo()
     local rawGroundSpeed = GetUnitSpeed("player")
+    local isSteadyFlying = IsFlying and IsFlying()
     
     local currentSpeed = 0
     local maxCap = MAX_CAP_GROUND
@@ -204,14 +206,19 @@ local function SpeedometerUpdateLoop(self, elapsed)
         currentSpeed = forwardSpeed
         maxCap = MAX_CAP_FLIGHT
         landingDebounce = 0
+    elseif isSteadyFlying and rawGroundSpeed and rawGroundSpeed > 0 then
+        currentSpeed = rawGroundSpeed
+        maxCap = MAX_CAP_FLIGHT
+        landingDebounce = 0
     elseif rawGroundSpeed and rawGroundSpeed > 0 then
         currentSpeed = rawGroundSpeed
         maxCap = MAX_CAP_GROUND
     end
 
-    -- Flight-Only Landing Detection
+    -- Flight-Only Landing Detection (Skyriding OR Steady Flight)
     if visMode == "FLIGHT_ONLY" then
-        if not isGliding or not forwardSpeed or forwardSpeed <= 0 then
+        local isAirborne = (isGliding and forwardSpeed and forwardSpeed > 0) or (isSteadyFlying and rawGroundSpeed and rawGroundSpeed > 0)
+        if not isAirborne then
             landingDebounce = landingDebounce + 0.05
             -- If landed/stopped for >0.25 seconds in Flight-Only mode, shut down engine completely
             if landingDebounce >= 0.25 then
@@ -289,9 +296,11 @@ function LazySpeed_EvaluateState()
     local visMode = LazySpeedBigginsDB.visibilityMode or "FLIGHT_ONLY"
     local inCombat = InCombatLockdown()
     local isGliding = GetGlidingInfo()
+    local isSteadyFlying = IsFlying and IsFlying()
+    local isAirborne = isGliding or isSteadyFlying
 
     if visMode == "FLIGHT_ONLY" then
-        if isGliding and not inCombat then
+        if isAirborne and not inCombat then
             LazySpeed_StartEngine()
         else
             LazySpeed_StopEngine()
@@ -433,9 +442,10 @@ EventWatcherFrame:SetScript("OnUpdate", function(self, elapsed)
     if passivePollTimer < 0.25 then return end
     passivePollTimer = 0
 
-    -- If player launched into the air, activate the engine!
+    -- If player launched into the air (Skyriding OR Steady Flight), activate the engine!
     local isGliding = GetGlidingInfo()
-    if isGliding then
+    local isSteadyFlying = IsFlying and IsFlying()
+    if isGliding or isSteadyFlying then
         LazySpeed_StartEngine()
     end
 end)

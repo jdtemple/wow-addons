@@ -2,7 +2,7 @@
 ## Title: |cFFFFD100LazySpeed Biggins|r
 ## Notes: High-performance flight & movement speedometer with zero-allocation C++ rendering and Blizzard Gold UI.
 ## Author: Biggins (Original logic by Darthterac)
-## Version: 3.0
+## Version: 3.1
 ## SavedVariables: LazySpeedBigginsDB
 
 LazySpeedBiggins.lua
