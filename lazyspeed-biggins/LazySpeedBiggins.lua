@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.1 — High-Performance Speedometer & Flight Gauge
+    LazySpeedBiggins v3.2 — High-Performance Speedometer & Flight Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
@@ -202,12 +202,12 @@ local function SpeedometerUpdateLoop(self, elapsed)
     local currentSpeed = 0
     local maxCap = MAX_CAP_GROUND
 
-    if isGliding and forwardSpeed and forwardSpeed > 0 then
-        currentSpeed = forwardSpeed
+    if isGliding then
+        currentSpeed = forwardSpeed or 0
         maxCap = MAX_CAP_FLIGHT
         landingDebounce = 0
-    elseif isSteadyFlying and rawGroundSpeed and rawGroundSpeed > 0 then
-        currentSpeed = rawGroundSpeed
+    elseif isSteadyFlying then
+        currentSpeed = rawGroundSpeed or 0
         maxCap = MAX_CAP_FLIGHT
         landingDebounce = 0
     elseif rawGroundSpeed and rawGroundSpeed > 0 then
@@ -217,7 +217,7 @@ local function SpeedometerUpdateLoop(self, elapsed)
 
     -- Flight-Only Landing Detection (Skyriding OR Steady Flight)
     if visMode == "FLIGHT_ONLY" then
-        local isAirborne = (isGliding and forwardSpeed and forwardSpeed > 0) or (isSteadyFlying and rawGroundSpeed and rawGroundSpeed > 0)
+        local isAirborne = isGliding or isSteadyFlying
         if not isAirborne then
             landingDebounce = landingDebounce + 0.05
             -- If landed/stopped for >0.25 seconds in Flight-Only mode, shut down engine completely

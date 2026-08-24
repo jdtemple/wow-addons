@@ -1,4 +1,4 @@
-# LazySpeed Biggins (v3.0)
+# LazySpeed Biggins (v3.2)
 
 A high-performance, flight-only speedometer and movement gauge for *World of Warcraft: Midnight* (Patch 12.1+).
 
