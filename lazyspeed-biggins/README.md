@@ -1,14 +1,14 @@
-# LazySpeed Biggins (v3.2)
+# LazySpeed Biggins (v3.3)
 
-A high-performance, flight-only speedometer and movement gauge for *World of Warcraft: Midnight* (Patch 12.1+).
+A high-performance speedometer, flight, and swim gauge for *World of Warcraft: Midnight* (Patch 12.1+).
 
-Originally based on `LazySpeed` by Darthterac, this fork has been completely re-architected from the ground up for **maximum CPU efficiency, zero-allocation C++ memory management, and seamless native Blizzard UI integration**.
+Originally based on `LazySpeed` by Darthterac, this fork has been completely re-architected from the ground up for **maximum CPU efficiency, zero-allocation C++ memory management, modular checkbox settings, and seamless native Blizzard UI integration**.
 
 ---
 
 ## ⚡ Performance Benchmarks
 
-* **Average CPU Usage:** `0.00 ms` (Dormant on foot / in combat), `< 0.07%` (Active in flight)
+* **Average CPU Usage:** `0.00 ms` (Dormant on foot / in combat), `< 0.07%` (Active in flight or swim)
 * **Memory Footprint:** `~19 KB` (Static UI objects only; zero heap churn)
 * **Lua Garbage Generation:** `0 bytes/sec` (Zero dynamic strings, zero runtime table allocations)
 
@@ -16,23 +16,31 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 
 ## 🚀 Key Features
 
+* **Modular Checkbox Triggers:** Pick and choose exactly when your speedometer wakes up:
+  * ☑️ **Show While Flying / Skyriding:** Automatically activates during Skyriding, Dragonriding, and Steady Flight.
+  * ☑️ **Show While Swimming:** Automatically activates when submerged in water, tracking swim speed and aquatic mounts (Seahorses, Turtles, Otters).
+  * ⬜ **Show While on Ground:** Tracks on-foot and ground mount movement.
+  * ☑️ **Hide During Combat (Killswitch):** Instantly detaches and hides during combat to keep your interface clean.
+* **Contextual Color Theming:**
+  * **Flying / Ground:** Green (Cruising) $\rightarrow$ Yellow (High Speed) $\rightarrow$ Red (Max Thruster).
+  * **Swimming:** Deep Ocean Blue $\rightarrow$ Electric Cyan gradient.
 * **Zero-Allocation C++ Rendering Pipeline:** Formats speed values directly inside Blizzard's native C++ engine via `FontString:SetFormattedText()` using pre-cached static format string pointers. No temporary string objects are ever created on Lua's garbage-collected heap.
 * **True Script Detachment Engine (`OnUpdate = nil`):** When inactive on the ground or in combat, the `OnUpdate` script is completely unhooked from the frame engine. This guarantees zero background function calls while walking, standing, or fighting in dungeons and raids.
 * **Stationary "Dirty Check":** Includes an idle gate that detects when speed is zero and skips redundant text reformatting and GPU status bar redraws while standing still.
-* **Hard Combat Killswitch:** Listens to `PLAYER_REGEN_DISABLED` to immediately terminate the flight engine and hide the UI the millisecond combat begins.
-* **Hardware-Accelerated UI:** Replaced legacy multi-texture grid loops with a single native Blizzard `StatusBar` featuring smooth color shifts (Green -> Yellow -> Red) and a classic Blizzard Metallic Gold backdrop.
+* **Hardware-Accelerated UI:** Single native Blizzard `StatusBar` with smooth fill and classic Blizzard Metallic Gold backdrop.
 * **Draggable & Moveable:** Left-click and drag the frame anywhere on your screen.
 
 ---
 
 ## 🎛️ Blizzard Settings Integration
 
-LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> LazySpeed Biggins`) with two native dropdown controls:
+LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> LazySpeed Biggins`) with native checkbox controls:
 
-### 1. Visibility Mode
-* **Only While Flying (Zero Idle CPU)** *(Default)* — Completely dormant on the ground (0.00ms CPU). Automatically wakes up and displays live velocity when Skyriding / Gliding in the air.
-* **Not in Combat (Ground & Flight)** — Displays live movement speed while on foot, on ground mounts, and in flight. Automatically detaches and hides during combat.
-* **Always Visible (Ground, Flight & Combat)** — Continual display across all gameplay states.
+### 1. Modular Visibility Checkboxes
+* **Show While Flying / Skyriding** *(Default: ON)*
+* **Show While Swimming** *(Default: ON)*
+* **Show While on Ground** *(Default: OFF)*
+* **Hide During Combat** *(Default: ON)*
 
 ### 2. Speed Measurement Unit
 * **Miles per Hour (mph)** *(Default)*
@@ -60,7 +68,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 ## 👥 Credits & Attribution
 
 * **Original Addon & Concept:** Created by **Darthterac** — [LazySpeed on CurseForge](https://www.curseforge.com/wow/addons/lazyspeed)
-* **v3.0 Architecture, Zero-Allocation Engine & Settings UI:** Biggins (US-Whisperwind)
+* **v3.0 - v3.3 Architecture, Zero-Allocation Engine, Swim Mode & Settings UI:** Biggins (US-Whisperwind)
 
 Please support and check out the original project by Darthterac at https://www.curseforge.com/wow/addons/lazyspeed!
 

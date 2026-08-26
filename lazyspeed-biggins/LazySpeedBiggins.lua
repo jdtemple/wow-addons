@@ -1,18 +1,25 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.2 — High-Performance Speedometer & Flight Gauge
+    LazySpeedBiggins v3.3 — High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
     
     ARCHITECTURAL OVERVIEW:
     1. Zero Idle Footprint: When inactive based on user settings (e.g. grounded in
-       Flight-Only mode, or in combat in No-Combat mode), the OnUpdate script is
-       completely detached (SetScript("OnUpdate", nil)) and the frame is hidden.
-    2. Blizzard Native Options: Integrates directly into Escape -> Options -> AddOns
-       using Blizzard's modern Settings API.
-    3. Zero-Allocation C++ Rendering: Formats numbers directly in native C++ using
+       Flight/Swim-Only mode, or in combat), the OnUpdate script is completely detached
+       (SetScript("OnUpdate", nil)) and the frame is hidden (0.00ms CPU).
+    2. Modular Blizzard Checkbox Settings: Direct integration into Options -> AddOns
+       with native checkboxes:
+         - Show While Flying / Skyriding
+         - Show While Swimming (Aquatic mounts, swim speed buffs)
+         - Show While on Ground
+         - Hide During Combat (Killswitch)
+    3. Dynamic Contextual Theming:
+         - Flying / Ground: Green (Cruising) -> Yellow (High Speed) -> Red (Max Thruster)
+         - Swimming: Ocean Blue -> Electric Cyan gradient
+    4. Zero-Allocation C++ Rendering: Formats numbers directly in native C++ using
        FontString:SetFormattedText() with pre-cached static format string pointers.
-    4. Hardware-Accelerated UI: Single Blizzard StatusBar with dynamic color shift
+    5. Hardware-Accelerated UI: Single Blizzard StatusBar with dynamic color shift
        and classic Blizzard Tooltip & Metallic Gold frame skin.
 ============================================================================== ]]--
 
@@ -24,6 +31,7 @@
 -- ==============================================================================
 local GetGlidingInfo      = C_PlayerInfo.GetGlidingInfo
 local IsFlying            = IsFlying
+local IsSwimming          = IsSwimming
 local GetUnitSpeed        = GetUnitSpeed
 local InCombatLockdown    = InCombatLockdown
 local min                 = math.min
@@ -41,7 +49,8 @@ local MULTIPLIER_MPH = 2.04545  -- 1 yard/sec = 2.04545 mph
 local MULTIPLIER_KMH = 3.29184  -- 1 yard/sec = 3.29184 km/h
 
 -- Maximum Speed Caps for 100% Status Bar Fill
-local MAX_CAP_FLIGHT = 70.0     -- Max Skyriding speed cap
+local MAX_CAP_FLIGHT = 70.0     -- Max Skyriding speed cap (~143 mph)
+local MAX_CAP_SWIM   = 20.0     -- Max Swimming / Aquatic mount speed cap (~41 mph)
 local MAX_CAP_GROUND = 42.0     -- Max Ground speed cap (running/sprint/ground mounts)
 
 -- Unit Modes: 1 = Yards/Sec, 2 = MPH, 3 = KM/H
@@ -50,7 +59,7 @@ local modeLabels = { "Y/S", "MPH", "KM/H" }
 -- Runtime State Variables
 local isEngineActive  = false   -- True only when the high-speed loop is actively attached
 local updateTimer     = 0       -- Accumulator for our 20 FPS (0.05s) throttling
-local landingDebounce = 0       -- Grace period timer before concluding flight has ended
+local landingDebounce = 0       -- Grace period timer before concluding active state has ended
 local lastSpeed       = -1      -- Dirty tracking: Skips redundant GPU redraws when stationary
 
 -- Forward declarations of lifecycle functions
@@ -63,8 +72,11 @@ local LazySpeed_StopEngine
 -- ==============================================================================
 -- LazySpeedBigginsDB is automatically persisted by WoW across reloads and sessions.
 local DB_DEFAULTS = {
-    visibilityMode = "FLIGHT_ONLY", -- "FLIGHT_ONLY", "NO_COMBAT", "ALWAYS"
-    unitMode       = 2,             -- Default to MPH (2)
+    showFlying    = true,  -- Show while Flying / Skyriding
+    showSwimming  = true,  -- Show while Swimming / Submerged in water
+    showGround    = false, -- Show while on Ground (foot or ground mounts)
+    hideInCombat  = true,  -- Hide immediately during combat
+    unitMode      = 2,     -- Default to MPH (2)
 }
 
 -- ==============================================================================
@@ -181,10 +193,10 @@ end
 -- This loop executes ONLY when isEngineActive is true.
 -- ==============================================================================
 local function SpeedometerUpdateLoop(self, elapsed)
-    local visMode = LazySpeedBigginsDB.visibilityMode or "FLIGHT_ONLY"
+    local db = LazySpeedBigginsDB or DB_DEFAULTS
 
-    -- Combat Check: If in No-Combat mode and combat begins, stop immediately
-    if visMode == "NO_COMBAT" and InCombatLockdown() then
+    -- Combat Check: If hideInCombat is enabled and combat begins, stop immediately
+    if db.hideInCombat and InCombatLockdown() then
         LazySpeed_StopEngine()
         return
     end
@@ -194,38 +206,47 @@ local function SpeedometerUpdateLoop(self, elapsed)
     if updateTimer < 0.05 then return end
     updateTimer = 0
 
-    -- Query Flight & Ground Velocities
+    -- Query Flight, Swim & Ground Velocities
     local isGliding, _, forwardSpeed = GetGlidingInfo()
     local rawGroundSpeed = GetUnitSpeed("player")
     local isSteadyFlying = IsFlying and IsFlying()
+    local isSwimming = IsSwimming and IsSwimming()
     
     local currentSpeed = 0
     local maxCap = MAX_CAP_GROUND
+    local isCurrentStateActive = false
 
     if isGliding then
         currentSpeed = forwardSpeed or 0
         maxCap = MAX_CAP_FLIGHT
-        landingDebounce = 0
+        if db.showFlying then isCurrentStateActive = true end
     elseif isSteadyFlying then
         currentSpeed = rawGroundSpeed or 0
         maxCap = MAX_CAP_FLIGHT
-        landingDebounce = 0
+        if db.showFlying then isCurrentStateActive = true end
+    elseif isSwimming then
+        currentSpeed = rawGroundSpeed or 0
+        maxCap = MAX_CAP_SWIM
+        if db.showSwimming then isCurrentStateActive = true end
     elseif rawGroundSpeed and rawGroundSpeed > 0 then
         currentSpeed = rawGroundSpeed
         maxCap = MAX_CAP_GROUND
+        if db.showGround then isCurrentStateActive = true end
+    else
+        currentSpeed = 0
+        maxCap = MAX_CAP_GROUND
+        if db.showGround then isCurrentStateActive = true end
     end
 
-    -- Flight-Only Landing Detection (Skyriding OR Steady Flight)
-    if visMode == "FLIGHT_ONLY" then
-        local isAirborne = isGliding or isSteadyFlying
-        if not isAirborne then
-            landingDebounce = landingDebounce + 0.05
-            -- If landed/stopped for >0.25 seconds in Flight-Only mode, shut down engine completely
-            if landingDebounce >= 0.25 then
-                LazySpeed_StopEngine()
-                return
-            end
+    -- State Debounce: If current state is no longer enabled, shut down gracefully after 0.25s
+    if not isCurrentStateActive then
+        landingDebounce = landingDebounce + 0.05
+        if landingDebounce >= 0.25 then
+            LazySpeed_StopEngine()
+            return
         end
+    else
+        landingDebounce = 0
     end
 
     -- Idle / Dirty Check: If stationary and we already rendered 0 last tick, skip all UI redraws!
@@ -236,7 +257,7 @@ local function SpeedometerUpdateLoop(self, elapsed)
 
     -- Format display string using Blizzard's native C++ SetFormattedText method.
     -- This formats directly on the C++ side, creating LITERAL ZERO Lua string allocations!
-    local unit = LazySpeedBigginsDB.unitMode or 2
+    local unit = db.unitMode or 2
     if unit == 1 then
         SpeedText:SetFormattedText(FORMAT_YS, currentSpeed)
     elseif unit == 2 then
@@ -249,13 +270,23 @@ local function SpeedometerUpdateLoop(self, elapsed)
     local speedRatio = min(max(currentSpeed / maxCap, 0.0), 1.0)
     StatusBar:SetValue(speedRatio)
 
-    -- Dynamic Color Shift: Green (Cruising) -> Yellow (High Speed) -> Red (Max Thruster)
-    if speedRatio > 0.85 then
-        StatusBar:SetStatusBarColor(0.9, 0.1, 0.1, 1) -- Red
-    elseif speedRatio > 0.50 then
-        StatusBar:SetStatusBarColor(0.9, 0.8, 0.1, 1) -- Yellow
+    -- Dynamic Contextual Theming:
+    -- If swimming: Cool Oceanic Blue / Electric Cyan gradient
+    -- If flying / ground: Green (Cruising) -> Yellow (High Speed) -> Red (Max Thruster)
+    if isSwimming then
+        if speedRatio > 0.70 then
+            StatusBar:SetStatusBarColor(0.0, 0.9, 1.0, 1) -- Electric Cyan
+        else
+            StatusBar:SetStatusBarColor(0.0, 0.55, 0.85, 1) -- Deep Ocean Blue
+        end
     else
-        StatusBar:SetStatusBarColor(0.1, 0.9, 0.2, 1) -- Green
+        if speedRatio > 0.85 then
+            StatusBar:SetStatusBarColor(0.9, 0.1, 0.1, 1) -- Red
+        elseif speedRatio > 0.50 then
+            StatusBar:SetStatusBarColor(0.9, 0.8, 0.1, 1) -- Yellow
+        else
+            StatusBar:SetStatusBarColor(0.1, 0.9, 0.2, 1) -- Green
+        end
     end
 end
 
@@ -289,37 +320,42 @@ function LazySpeed_StopEngine()
     ResetDisplay()
 end
 
--- Centralized State Evaluator: Evaluates the active user setting and starts/stops the engine
+-- Centralized State Evaluator: Evaluates active checkboxes and starts/stops the engine
 function LazySpeed_EvaluateState()
     if not LazySpeedBigginsDB then return end
+    local db = LazySpeedBigginsDB
     
-    local visMode = LazySpeedBigginsDB.visibilityMode or "FLIGHT_ONLY"
     local inCombat = InCombatLockdown()
+    if inCombat and db.hideInCombat then
+        LazySpeed_StopEngine()
+        return
+    end
+
     local isGliding = GetGlidingInfo()
     local isSteadyFlying = IsFlying and IsFlying()
+    local isSwimming = IsSwimming and IsSwimming()
     local isAirborne = isGliding or isSteadyFlying
 
-    if visMode == "FLIGHT_ONLY" then
-        if isAirborne and not inCombat then
-            LazySpeed_StartEngine()
-        else
-            LazySpeed_StopEngine()
-        end
-    elseif visMode == "NO_COMBAT" then
-        if inCombat then
-            LazySpeed_StopEngine()
-        else
-            LazySpeed_StartEngine()
-        end
-    elseif visMode == "ALWAYS" then
+    local shouldShow = false
+    if isAirborne and db.showFlying then
+        shouldShow = true
+    elseif isSwimming and db.showSwimming then
+        shouldShow = true
+    elseif db.showGround then
+        shouldShow = true
+    end
+
+    if shouldShow then
         LazySpeed_StartEngine()
+    else
+        LazySpeed_StopEngine()
     end
 end
 
 -- ==============================================================================
 -- 8. BLIZZARD MODERN SETTINGS API INTEGRATION (Escape -> Options -> AddOns)
 -- ------------------------------------------------------------------------------
--- Registers a native settings category in WoW's official settings panel.
+-- Registers native checkboxes and dropdowns in WoW's official settings panel.
 -- ==============================================================================
 local function InitializeBlizzardSettings()
     if not Settings or not Settings.RegisterVerticalLayoutCategory then return end
@@ -327,36 +363,32 @@ local function InitializeBlizzardSettings()
     -- 1. Create Native AddOn Category
     local category, layout = Settings.RegisterVerticalLayoutCategory("LazySpeed Biggins")
 
-    -- 2. Define the 3 Visibility Options for the Dropdown
-    local function GetVisibilityDropdownOptions()
-        local container = Settings.CreateControlTextContainer()
-        container:Add("FLIGHT_ONLY", "Only While Flying (Zero Idle CPU)")
-        container:Add("NO_COMBAT",   "Not in Combat (Ground & Flight)")
-        container:Add("ALWAYS",      "Always Visible (Ground, Flight & Combat)")
-        return container:GetData()
+    -- 2. Helper to register boolean Checkbox Settings
+    local function RegisterCheckbox(varName, label, tooltip, defaultValue)
+        local setting = Settings.RegisterAddOnSetting(
+            category,
+            "LazySpeedBiggins_" .. varName,
+            varName,
+            LazySpeedBigginsDB,
+            Settings.VarType.Boolean,
+            label,
+            defaultValue
+        )
+        setting:SetValueChangedCallback(function(setting, value)
+            LazySpeedBigginsDB[varName] = value
+            LazySpeed_EvaluateState()
+        end)
+        Settings.CreateCheckbox(category, setting, tooltip)
+        return setting
     end
 
-    -- 3. Register AddOn Setting bound to LazySpeedBigginsDB.visibilityMode
-    local visSetting = Settings.RegisterAddOnSetting(
-        category,
-        "LazySpeedBiggins_VisibilityMode",
-        "visibilityMode",
-        LazySpeedBigginsDB,
-        Settings.VarType.String,
-        "Visibility Mode",
-        "FLIGHT_ONLY"
-    )
+    -- 3. Register Modular Checkboxes
+    RegisterCheckbox("showFlying",   "Show While Flying / Skyriding", "Displays the speedometer while airborne (Skyriding or Steady Flight).", true)
+    RegisterCheckbox("showSwimming", "Show While Swimming",           "Displays the speedometer while submerged in water, tracking swim and aquatic mount speeds.", true)
+    RegisterCheckbox("showGround",   "Show While on Ground",          "Displays the speedometer while running on foot or riding ground mounts.", false)
+    RegisterCheckbox("hideInCombat", "Hide During Combat",            "Instantly hides and detaches the speedometer during combat to keep your screen clear.", true)
 
-    -- 4. Hook Callback when setting is changed by user
-    visSetting:SetValueChangedCallback(function(setting, value)
-        LazySpeedBigginsDB.visibilityMode = value
-        LazySpeed_EvaluateState()
-    end)
-
-    -- 5. Create native Blizzard Dropdown for Visibility
-    Settings.CreateDropdown(category, visSetting, GetVisibilityDropdownOptions, "Choose when the speedometer is active and visible on your screen.")
-
-    -- 6. Define the 3 Speed Measurement Unit Options
+    -- 4. Define the 3 Speed Measurement Unit Options
     local function GetUnitDropdownOptions()
         local container = Settings.CreateControlTextContainer()
         container:Add(1, "Yards per Second (y/s)")
@@ -365,7 +397,7 @@ local function InitializeBlizzardSettings()
         return container:GetData()
     end
 
-    -- 7. Register AddOn Setting bound to LazySpeedBigginsDB.unitMode
+    -- 5. Register AddOn Setting bound to LazySpeedBigginsDB.unitMode
     local unitSetting = Settings.RegisterAddOnSetting(
         category,
         "LazySpeedBiggins_UnitMode",
@@ -376,7 +408,7 @@ local function InitializeBlizzardSettings()
         2 -- Default to MPH
     )
 
-    -- 8. Hook Callback when unit is changed from settings menu
+    -- 6. Hook Callback when unit is changed from settings menu
     unitSetting:SetValueChangedCallback(function(setting, value)
         LazySpeedBigginsDB.unitMode = value
         ToggleText:SetText(modeLabels[value])
@@ -384,10 +416,10 @@ local function InitializeBlizzardSettings()
         ResetDisplay()
     end)
 
-    -- 9. Create native Blizzard Dropdown for Units
+    -- 7. Create native Blizzard Dropdown for Units
     Settings.CreateDropdown(category, unitSetting, GetUnitDropdownOptions, "Choose your preferred speed measurement unit.")
 
-    -- 10. Register Category into Blizzard Settings Panel
+    -- 8. Register Category into Blizzard Settings Panel
     Settings.RegisterAddOnCategory(category)
 end
 
@@ -406,6 +438,28 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == "LazySpeedBiggins" then
         -- Initialize SavedVariables table with defaults if first run
         LazySpeedBigginsDB = LazySpeedBigginsDB or {}
+        
+        -- Migrate legacy v3.2 visibilityMode if present
+        if LazySpeedBigginsDB.visibilityMode then
+            if LazySpeedBigginsDB.visibilityMode == "FLIGHT_ONLY" then
+                LazySpeedBigginsDB.showFlying = true
+                LazySpeedBigginsDB.showSwimming = true
+                LazySpeedBigginsDB.showGround = false
+                LazySpeedBigginsDB.hideInCombat = true
+            elseif LazySpeedBigginsDB.visibilityMode == "NO_COMBAT" then
+                LazySpeedBigginsDB.showFlying = true
+                LazySpeedBigginsDB.showSwimming = true
+                LazySpeedBigginsDB.showGround = true
+                LazySpeedBigginsDB.hideInCombat = true
+            elseif LazySpeedBigginsDB.visibilityMode == "ALWAYS" then
+                LazySpeedBigginsDB.showFlying = true
+                LazySpeedBigginsDB.showSwimming = true
+                LazySpeedBigginsDB.showGround = true
+                LazySpeedBigginsDB.hideInCombat = false
+            end
+            LazySpeedBigginsDB.visibilityMode = nil
+        end
+
         for key, value in pairs(DB_DEFAULTS) do
             if LazySpeedBigginsDB[key] == nil then
                 LazySpeedBigginsDB[key] = value
@@ -419,9 +473,9 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
         InitializeBlizzardSettings()
 
     elseif event == "PLAYER_REGEN_DISABLED" then
-        -- Entering combat: If in Flight-Only or No-Combat mode, kill engine immediately
-        local visMode = (LazySpeedBigginsDB and LazySpeedBigginsDB.visibilityMode) or "FLIGHT_ONLY"
-        if visMode ~= "ALWAYS" then
+        -- Entering combat: If hideInCombat is enabled, kill engine immediately
+        local hideCombat = (LazySpeedBigginsDB and LazySpeedBigginsDB.hideInCombat)
+        if hideCombat ~= false then
             LazySpeed_StopEngine()
         end
 
@@ -430,22 +484,24 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
     end
 end)
 
--- Passive Takeoff Detector (Runs at low 4 Hz / every 0.25s while grounded in Flight-Only mode)
+-- Passive Takeoff / Dive Detector (Runs at low 4 Hz / every 0.25s while inactive)
 local passivePollTimer = 0
 EventWatcherFrame:SetScript("OnUpdate", function(self, elapsed)
-    local visMode = (LazySpeedBigginsDB and LazySpeedBigginsDB.visibilityMode) or "FLIGHT_ONLY"
+    local db = LazySpeedBigginsDB or DB_DEFAULTS
     
-    -- In ALWAYS or NO_COMBAT modes, or while high-speed loop is already running, skip
-    if visMode ~= "FLIGHT_ONLY" or isEngineActive or InCombatLockdown() then return end
+    -- If high-speed loop is already running, or if ground mode is on (which runs continuous loop), or in combat with hideInCombat on, skip
+    if isEngineActive or db.showGround or (db.hideInCombat and InCombatLockdown()) then return end
 
     passivePollTimer = passivePollTimer + elapsed
     if passivePollTimer < 0.25 then return end
     passivePollTimer = 0
 
-    -- If player launched into the air (Skyriding OR Steady Flight), activate the engine!
     local isGliding = GetGlidingInfo()
     local isSteadyFlying = IsFlying and IsFlying()
-    if isGliding or isSteadyFlying then
+    local isSwimming = IsSwimming and IsSwimming()
+    local isAirborne = isGliding or isSteadyFlying
+
+    if (isAirborne and db.showFlying) or (isSwimming and db.showSwimming) then
         LazySpeed_StartEngine()
     end
 end)

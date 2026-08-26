@@ -1,8 +1,8 @@
 ## Interface: 120100, 120007, 120010
 ## Title: |cFFFFD100LazySpeed Biggins|r
-## Notes: High-performance flight & movement speedometer with zero-allocation C++ rendering and Blizzard Gold UI.
+## Notes: High-performance flight, swim & movement speedometer with modular checkboxes and Blizzard Gold UI.
 ## Author: Biggins (Original logic by Darthterac)
-## Version: 3.2
+## Version: 3.3
 ## SavedVariables: LazySpeedBigginsDB
 
 LazySpeedBiggins.lua
