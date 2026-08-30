@@ -1,8 +1,8 @@
 ## Interface: 120100, 120007, 120010
 ## Title: |cFFFFD100LazySpeed Biggins|r
-## Notes: High-performance flight, swim & movement speedometer with nameplate-style HUD and Blizzard Gold UI.
+## Notes: High-performance flight HUD, speedometer & independent pitch gauge with Blizzard Gold UI.
 ## Author: Biggins (Original logic by Darthterac)
-## Version: 3.4
+## Version: 4.0
 ## SavedVariables: LazySpeedBigginsDB
 
 LazySpeedBiggins.lua

@@ -1,8 +1,8 @@
-# LazySpeed Biggins (v3.4)
+# LazySpeed Biggins (v4.0)
 
-A high-performance speedometer, flight, and swim gauge for *World of Warcraft: Midnight* (Patch 12.1+).
+A high-performance flight HUD, speedometer, pitch gauge, and swim telemetry instrument for *World of Warcraft: Midnight* (Patch 12.1+).
 
-Originally based on `LazySpeed` by Darthterac, this fork has been completely re-architected from the ground up for **maximum CPU efficiency, zero-allocation C++ memory management, modular checkbox settings, and a sleek nameplate-style integrated HUD**.
+Originally based on `LazySpeed` by Darthterac, this fork has been completely re-architected from the ground up for **maximum CPU efficiency, zero-allocation C++ memory management, modular checkbox settings, and a sleek nameplate-style integrated HUD with an independent vertical flight pitch meter**.
 
 ---
 
@@ -16,20 +16,26 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 
 ## 🚀 Key Features
 
-* **Nameplate-Style Integrated HUD:** A sleek 180px x 20px status bar with centered numeric and unit telemetry (`12pt OUTLINE` text overlaying the dynamic fill bar) for a clean, modern castbar / cooldown bar aesthetic.
-* **Modular Checkbox Triggers:** Pick and choose exactly when your speedometer wakes up:
+* **Nameplate-Style Speedometer (180px $\times$ 22px):** Sleek horizontal status bar with centered numeric and unit telemetry (`12pt OUTLINE` text overlaying the dynamic fill bar) for a clean, modern castbar / cooldown bar aesthetic.
+* **Independent Vertical Flight Pitch Meter:**
+  * Displays real-time climb and dive angles (in degrees, from `+90°` down to `-90°`).
+  * Features a center **Horizon Marker (`0°`)** with a vertical fill bar that grows upwards during climbs and downwards during dives.
+  * **Optimal Vigor Dive Indicator:** Lights up in **Electric Cyan** when diving between **`-15° and -45°`** (the sweet spot for Skyriding Thrill of the Skies / Vigor generation!).
+  * **Independently Draggable:** Left-click and drag the pitch gauge to position it anywhere on your screen separately from the speedometer.
+* **Modular Checkbox Triggers:** Pick and choose exactly when your instruments wake up:
   * ☑️ **Show While Flying / Skyriding:** Automatically activates during Skyriding, Dragonriding, and Steady Flight.
   * ☑️ **Show While Swimming:** Automatically activates when submerged in water, tracking swim speed and aquatic mounts (Seahorses, Turtles, Otters).
   * ⬜ **Show While on Ground:** Tracks on-foot and ground mount movement.
   * ☑️ **Hide During Combat (Killswitch):** Instantly detaches and hides during combat to keep your interface clean.
+  * ☑️ **Show Flight Pitch Meter:** Toggle the vertical pitch meter on or off.
 * **Contextual Color Theming:**
-  * **Flying / Ground:** Green (Cruising) $\rightarrow$ Yellow (High Speed) $\rightarrow$ Red (Max Thruster).
+  * **Speed:** Green (Cruising) $\rightarrow$ Yellow (High Speed) $\rightarrow$ Red (Max Thruster).
   * **Swimming:** Deep Ocean Blue $\rightarrow$ Electric Cyan gradient.
-* **Zero-Allocation C++ Rendering Pipeline:** Formats speed values directly inside Blizzard's native C++ engine via `FontString:SetFormattedText()` using pre-cached static format string pointers. No temporary string objects are ever created on Lua's garbage-collected heap.
-* **True Script Detachment Engine (`OnUpdate = nil`):** When inactive on the ground or in combat, the `OnUpdate` script is completely unhooked from the frame engine. This guarantees zero background function calls while walking, standing, or fighting in dungeons and raids.
-* **Stationary "Dirty Check":** Includes an idle gate that detects when speed is zero and skips redundant text reformatting and GPU status bar redraws while standing still.
-* **Hardware-Accelerated UI:** Single native Blizzard `StatusBar` with smooth fill and classic Blizzard Metallic Gold backdrop.
-* **Draggable & Moveable:** Left-click and drag the frame anywhere on your screen.
+  * **Pitch:** Green (Climbing) $\rightarrow$ White/Gold (Level) $\rightarrow$ Electric Cyan (Vigor Sweet Spot) $\rightarrow$ Yellow/Red (Steep Dive).
+* **Zero-Allocation C++ Rendering Pipeline:** Formats speed and pitch values directly inside Blizzard's native C++ engine via `FontString:SetFormattedText()` using pre-cached static format string pointers. No temporary string objects are ever created on Lua's garbage-collected heap.
+* **True Script Detachment Engine (`OnUpdate = nil`):** When inactive on the ground or in combat, the `OnUpdate` script is completely unhooked from the frame engine (guaranteed 0.00ms background CPU).
+* **Stationary "Dirty Check":** Includes an idle gate that detects when values are unchanged and skips redundant text reformatting and GPU status bar redraws.
+* **Hardware-Accelerated UI:** Native Blizzard `StatusBar` with smooth fill and classic Blizzard Metallic Gold backdrop.
 
 ---
 
@@ -42,6 +48,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 * **Show While Swimming** *(Default: ON)*
 * **Show While on Ground** *(Default: OFF)*
 * **Hide During Combat** *(Default: ON)*
+* **Show Flight Pitch Meter** *(Default: ON)*
 
 ### 2. Speed Measurement Unit
 * **Miles per Hour (mph)** *(Default)*
@@ -67,7 +74,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 ## 👥 Credits & Attribution
 
 * **Original Addon & Concept:** Created by **Darthterac** — [LazySpeed on CurseForge](https://www.curseforge.com/wow/addons/lazyspeed)
-* **v3.0 - v3.4 Architecture, Zero-Allocation Engine, Swim Mode, Nameplate UI & Settings:** Biggins (US-Whisperwind)
+* **v3.0 - v4.0 Architecture, Zero-Allocation Engine, Swim Mode, Nameplate UI, Flight Pitch Meter & Settings:** Biggins (US-Whisperwind)
 
 Please support and check out the original project by Darthterac at https://www.curseforge.com/wow/addons/lazyspeed!
 
