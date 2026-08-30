@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.3 — High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.4 — High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
@@ -8,18 +8,22 @@
     1. Zero Idle Footprint: When inactive based on user settings (e.g. grounded in
        Flight/Swim-Only mode, or in combat), the OnUpdate script is completely detached
        (SetScript("OnUpdate", nil)) and the frame is hidden (0.00ms CPU).
-    2. Modular Blizzard Checkbox Settings: Direct integration into Options -> AddOns
+    2. Nameplate-Style Integrated HUD: Sleek 180px x 20px status bar with centered
+       numeric and unit telemetry (overlaying the dynamic fill bar) for a clean,
+       modern castbar / cooldown bar aesthetic.
+    3. Modular Blizzard Checkbox Settings: Direct integration into Options -> AddOns
        with native checkboxes:
          - Show While Flying / Skyriding
          - Show While Swimming (Aquatic mounts, swim speed buffs)
          - Show While on Ground
          - Hide During Combat (Killswitch)
-    3. Dynamic Contextual Theming:
+         - Speed Measurement Unit Dropdown (y/s, mph, km/h)
+    4. Dynamic Contextual Theming:
          - Flying / Ground: Green (Cruising) -> Yellow (High Speed) -> Red (Max Thruster)
          - Swimming: Ocean Blue -> Electric Cyan gradient
-    4. Zero-Allocation C++ Rendering: Formats numbers directly in native C++ using
+    5. Zero-Allocation C++ Rendering: Formats numbers directly in native C++ using
        FontString:SetFormattedText() with pre-cached static format string pointers.
-    5. Hardware-Accelerated UI: Single Blizzard StatusBar with dynamic color shift
+    6. Hardware-Accelerated UI: Single Blizzard StatusBar with dynamic color shift
        and classic Blizzard Tooltip & Metallic Gold frame skin.
 ============================================================================== ]]--
 
@@ -54,7 +58,7 @@ local MAX_CAP_SWIM   = 20.0     -- Max Swimming / Aquatic mount speed cap (~41 m
 local MAX_CAP_GROUND = 42.0     -- Max Ground speed cap (running/sprint/ground mounts)
 
 -- Unit Modes: 1 = Yards/Sec, 2 = MPH, 3 = KM/H
-local modeLabels = { "Y/S", "MPH", "KM/H" }
+local modeLabels = { "y/s", "mph", "km/h" }
 
 -- Runtime State Variables
 local isEngineActive  = false   -- True only when the high-speed loop is actively attached
@@ -80,24 +84,24 @@ local DB_DEFAULTS = {
 }
 
 -- ==============================================================================
--- 3. UI FRAME CREATION & BLIZZARD GOLD BACKDROP
+-- 3. UI FRAME CREATION & NAMEPLATE-STYLE BLIZZARD GOLD BACKDROP
 -- ------------------------------------------------------------------------------
--- Creates the main visual container frame with a dark slate background and 
--- Blizzard metallic gold border. Starts HIDDEN by default.
+-- Creates the main 180px x 20px visual container frame with a dark slate background
+-- and Blizzard metallic gold border. Starts HIDDEN by default.
 -- ==============================================================================
 local SpeedoFrame = CreateFrame("Frame", "LazySpeedBigginsFrame", UIParent, "BackdropTemplate")
-SpeedoFrame:SetSize(130, 32)
+SpeedoFrame:SetSize(180, 22)
 SpeedoFrame:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
 SpeedoFrame:Hide() -- Starts hidden; shown only when active according to user settings
 
--- Classic Blizzard Tooltip Backdrop Styling
+-- Classic Blizzard Tooltip Backdrop Styling (Sleek 12px Edge Size)
 SpeedoFrame:SetBackdrop({
     bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
     tile     = true, 
-    tileSize = 16, 
-    edgeSize = 16,
-    insets   = { left = 4, right = 4, top = 4, bottom = 4 }
+    tileSize = 12, 
+    edgeSize = 12,
+    insets   = { left = 3, right = 3, top = 3, bottom = 3 }
 })
 SpeedoFrame:SetBackdropColor(0.05, 0.05, 0.05, 0.85)
 SpeedoFrame:SetBackdropBorderColor(0.8, 0.7, 0.2, 1) -- Blizzard Metallic Gold
@@ -110,57 +114,13 @@ SpeedoFrame:SetScript("OnDragStart", SpeedoFrame.StartMoving)
 SpeedoFrame:SetScript("OnDragStop", SpeedoFrame.StopMovingOrSizing)
 
 -- ==============================================================================
--- 4. SPEED DISPLAY TEXT & TOGGLE BUTTON
--- ==============================================================================
-
--- Speed Number Display (Positioned right above the status bar)
-local SpeedText = SpeedoFrame:CreateFontString(nil, "OVERLAY")
-SpeedText:SetPoint("BOTTOM", SpeedoFrame, "TOP", 0, 4)
-SpeedText:SetFont(STANDARD_TEXT_FONT, 16, "OUTLINE")
-SpeedText:SetTextColor(1, 0.82, 0, 1) -- Blizzard Gold
-SpeedText:SetText("0.0 mph")
-
--- Unit Toggle Button (Attached to the right side of the main frame)
-local ToggleBtn = CreateFrame("Button", nil, SpeedoFrame, "BackdropTemplate")
-ToggleBtn:SetSize(40, 32)
-ToggleBtn:SetPoint("LEFT", SpeedoFrame, "RIGHT", 4, 0)
-
-ToggleBtn:SetBackdrop({
-    bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile     = true, 
-    tileSize = 12, 
-    edgeSize = 12,
-    insets   = { left = 3, right = 3, top = 3, bottom = 3 }
-})
-ToggleBtn:SetBackdropColor(0.05, 0.05, 0.05, 0.85)
-ToggleBtn:SetBackdropBorderColor(0.8, 0.7, 0.2, 1)
-
-local ToggleText = ToggleBtn:CreateFontString(nil, "OVERLAY")
-ToggleText:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
-ToggleText:SetPoint("CENTER", ToggleBtn, "CENTER", 0, 0)
-ToggleText:SetTextColor(1, 0.82, 0, 1)
-ToggleText:SetText("MPH")
-
--- Left-Clicking cycles through Y/S -> MPH -> KM/H and saves to DB
-ToggleBtn:SetScript("OnClick", function(self, button)
-    LazySpeedBigginsDB.unitMode = (LazySpeedBigginsDB.unitMode or 2) + 1
-    if LazySpeedBigginsDB.unitMode > 3 then LazySpeedBigginsDB.unitMode = 1 end
-    ToggleText:SetText(modeLabels[LazySpeedBigginsDB.unitMode])
-end)
-
--- Hover highlight visual feedback
-ToggleBtn:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(1, 1, 1, 1) end)
-ToggleBtn:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(0.8, 0.7, 0.2, 1) end)
-
--- ==============================================================================
--- 5. HARDWARE-ACCELERATED STATUS BAR
+-- 4. HARDWARE-ACCELERATED STATUS BAR & INTEGRATED TELEMETRY TEXT
 -- ------------------------------------------------------------------------------
--- Uses a single native Blizzard StatusBar rather than 30 separate texture objects.
--- This reduces GPU draw calls and completely eliminates multi-frame redraw loops.
+-- Uses a single native Blizzard StatusBar with centered overlay text for that
+-- clean, integrated nameplate / cooldown bar look.
 -- ==============================================================================
 local StatusBar = CreateFrame("StatusBar", nil, SpeedoFrame)
-StatusBar:SetSize(118, 16)
+StatusBar:SetSize(174, 16)
 StatusBar:SetPoint("CENTER", SpeedoFrame, "CENTER", 0, 0)
 StatusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 StatusBar:SetMinMaxValues(0, 1)
@@ -170,7 +130,16 @@ StatusBar:SetStatusBarColor(0.2, 0.8, 0.2, 1) -- Blizzard Green
 local StatusBarBG = StatusBar:CreateTexture(nil, "BACKGROUND")
 StatusBarBG:SetAllPoints(StatusBar)
 StatusBarBG:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
-StatusBarBG:SetVertexColor(0.05, 0.05, 0.05, 0.7)
+StatusBarBG:SetVertexColor(0.05, 0.05, 0.05, 0.75)
+
+-- Speed Telemetry Display (Centered directly inside the StatusBar overlay)
+local SpeedText = StatusBar:CreateFontString(nil, "OVERLAY")
+SpeedText:SetPoint("CENTER", StatusBar, "CENTER", 0, 0)
+SpeedText:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+SpeedText:SetTextColor(1, 1, 1, 1) -- Crisp White with Black Outline for high contrast
+SpeedText:SetShadowOffset(1, -1)
+SpeedText:SetShadowColor(0, 0, 0, 1)
+SpeedText:SetText("0.0 mph")
 
 -- Helper: Reset visual elements to zero state
 local function ResetDisplay()
@@ -188,7 +157,7 @@ local function ResetDisplay()
 end
 
 -- ==============================================================================
--- 6. HIGH-SPEED UPDATE LOOP (20 FPS — Throttled & Zero-Allocation)
+-- 5. HIGH-SPEED UPDATE LOOP (20 FPS — Throttled & Zero-Allocation)
 -- ------------------------------------------------------------------------------
 -- This loop executes ONLY when isEngineActive is true.
 -- ==============================================================================
@@ -219,29 +188,25 @@ local function SpeedometerUpdateLoop(self, elapsed)
     if isGliding then
         currentSpeed = forwardSpeed or 0
         maxCap = MAX_CAP_FLIGHT
-        if db.showFlying then isCurrentStateActive = true end
+        isCurrentStateActive = db.showFlying
     elseif isSteadyFlying then
         currentSpeed = rawGroundSpeed or 0
         maxCap = MAX_CAP_FLIGHT
-        if db.showFlying then isCurrentStateActive = true end
+        isCurrentStateActive = db.showFlying
     elseif isSwimming then
         currentSpeed = rawGroundSpeed or 0
         maxCap = MAX_CAP_SWIM
-        if db.showSwimming then isCurrentStateActive = true end
-    elseif rawGroundSpeed and rawGroundSpeed > 0 then
-        currentSpeed = rawGroundSpeed
-        maxCap = MAX_CAP_GROUND
-        if db.showGround then isCurrentStateActive = true end
+        isCurrentStateActive = db.showSwimming
     else
-        currentSpeed = 0
+        currentSpeed = rawGroundSpeed or 0
         maxCap = MAX_CAP_GROUND
-        if db.showGround then isCurrentStateActive = true end
+        isCurrentStateActive = db.showGround
     end
 
-    -- State Debounce: If current state is no longer enabled, shut down gracefully after 0.25s
+    -- Landing / State Termination Debounce
     if not isCurrentStateActive then
         landingDebounce = landingDebounce + 0.05
-        if landingDebounce >= 0.25 then
+        if landingDebounce >= 1.0 then
             LazySpeed_StopEngine()
             return
         end
@@ -291,7 +256,7 @@ local function SpeedometerUpdateLoop(self, elapsed)
 end
 
 -- ==============================================================================
--- 7. LIFECYCLE CONTROLLER (Engine Start, Stop, & State Evaluation)
+-- 6. LIFECYCLE CONTROLLER (Engine Start, Stop, & State Evaluation)
 -- ==============================================================================
 
 -- Starts the 20 FPS high-speed update engine (Attaches OnUpdate script & shows UI)
@@ -353,7 +318,7 @@ function LazySpeed_EvaluateState()
 end
 
 -- ==============================================================================
--- 8. BLIZZARD MODERN SETTINGS API INTEGRATION (Escape -> Options -> AddOns)
+-- 7. BLIZZARD MODERN SETTINGS API INTEGRATION (Escape -> Options -> AddOns)
 -- ------------------------------------------------------------------------------
 -- Registers native checkboxes and dropdowns in WoW's official settings panel.
 -- ==============================================================================
@@ -411,7 +376,6 @@ local function InitializeBlizzardSettings()
     -- 6. Hook Callback when unit is changed from settings menu
     unitSetting:SetValueChangedCallback(function(setting, value)
         LazySpeedBigginsDB.unitMode = value
-        ToggleText:SetText(modeLabels[value])
         lastSpeed = -1 -- Invalidate dirty check to trigger immediate UI redraw
         ResetDisplay()
     end)
@@ -424,7 +388,7 @@ local function InitializeBlizzardSettings()
 end
 
 -- ==============================================================================
--- 9. EVENT CONTROLLER & PASSIVE WATCHER (Low-Frequency Background Gating)
+-- 8. EVENT CONTROLLER & PASSIVE WATCHER (Low-Frequency Background Gating)
 -- ==============================================================================
 local EventWatcherFrame = CreateFrame("Frame")
 
@@ -466,9 +430,6 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
             end
         end
 
-        -- Update UI Toggle Button text to match saved unit
-        ToggleText:SetText(modeLabels[LazySpeedBigginsDB.unitMode or 2])
-
         -- Register Blizzard Settings Panel
         InitializeBlizzardSettings()
 
@@ -505,3 +466,32 @@ EventWatcherFrame:SetScript("OnUpdate", function(self, elapsed)
         LazySpeed_StartEngine()
     end
 end)
+
+-- ==============================================================================
+-- 9. SLASH COMMANDS (/lazyspeed, /lsb)
+-- ==============================================================================
+SLASH_LAZYSPEED1 = "/lazyspeed"
+SLASH_LAZYSPEED2 = "/lsb"
+SlashCmdList["LAZYSPEED"] = function(msg)
+    local command = msg:lower():trim()
+    if command == "options" or command == "config" or command == "settings" then
+        if Settings and Settings.OpenToCategory then
+            Settings.OpenToCategory("LazySpeed Biggins")
+        end
+    elseif command == "toggle" then
+        if isEngineActive then
+            LazySpeed_StopEngine()
+        else
+            LazySpeed_StartEngine()
+        end
+    elseif command == "reset" then
+        SpeedoFrame:ClearAllPoints()
+        SpeedoFrame:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position reset to center.")
+    else
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.4|r:")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r — Open options menu.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r — Reset position.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r — Toggle speedometer display.")
+    end
+end

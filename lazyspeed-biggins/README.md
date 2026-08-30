@@ -1,8 +1,8 @@
-# LazySpeed Biggins (v3.3)
+# LazySpeed Biggins (v3.4)
 
 A high-performance speedometer, flight, and swim gauge for *World of Warcraft: Midnight* (Patch 12.1+).
 
-Originally based on `LazySpeed` by Darthterac, this fork has been completely re-architected from the ground up for **maximum CPU efficiency, zero-allocation C++ memory management, modular checkbox settings, and seamless native Blizzard UI integration**.
+Originally based on `LazySpeed` by Darthterac, this fork has been completely re-architected from the ground up for **maximum CPU efficiency, zero-allocation C++ memory management, modular checkbox settings, and a sleek nameplate-style integrated HUD**.
 
 ---
 
@@ -16,6 +16,7 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 
 ## 🚀 Key Features
 
+* **Nameplate-Style Integrated HUD:** A sleek 180px x 20px status bar with centered numeric and unit telemetry (`12pt OUTLINE` text overlaying the dynamic fill bar) for a clean, modern castbar / cooldown bar aesthetic.
 * **Modular Checkbox Triggers:** Pick and choose exactly when your speedometer wakes up:
   * ☑️ **Show While Flying / Skyriding:** Automatically activates during Skyriding, Dragonriding, and Steady Flight.
   * ☑️ **Show While Swimming:** Automatically activates when submerged in water, tracking swim speed and aquatic mounts (Seahorses, Turtles, Otters).
@@ -34,7 +35,7 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 
 ## 🎛️ Blizzard Settings Integration
 
-LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> LazySpeed Biggins`) with native checkbox controls:
+LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> LazySpeed Biggins` or `/lazyspeed`):
 
 ### 1. Modular Visibility Checkboxes
 * **Show While Flying / Skyriding** *(Default: ON)*
@@ -46,8 +47,6 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 * **Miles per Hour (mph)** *(Default)*
 * **Yards per Second (y/s)**
 * **Kilometers per Hour (km/h)**
-
-*Note: You can also left-click the on-screen `[MPH]` button to cycle units on the fly. Settings stay in 100% real-time synchronization with the options menu.*
 
 ---
 
@@ -68,7 +67,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 ## 👥 Credits & Attribution
 
 * **Original Addon & Concept:** Created by **Darthterac** — [LazySpeed on CurseForge](https://www.curseforge.com/wow/addons/lazyspeed)
-* **v3.0 - v3.3 Architecture, Zero-Allocation Engine, Swim Mode & Settings UI:** Biggins (US-Whisperwind)
+* **v3.0 - v3.4 Architecture, Zero-Allocation Engine, Swim Mode, Nameplate UI & Settings:** Biggins (US-Whisperwind)
 
 Please support and check out the original project by Darthterac at https://www.curseforge.com/wow/addons/lazyspeed!
 
