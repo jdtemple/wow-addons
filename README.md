@@ -10,15 +10,20 @@ All projects here are open source and shared freely under the [MIT License](LICE
 
 ## 📦 Projects in this Repository
 
-### 🚀 [LazySpeed Biggins (v3.0)](./lazyspeed-biggins)
-A high-performance, flight-only movement speedometer and flight gauge designed for *World of Warcraft: Midnight* (Patch 12.1+), based on [LazySpeed by Darthterac](https://www.curseforge.com/wow/addons/lazyspeed).
+### 🚀 [LazySpeed Biggins (v3.4)](./lazyspeed-biggins)
+A high-performance flight, swim, and movement speedometer featuring a sleek nameplate-style HUD, designed for *World of Warcraft: Midnight* and *The War Within*. Originally based on [LazySpeed by Darthterac](https://www.curseforge.com/wow/addons/lazyspeed).
 
+* **Nameplate-Style Integrated HUD:** A compact 180px × 20px status bar with centered high-contrast telemetry (`12pt OUTLINE` font) overlaid directly on the dynamic fill bar for a clean, modern castbar aesthetic.
+* **Modular Visibility Triggers:** Fully customizable behavior via native Blizzard settings checkboxes:
+  * 🦅 **Show While Flying / Skyriding** *(Default: ON)*
+  * 🐟 **Show While Swimming** *(Default: ON)* — with dynamic Deep Ocean Blue $\rightarrow$ Electric Cyan gradient!
+  * 🐎 **Show While on Ground** *(Default: OFF)*
+  * ⚔️ **Hide During Combat** *(Default: ON)* — instant killswitch detachment.
 * **Zero Idle Footprint:** Completely unhooks its update script (`OnUpdate = nil`) when grounded or dormant, achieving a verified **0.00ms CPU footprint** on foot.
-* **Zero-Allocation C++ Pipeline:** Renders text using Blizzard's native `FontString:SetFormattedText()` with pre-cached static format strings, eliminating Lua garbage collection (GC) heap allocations.
+* **Zero-Allocation C++ Pipeline:** Renders text using Blizzard's native `FontString:SetFormattedText()` with pre-cached static format string pointers, generating **0 bytes/sec of Lua garbage** heap allocations.
 * **Stationary Dirty Check:** Skips redundant GPU texture redraws and text updates when stationary (`currentSpeed == 0`).
-* **Hard Combat Killswitch:** Instantly terminates and hides upon entering combat (`PLAYER_REGEN_DISABLED`) to eliminate any risk of dungeon or raid lockups.
-* **Blizzard Settings Integration:** Full native settings panel in `Escape -> Options -> AddOns -> LazySpeed Biggins` with configurable **Visibility Modes** and **Speed Units** (Y/S, MPH, KM/H).
-* **Hardware-Accelerated UI:** Single smooth Blizzard `StatusBar` featuring dynamic color shifts (Green -> Yellow -> Red) and a classic Blizzard Metallic Gold backdrop.
+* **Blizzard Settings Integration:** Full native settings panel in `Escape -> Options -> AddOns -> LazySpeed Biggins` (or `/lazyspeed` / `/lsb`) with configurable **Speed Units** (MPH, Y/S, KM/H) and modular triggers.
+* **Release & Publishing Guide:** See [CURSEFORGE_PUBLISHING.md](CURSEFORGE_PUBLISHING.md) for packaging and distribution instructions.
 
 ---
 

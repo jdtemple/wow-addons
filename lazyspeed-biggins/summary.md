@@ -1,0 +1,1 @@
+High-performance, zero-allocation flight and swim speedometer featuring a sleek nameplate HUD, modular visibility triggers, and classic Blizzard Gold styling.
