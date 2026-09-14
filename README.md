@@ -10,7 +10,7 @@ All projects here are open source and shared freely under the [MIT License](LICE
 
 ## 📦 Projects in this Repository
 
-### 🚀 [LazySpeed Biggins (v3.4)](./lazyspeed-biggins)
+### 🚀 [LazySpeed Biggins (v3.4.1)](./lazyspeed-biggins)
 A high-performance flight, swim, and movement speedometer featuring a sleek nameplate-style HUD, designed for *World of Warcraft: Midnight* and *The War Within*. Originally based on [LazySpeed by Darthterac](https://www.curseforge.com/wow/addons/lazyspeed).
 
 * **Nameplate-Style Integrated HUD:** A compact 180px × 20px status bar with centered high-contrast telemetry (`12pt OUTLINE` font) overlaid directly on the dynamic fill bar for a clean, modern castbar aesthetic.

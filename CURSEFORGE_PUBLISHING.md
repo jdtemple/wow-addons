@@ -18,22 +18,17 @@ CurseForge requires addon archives to be structured so that extracting the ZIP p
 
 The folder name inside the ZIP **must match the `.toc` file prefix** (e.g. `LazySpeedBiggins`).
 
-### Automated Packaging Command (PowerShell)
-Run the following command from the addon's directory (`lazyspeed-biggins/`) to generate a clean distribution ZIP:
+### Automated Packaging Script (PowerShell)
+Run the automated packaging script from the addon's directory (`lazyspeed-biggins/`) to generate a clean distribution ZIP:
 
 ```powershell
 # Run from within lazyspeed-biggins/
-powershell -NoProfile -Command "
-  New-Item -ItemType Directory -Path 'dist\LazySpeedBiggins' -Force | Out-Null;
-  Copy-Item 'LazySpeedBiggins.lua', 'LazySpeedBiggins.toc', 'README.md' -Destination 'dist\LazySpeedBiggins\';
-  Compress-Archive -Path 'dist\LazySpeedBiggins' -DestinationPath 'dist\LazySpeedBiggins-v3.4.zip' -Force;
-  Get-Item 'dist\LazySpeedBiggins-v3.4.zip' | Select-Object Name, Length, FullName;
-"
+.\package.ps1
 ```
 
-The output file will be generated at:
+The script automatically detects the current version from `LazySpeedBiggins.toc`, stages the files, creates the release ZIP, and cleans up the staging area:
 ```
-lazyspeed-biggins/dist/LazySpeedBiggins-v3.4.zip
+lazyspeed-biggins/dist/LazySpeedBiggins-v<version>.zip
 ```
 
 ### Archive Structure Verification
