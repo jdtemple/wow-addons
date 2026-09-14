@@ -66,7 +66,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 
 ## 👥 Credits & Attribution
 
-* **Original Addon & Concept:** Created by **Darthterac** - [LazySpeed on CurseForge](https://www.curseforge.com/wow/addons/lazyspeed)
+* **Original Addon & Concept:** Created by **Darthterac** — [LazySpeed on CurseForge](https://www.curseforge.com/wow/addons/lazyspeed)
 * **v3.0 - v3.4 Architecture, Zero-Allocation Engine, Swim Mode, Nameplate UI & Settings:** Biggins (US-Whisperwind)
 
 Please support and check out the original project by Darthterac at https://www.curseforge.com/wow/addons/lazyspeed!
@@ -75,4 +75,4 @@ Please support and check out the original project by Darthterac at https://www.c
 
 ## 📄 License
 
-This project is licensed under the [MIT License](../../LICENSE) - feel free to use, modify, distribute, or incorporate this code into your own projects.
+This project is licensed under the [MIT License](../../LICENSE) — feel free to use, modify, distribute, or incorporate this code into your own projects.
