@@ -80,4 +80,4 @@ Simply search for **LazySpeed Biggins** in the CurseForge App and click **Instal
 
 ## 📄 License
 
-Licensed under the **MIT License** — free to use, modify, and distribute.
+Licensed under the **MIT License** - free to use, modify, and distribute.

@@ -16,9 +16,9 @@ A high-performance flight, swim, and movement speedometer featuring a sleek name
 * **Nameplate-Style Integrated HUD:** A compact 180px × 20px status bar with centered high-contrast telemetry (`12pt OUTLINE` font) overlaid directly on the dynamic fill bar for a clean, modern castbar aesthetic.
 * **Modular Visibility Triggers:** Fully customizable behavior via native Blizzard settings checkboxes:
   * 🦅 **Show While Flying / Skyriding** *(Default: ON)*
-  * 🐟 **Show While Swimming** *(Default: ON)* — with dynamic Deep Ocean Blue $\rightarrow$ Electric Cyan gradient!
+  * 🐟 **Show While Swimming** *(Default: ON)* - with dynamic Deep Ocean Blue $\rightarrow$ Electric Cyan gradient!
   * 🐎 **Show While on Ground** *(Default: OFF)*
-  * ⚔️ **Hide During Combat** *(Default: ON)* — instant killswitch detachment.
+  * ⚔️ **Hide During Combat** *(Default: ON)* - instant killswitch detachment.
 * **Zero Idle Footprint:** Completely unhooks its update script (`OnUpdate = nil`) when grounded or dormant, achieving a verified **0.00ms CPU footprint** on foot.
 * **Zero-Allocation C++ Pipeline:** Renders text using Blizzard's native `FontString:SetFormattedText()` with pre-cached static format string pointers, generating **0 bytes/sec of Lua garbage** heap allocations.
 * **Stationary Dirty Check:** Skips redundant GPU texture redraws and text updates when stationary (`currentSpeed == 0`).
@@ -42,4 +42,4 @@ The addons in this repository adhere to the following engineering standards:
 
 ## 📄 License
 
-This repository is licensed under the [MIT License](LICENSE) — feel free to use, modify, distribute, or incorporate any of this code into your own projects.
+This repository is licensed under the [MIT License](LICENSE) - feel free to use, modify, distribute, or incorporate any of this code into your own projects.

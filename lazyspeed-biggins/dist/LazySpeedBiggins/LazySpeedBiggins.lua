@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.4 — High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.4 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
@@ -157,7 +157,7 @@ local function ResetDisplay()
 end
 
 -- ==============================================================================
--- 5. HIGH-SPEED UPDATE LOOP (20 FPS — Throttled & Zero-Allocation)
+-- 5. HIGH-SPEED UPDATE LOOP (20 FPS - Throttled & Zero-Allocation)
 -- ------------------------------------------------------------------------------
 -- This loop executes ONLY when isEngineActive is true.
 -- ==============================================================================
@@ -490,8 +490,8 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position reset to center.")
     else
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.4|r:")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r — Open options menu.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r — Reset position.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r — Toggle speedometer display.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r - Reset position.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle speedometer display.")
     end
 end
