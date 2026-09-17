@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.5.0 - High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.6.0 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
@@ -18,6 +18,7 @@
          - Show While on Ground
          - Hide During Combat (Killswitch)
          - Speed Measurement Unit Dropdown (y/s, mph, km/h, %)
+         - Custom Bar Width & Height Sliders with Dynamic Font Scaling
     4. Dynamic Contextual Theming:
          - Flying / Ground: Green (Cruising) -> Yellow (High Speed) -> Red (Max Thruster)
          - Swimming: Ocean Blue -> Electric Cyan gradient
@@ -83,6 +84,8 @@ local DB_DEFAULTS = {
     showGround    = false, -- Show while on Ground (foot or ground mounts)
     hideInCombat  = true,  -- Hide immediately during combat
     unitMode      = 2,     -- Default to MPH (2)
+    barWidth      = 180,   -- Frame width in pixels (Range: 100 - 300)
+    barHeight     = 22,    -- Frame height in pixels (Range: 14 - 36)
 }
 
 -- ==============================================================================
@@ -142,6 +145,20 @@ SpeedText:SetTextColor(1, 1, 1, 1) -- Crisp White with Black Outline for high co
 SpeedText:SetShadowOffset(1, -1)
 SpeedText:SetShadowColor(0, 0, 0, 1)
 SpeedText:SetText("0.0 mph")
+
+-- Dynamically updates frame dimensions and font scaling based on user settings
+local function UpdateFrameDimensions()
+    local db = LazySpeedBigginsDB or DB_DEFAULTS
+    local width = db.barWidth or 180
+    local height = db.barHeight or 22
+
+    SpeedoFrame:SetSize(width, height)
+    StatusBar:SetSize(max(width - 6, 20), max(height - 6, 8))
+
+    -- Dynamically scale font size with bar height (12pt at default 22px height)
+    local fontSize = min(max(math.floor(height * 0.55), 9), 20)
+    SpeedText:SetFont(STANDARD_TEXT_FONT, fontSize, "OUTLINE")
+end
 
 -- Helper: Reset visual elements to zero state
 local function ResetDisplay()
@@ -326,8 +343,27 @@ end
 -- ==============================================================================
 -- 7. BLIZZARD MODERN SETTINGS API INTEGRATION (Escape -> Options -> AddOns)
 -- ------------------------------------------------------------------------------
--- Registers native checkboxes and dropdowns in WoW's official settings panel.
+-- Registers native checkboxes, dropdowns, sliders & reset button in WoW settings.
 -- ==============================================================================
+local registeredSettings = {}
+
+local function ResetAllToDefaults()
+    for varName, defVal in pairs(DB_DEFAULTS) do
+        local setting = registeredSettings[varName]
+        if setting then
+            setting:SetValue(defVal)
+        end
+        if LazySpeedBigginsDB then
+            LazySpeedBigginsDB[varName] = defVal
+        end
+    end
+    UpdateFrameDimensions()
+    LazySpeed_EvaluateState()
+    lastSpeed = -1
+    ResetDisplay()
+    DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: All options have been reset to default.")
+end
+
 local function InitializeBlizzardSettings()
     if not Settings or not Settings.RegisterVerticalLayoutCategory then return end
 
@@ -350,6 +386,7 @@ local function InitializeBlizzardSettings()
             LazySpeed_EvaluateState()
         end)
         Settings.CreateCheckbox(category, setting, tooltip)
+        registeredSettings[varName] = setting
         return setting
     end
 
@@ -386,11 +423,65 @@ local function InitializeBlizzardSettings()
         lastSpeed = -1 -- Invalidate dirty check to trigger immediate UI redraw
         ResetDisplay()
     end)
+    registeredSettings["unitMode"] = unitSetting
 
     -- 7. Create native Blizzard Dropdown for Units
     Settings.CreateDropdown(category, unitSetting, GetUnitDropdownOptions, "Choose your preferred speed measurement unit.")
 
-    -- 8. Register Category into Blizzard Settings Panel
+    -- 8. Helper to register numeric Slider Settings
+    local function RegisterSlider(varName, label, tooltip, minValue, maxValue, step, defaultValue)
+        local setting = Settings.RegisterAddOnSetting(
+            category,
+            "LazySpeedBiggins_" .. varName,
+            varName,
+            LazySpeedBigginsDB,
+            Settings.VarType.Number,
+            label,
+            defaultValue
+        )
+        local options = Settings.CreateSliderOptions(minValue, maxValue, step)
+        if MinimalSliderWithSteppersMixin and MinimalSliderWithSteppersMixin.Label and MinimalSliderWithSteppersMixin.Label.Right then
+            options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)
+        end
+        setting:SetValueChangedCallback(function(setting, value)
+            LazySpeedBigginsDB[varName] = value
+            UpdateFrameDimensions()
+        end)
+        Settings.CreateSlider(category, setting, options, tooltip)
+        registeredSettings[varName] = setting
+        return setting
+    end
+
+    -- 9. Register Width & Height Sliders (1px granular step)
+    RegisterSlider("barWidth",  "Bar Width",  "Adjust the horizontal width of the speedometer bar (in pixels).", 100, 300, 1, 180)
+    RegisterSlider("barHeight", "Bar Height", "Adjust the vertical height of the speedometer bar (in pixels).", 14, 36, 1, 22)
+
+    -- 10. Register "Reset to Defaults" Button
+    if layout and layout.AddInitializer then
+        local btnInitializer
+        if CreateSettingsButtonInitializer then
+            btnInitializer = CreateSettingsButtonInitializer(
+                "Reset All Options",
+                "Reset to Defaults",
+                ResetAllToDefaults,
+                "Restores all checkboxes, speed units, and bar dimensions back to their default settings.",
+                false
+            )
+        elseif Settings and Settings.CreateElementInitializer then
+            btnInitializer = Settings.CreateElementInitializer("SettingButtonControlTemplate", {
+                name = "Reset All Options",
+                buttonText = "Reset to Defaults",
+                buttonClick = ResetAllToDefaults,
+                tooltip = "Restores all checkboxes, speed units, and bar dimensions back to their default settings.",
+            })
+        end
+
+        if btnInitializer then
+            layout:AddInitializer(btnInitializer)
+        end
+    end
+
+    -- 11. Register Category into Blizzard Settings Panel
     Settings.RegisterAddOnCategory(category)
 end
 
@@ -436,6 +527,9 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
                 LazySpeedBigginsDB[key] = value
             end
         end
+
+        -- Apply user saved dimensions and font scaling
+        UpdateFrameDimensions()
 
         -- Register Blizzard Settings Panel
         InitializeBlizzardSettings()
@@ -491,14 +585,22 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         else
             LazySpeed_StartEngine()
         end
+    elseif command == "defaults" or command == "reset defaults" then
+        ResetAllToDefaults()
     elseif command == "reset" then
         SpeedoFrame:ClearAllPoints()
         SpeedoFrame:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position reset to center.")
+        if LazySpeedBigginsDB then
+            LazySpeedBigginsDB.barWidth = 180
+            LazySpeedBigginsDB.barHeight = 22
+        end
+        UpdateFrameDimensions()
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position and dimensions reset to default.")
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.5.0|r:")
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.6.0|r:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r - Reset position.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed defaults|r - Reset all options to default.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle speedometer display.")
     end
 end

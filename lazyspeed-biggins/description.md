@@ -6,7 +6,7 @@ Engineered with a sleek, modern **nameplate-style HUD** and a classic **Blizzard
 
 ---
 
-## 👥 Credits & Attribution
+## Credits & Attribution
 
 This project is a modernized, ground-up performance re-architecture of the classic addon **[LazySpeed by Darthterac](https://www.curseforge.com/wow/addons/lazyspeed)**. 
 
@@ -14,7 +14,7 @@ Huge thanks and full credit go to **Darthterac** for creating the original conce
 
 ---
 
-## ⚡ What Makes LazySpeed Biggins Different?
+## What Makes LazySpeed Biggins Different?
 
 While traditional speedometers run continuous background timers that churn through memory, **LazySpeed Biggins** was built from the ground up for **extreme CPU efficiency and zero memory overhead**:
 
@@ -25,24 +25,24 @@ While traditional speedometers run continuous background timers that churn throu
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-* **Sleek Nameplate HUD:** A compact 180px × 20px status bar featuring centered high-contrast typography (`12pt OUTLINE`) overlaid directly on the dynamic fill bar for a clean, modern aesthetic.
+* **Sleek Nameplate HUD:** A compact 180px x 20px status bar featuring centered high-contrast typography (`12pt OUTLINE`) overlaid directly on the dynamic fill bar for a clean, modern aesthetic.
 * **Modular Visibility Triggers:** Choose exactly when your speedometer wakes up:
-  * 🦅 **Show While Flying / Skyriding:** Automatically appears during Skyriding, Dragonriding, and Steady Flight.
-  * 🐟 **Show While Swimming:** Automatically tracks swim speed and aquatic mount velocity (Seahorses, Turtles, Otters).
-  * 🐎 **Show While on Ground:** Tracks on-foot movement and ground mounts.
-  * ⚔️ **Hide During Combat (Killswitch):** Instantly hides and detaches during combat to keep your interface clean.
+  * **Show While Flying / Skyriding:** Automatically appears during Skyriding, Dragonriding, and Steady Flight.
+  * **Show While Swimming:** Automatically tracks swim speed and aquatic mount velocity (Seahorses, Turtles, Otters).
+  * **Show While on Ground:** Tracks on-foot movement and ground mounts.
+  * **Hide During Combat (Killswitch):** Instantly hides and detaches during combat to keep your interface clean.
 * **Contextual Color Grading:**
-  * **Flight & Ground:** Smoothly transitions from **Cruising Green** $\rightarrow$ **High-Speed Yellow** $\rightarrow$ **Max Thruster Red**.
-  * **Swimming:** Dynamic **Deep Ocean Blue** $\rightarrow$ **Electric Cyan** gradient.
+  * **Flight & Ground:** Smoothly transitions from **Cruising Green** -> **High-Speed Yellow** -> **Max Thruster Red**.
+  * **Swimming:** Dynamic **Deep Ocean Blue** -> **Electric Cyan** gradient.
 * **Fully Draggable:** Simply left-click and drag the frame anywhere on your screen. Your custom position saves automatically across sessions.
 
 ---
 
-## 🎛️ In-Game Configuration
+## In-Game Configuration
 
-Configure your preferences via the native Blizzard Settings panel (**Game Menu $\rightarrow$ Options $\rightarrow$ AddOns $\rightarrow$ LazySpeed Biggins**) or by typing:
+Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> LazySpeed Biggins**) or by typing:
 
 ```
 /lazyspeed
@@ -54,15 +54,21 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu $
    * **Miles per Hour (mph)** *(Default)*
    * **Yards per Second (y/s)**
    * **Kilometers per Hour (km/h)**
-2. **Behavioral Triggers:**
+   * **Percentage (%)**
+2. **Custom Sizing Sliders:**
+   * **Bar Width:** 100px - 300px (1px step)
+   * **Bar Height:** 14px - 36px (1px step) with dynamic proportional font scaling
+3. **Behavioral Triggers:**
    * Toggle Skyriding / Flight visibility
    * Toggle Swimming visibility
    * Toggle Ground movement visibility
    * Toggle In-Combat hide killswitch
+4. **Reset to Defaults:**
+   * In-panel button or `/lazyspeed defaults` to restore all options to defaults.
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### CurseForge App (Recommended)
 Simply search for **LazySpeed Biggins** in the CurseForge App and click **Install**.
@@ -78,6 +84,6 @@ Simply search for **LazySpeed Biggins** in the CurseForge App and click **Instal
 
 ---
 
-## 📄 License
+## License
 
 Licensed under the **MIT License** - free to use, modify, and distribute.

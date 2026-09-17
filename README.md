@@ -8,26 +8,26 @@ All projects here are open source and shared freely under the [MIT License](LICE
 
 ---
 
-## 📦 Projects in this Repository
+## Projects in this Repository
 
-### 🚀 [LazySpeed Biggins (v3.5.0)](./lazyspeed-biggins)
+### [LazySpeed Biggins (v3.6.0)](./lazyspeed-biggins)
 A high-performance flight, swim, and movement speedometer featuring a sleek nameplate-style HUD, designed for *World of Warcraft: Midnight* and *The War Within*. Originally based on [LazySpeed by Darthterac](https://www.curseforge.com/wow/addons/lazyspeed).
 
 * **Nameplate-Style Integrated HUD:** A compact 180px × 20px status bar with centered high-contrast telemetry (`12pt OUTLINE` font) overlaid directly on the dynamic fill bar for a clean, modern castbar aesthetic.
 * **Modular Visibility Triggers:** Fully customizable behavior via native Blizzard settings checkboxes:
-  * 🦅 **Show While Flying / Skyriding** *(Default: ON)*
-  * 🐟 **Show While Swimming** *(Default: ON)* - with dynamic Deep Ocean Blue $\rightarrow$ Electric Cyan gradient!
-  * 🐎 **Show While on Ground** *(Default: OFF)*
-  * ⚔️ **Hide During Combat** *(Default: ON)* - instant killswitch detachment.
+  * **Show While Flying / Skyriding** *(Default: ON)*
+  * **Show While Swimming** *(Default: ON)* - with dynamic Deep Ocean Blue -> Electric Cyan gradient!
+  * **Show While on Ground** *(Default: OFF)*
+  * **Hide During Combat** *(Default: ON)* - instant killswitch detachment.
 * **Zero Idle Footprint:** Completely unhooks its update script (`OnUpdate = nil`) when grounded or dormant, achieving a verified **0.00ms CPU footprint** on foot.
 * **Zero-Allocation C++ Pipeline:** Renders text using Blizzard's native `FontString:SetFormattedText()` with pre-cached static format string pointers, generating **0 bytes/sec of Lua garbage** heap allocations.
 * **Stationary Dirty Check:** Skips redundant GPU texture redraws and text updates when stationary (`currentSpeed == 0`).
-* **Blizzard Settings Integration:** Full native settings panel in `Escape -> Options -> AddOns -> LazySpeed Biggins` (or `/lazyspeed` / `/lsb`) with configurable **Speed Units** (MPH, Y/S, KM/H) and modular triggers.
+* **Blizzard Settings Integration:** Full native settings panel in `Escape -> Options -> AddOns -> LazySpeed Biggins` (or `/lazyspeed` / `/lsb`) with configurable **Speed Units** (MPH, Y/S, KM/H, %), custom **Bar Width & Height Sliders**, **Reset to Defaults Button**, and modular triggers.
 * **Release & Publishing Guide:** See [CURSEFORGE_PUBLISHING.md](CURSEFORGE_PUBLISHING.md) for packaging and distribution instructions.
 
 ---
 
-## 🛠️ Performance & Engineering Philosophy
+## Performance & Engineering Philosophy
 
 Many legacy addons suffer from continuous frame polling, dynamic string concatenation (`..`) in tick loops, and unthrottled texture redraws that contribute to frame hitches, Lua garbage collection spikes, and client lockups in high-intensity combat.
 
@@ -40,6 +40,6 @@ The addons in this repository adhere to the following engineering standards:
 
 ---
 
-## 📄 License
+## License
 
 This repository is licensed under the [MIT License](LICENSE) - feel free to use, modify, distribute, or incorporate any of this code into your own projects.
