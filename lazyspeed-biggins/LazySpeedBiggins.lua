@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.4.1 - High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.5.0 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
@@ -17,7 +17,7 @@
          - Show While Swimming (Aquatic mounts, swim speed buffs)
          - Show While on Ground
          - Hide During Combat (Killswitch)
-         - Speed Measurement Unit Dropdown (y/s, mph, km/h)
+         - Speed Measurement Unit Dropdown (y/s, mph, km/h, %)
     4. Dynamic Contextual Theming:
          - Flying / Ground: Green (Cruising) -> Yellow (High Speed) -> Red (Max Thruster)
          - Swimming: Ocean Blue -> Electric Cyan gradient
@@ -47,18 +47,20 @@ local STANDARD_TEXT_FONT  = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FORMAT_YS   = "%.1f y/s"
 local FORMAT_MPH  = "%.1f mph"
 local FORMAT_KMH  = "%.1f km/h"
+local FORMAT_PCT  = "%.0f%%"
 
 -- Unit Conversion Multipliers from Base Yards/Second
-local MULTIPLIER_MPH = 2.04545  -- 1 yard/sec = 2.04545 mph
-local MULTIPLIER_KMH = 3.29184  -- 1 yard/sec = 3.29184 km/h
+local MULTIPLIER_MPH = 2.04545       -- 1 yard/sec = 2.04545 mph
+local MULTIPLIER_KMH = 3.29184       -- 1 yard/sec = 3.29184 km/h
+local MULTIPLIER_PCT = 100.0 / 7.0   -- 7 yards/sec = 100% base run speed (1 yard/sec = 14.2857%)
 
 -- Maximum Speed Caps for 100% Status Bar Fill
-local MAX_CAP_FLIGHT = 70.0     -- Max Skyriding speed cap (~143 mph)
+local MAX_CAP_FLIGHT = 84.0     -- Max Skyriding speed cap (1,200% / ~172 mph)
 local MAX_CAP_SWIM   = 20.0     -- Max Swimming / Aquatic mount speed cap (~41 mph)
 local MAX_CAP_GROUND = 42.0     -- Max Ground speed cap (running/sprint/ground mounts)
 
--- Unit Modes: 1 = Yards/Sec, 2 = MPH, 3 = KM/H
-local modeLabels = { "y/s", "mph", "km/h" }
+-- Unit Modes: 1 = Yards/Sec, 2 = MPH, 3 = KM/H, 4 = Percentage (%)
+local modeLabels = { "y/s", "mph", "km/h", "%" }
 
 -- Runtime State Variables
 local isEngineActive  = false   -- True only when the high-speed loop is actively attached
@@ -148,8 +150,10 @@ local function ResetDisplay()
         SpeedText:SetText("0.0 y/s")
     elseif unit == 2 then
         SpeedText:SetText("0.0 mph")
-    else
+    elseif unit == 3 then
         SpeedText:SetText("0.0 km/h")
+    else
+        SpeedText:SetText("0%")
     end
     StatusBar:SetValue(0)
     StatusBar:SetStatusBarColor(0.2, 0.8, 0.2, 1)
@@ -227,8 +231,10 @@ local function SpeedometerUpdateLoop(self, elapsed)
         SpeedText:SetFormattedText(FORMAT_YS, currentSpeed)
     elseif unit == 2 then
         SpeedText:SetFormattedText(FORMAT_MPH, currentSpeed * MULTIPLIER_MPH)
-    else
+    elseif unit == 3 then
         SpeedText:SetFormattedText(FORMAT_KMH, currentSpeed * MULTIPLIER_KMH)
+    else
+        SpeedText:SetFormattedText(FORMAT_PCT, currentSpeed * MULTIPLIER_PCT)
     end
 
     -- Update Smooth Status Bar (Ratio between 0.0 and 1.0)
@@ -353,12 +359,13 @@ local function InitializeBlizzardSettings()
     RegisterCheckbox("showGround",   "Show While on Ground",          "Displays the speedometer while running on foot or riding ground mounts.", false)
     RegisterCheckbox("hideInCombat", "Hide During Combat",            "Instantly hides and detaches the speedometer during combat to keep your screen clear.", true)
 
-    -- 4. Define the 3 Speed Measurement Unit Options
+    -- 4. Define the 4 Speed Measurement Unit Options
     local function GetUnitDropdownOptions()
         local container = Settings.CreateControlTextContainer()
         container:Add(1, "Yards per Second (y/s)")
         container:Add(2, "Miles per Hour (mph)")
         container:Add(3, "Kilometers per Hour (km/h)")
+        container:Add(4, "Percentage (%)")
         return container:GetData()
     end
 
@@ -489,7 +496,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         SpeedoFrame:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position reset to center.")
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.4.1|r:")
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.5.0|r:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r - Reset position.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle speedometer display.")

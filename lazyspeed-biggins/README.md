@@ -1,4 +1,4 @@
-# LazySpeed Biggins (v3.4.1)
+# LazySpeed Biggins (v3.5.0)
 
 A high-performance speedometer, flight, and swim gauge for *World of Warcraft: Midnight* (Patch 12.1+).
 
@@ -47,6 +47,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 * **Miles per Hour (mph)** *(Default)*
 * **Yards per Second (y/s)**
 * **Kilometers per Hour (km/h)**
+* **Percentage (%)**
 
 ---
 
@@ -67,7 +68,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 ## 👥 Credits & Attribution
 
 * **Original Addon & Concept:** Created by **Darthterac** - [LazySpeed on CurseForge](https://www.curseforge.com/wow/addons/lazyspeed)
-* **v3.0 - v3.4.1 Architecture, Zero-Allocation Engine, Swim Mode, Nameplate UI & Settings:** Biggins (US-Whisperwind)
+* **v3.0 - v3.5.0 Architecture, Zero-Allocation Engine, Swim Mode, Nameplate UI & Settings:** Biggins (US-Whisperwind)
 
 Please support and check out the original project by Darthterac at https://www.curseforge.com/wow/addons/lazyspeed!
 
