@@ -5,6 +5,15 @@ All notable changes to LazySpeed Biggins will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.1] - 2026-09-17
+
+### Fixed
+- **Mythic+ Client Freeze & Error Cascade Hotfix:** Resolved an issue where running Mythic+ dungeons with "Show While on Ground" enabled caused severe game client freezing and micro-stuttering due to Patch 12.0+ Secret Value restrictions.
+  - **Secret Value Gating:** Added `issecretvalue()` checks across all velocity queries (`GetUnitSpeed`, `GetGlidingInfo`, `IsFlying`, `IsSwimming`). In Patch 12.0+ and Midnight, velocity data in Mythic+ dungeons and challenge modes is flagged as secret; performing comparisons or arithmetic on secret values in tainted code causes fatal Lua errors. The engine now detects secret values immediately and cleanly enters dormant state.
+  - **Defensive Execution Wrapper (`pcall`):** Wrapped the 20 FPS high-speed update loop in a protected call failsafe (`pcall`). If any unhandled taint violation or restricted API exception occurs, the engine detaches immediately, eliminating any risk of 20 FPS error cascades or frame drops.
+  - **Challenge Mode & Instance State Tracking:** Registered `CHALLENGE_MODE_START`, `CHALLENGE_MODE_COMPLETED`, `CHALLENGE_MODE_RESET`, and `ZONE_CHANGED_NEW_AREA` events to cleanly shut down during active keystones and automatically evaluate restoration upon completion or zoning.
+  - **Passive Poll Loop Recovery:** Updated the low-frequency 4 Hz passive watcher to safely resume the speedometer when leaving combat or restricted instances if "Show While on Ground" is enabled.
+
 ---
 
 ## [3.6.0] - 2026-09-17

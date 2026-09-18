@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.6.0 - High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.6.1 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1+)
@@ -24,12 +24,15 @@
          - Swimming: Ocean Blue -> Electric Cyan gradient
     5. Zero-Allocation C++ Rendering: Formats numbers directly in native C++ using
        FontString:SetFormattedText() with pre-cached static format string pointers.
-    6. Hardware-Accelerated UI: Single Blizzard StatusBar with dynamic color shift
+    6. Secret Value & Restricted Environment Protection: Guards against Patch 12.0+
+       secret value comparison/arithmetic errors in Mythic+ dungeons and challenge modes.
+       Includes pcall failsafe wrapper to eliminate any possible 20 FPS error loops.
+    7. Hardware-Accelerated UI: Single Blizzard StatusBar with dynamic color shift
        and classic Blizzard Tooltip & Metallic Gold frame skin.
 ============================================================================== ]]--
 
 -- ==============================================================================
--- 1. LOCAL UPVALUE CACHING (Performance Optimization)
+-- 1. LOCAL UPVALUE CACHING & RESTRICTION HELPERS (Performance & Safety)
 -- ------------------------------------------------------------------------------
 -- Caching global C-APIs into local variables avoids table hash lookups in Lua,
 -- boosting function execution speed by ~30% and eliminating global table churn.
@@ -39,9 +42,38 @@ local IsFlying            = IsFlying
 local IsSwimming          = IsSwimming
 local GetUnitSpeed        = GetUnitSpeed
 local InCombatLockdown    = InCombatLockdown
+local UnitAffectingCombat = UnitAffectingCombat
+local issecretvalue       = issecretvalue
+local pcall               = pcall
 local min                 = math.min
 local max                 = math.max
 local STANDARD_TEXT_FONT  = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+
+-- Secret Value Detection (Midnight / Patch 12.0+ & Restricted Instances):
+-- Blizzard marks player velocities as secret values in Mythic+ to prevent automation.
+-- Evaluating or performing arithmetic on secret values in tainted code throws fatal errors.
+local function IsSecret(val)
+    return (issecretvalue and issecretvalue(val)) == true
+end
+
+-- Challenge Mode / Restricted Environment Detection
+local function IsRestrictedEnvironment()
+    if C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive and C_ChallengeMode.IsChallengeModeActive() then
+        return true
+    end
+    return false
+end
+
+-- Comprehensive combat check (Lockdown state or active combat flag)
+local function IsPlayerInCombat()
+    if InCombatLockdown and InCombatLockdown() then
+        return true
+    end
+    if UnitAffectingCombat and UnitAffectingCombat("player") then
+        return true
+    end
+    return false
+end
 
 -- Pre-cached format string constants: Passed directly into FontString:SetFormattedText
 -- so that zero Lua strings are created or destroyed in Lua's garbage-collected heap!
@@ -186,7 +218,13 @@ local function SpeedometerUpdateLoop(self, elapsed)
     local db = LazySpeedBigginsDB or DB_DEFAULTS
 
     -- Combat Check: If hideInCombat is enabled and combat begins, stop immediately
-    if db.hideInCombat and InCombatLockdown() then
+    if db.hideInCombat and IsPlayerInCombat() then
+        LazySpeed_StopEngine()
+        return
+    end
+
+    -- Environment Check: If entering Challenge Mode / Mythic+, stop immediately
+    if IsRestrictedEnvironment() then
         LazySpeed_StopEngine()
         return
     end
@@ -199,8 +237,21 @@ local function SpeedometerUpdateLoop(self, elapsed)
     -- Query Flight, Swim & Ground Velocities
     local isGliding, _, forwardSpeed = GetGlidingInfo()
     local rawGroundSpeed = GetUnitSpeed("player")
+
+    -- Secret Value Gating (Patch 12.0+ / Midnight / Restricted Instances):
+    -- Blizzard marks player velocity as a "secret value" inside Mythic+ and certain encounters.
+    -- Performing arithmetic or comparisons on a secret value throws fatal errors in tainted execution.
+    if IsSecret(rawGroundSpeed) or IsSecret(forwardSpeed) or IsSecret(isGliding) then
+        LazySpeed_StopEngine()
+        return
+    end
+
     local isSteadyFlying = IsFlying and IsFlying()
     local isSwimming = IsSwimming and IsSwimming()
+    if IsSecret(isSteadyFlying) or IsSecret(isSwimming) then
+        LazySpeed_StopEngine()
+        return
+    end
     
     local currentSpeed = 0
     local maxCap = MAX_CAP_GROUND
@@ -222,6 +273,12 @@ local function SpeedometerUpdateLoop(self, elapsed)
         currentSpeed = rawGroundSpeed or 0
         maxCap = MAX_CAP_GROUND
         isCurrentStateActive = db.showGround
+    end
+
+    -- Final validation: Ensure currentSpeed is not secret before comparison or math
+    if IsSecret(currentSpeed) then
+        LazySpeed_StopEngine()
+        return
     end
 
     -- Landing / State Termination Debounce
@@ -278,6 +335,16 @@ local function SpeedometerUpdateLoop(self, elapsed)
     end
 end
 
+-- Protected Safe Wrapper for Update Loop:
+-- Catches any unexpected secret value taint, API restriction, or runtime exception.
+-- If an error occurs, it shuts down the engine immediately to prevent 20 FPS error cascades / client freezes.
+local function SafeSpeedometerUpdateLoop(self, elapsed)
+    local ok, err = pcall(SpeedometerUpdateLoop, self, elapsed)
+    if not ok then
+        LazySpeed_StopEngine()
+    end
+end
+
 -- ==============================================================================
 -- 6. LIFECYCLE CONTROLLER (Engine Start, Stop, & State Evaluation)
 -- ==============================================================================
@@ -292,8 +359,8 @@ function LazySpeed_StartEngine()
     
     ResetDisplay()
     SpeedoFrame:Show()
-    -- ATTACH THE SCRIPT: The Lua engine now begins executing the 20 FPS loop
-    SpeedoFrame:SetScript("OnUpdate", SpeedometerUpdateLoop)
+    -- ATTACH THE SCRIPT: Protected by SafeSpeedometerUpdateLoop failsafe wrapper
+    SpeedoFrame:SetScript("OnUpdate", SafeSpeedometerUpdateLoop)
 end
 
 -- Stops the engine completely (DETACHES OnUpdate script & hides UI)
@@ -313,15 +380,37 @@ function LazySpeed_EvaluateState()
     if not LazySpeedBigginsDB then return end
     local db = LazySpeedBigginsDB
     
-    local inCombat = InCombatLockdown()
-    if inCombat and db.hideInCombat then
+    if db.hideInCombat and IsPlayerInCombat() then
+        LazySpeed_StopEngine()
+        return
+    end
+
+    -- Environment Check: Never activate in Challenge Mode / Mythic+
+    if IsRestrictedEnvironment() then
+        LazySpeed_StopEngine()
+        return
+    end
+
+    -- Secret Value Check: If velocity APIs are returning secret values, keep engine dormant
+    local testSpeed = GetUnitSpeed("player")
+    if IsSecret(testSpeed) then
         LazySpeed_StopEngine()
         return
     end
 
     local isGliding = GetGlidingInfo()
+    if IsSecret(isGliding) then
+        LazySpeed_StopEngine()
+        return
+    end
+
     local isSteadyFlying = IsFlying and IsFlying()
     local isSwimming = IsSwimming and IsSwimming()
+    if IsSecret(isSteadyFlying) or IsSecret(isSwimming) then
+        LazySpeed_StopEngine()
+        return
+    end
+
     local isAirborne = isGliding or isSteadyFlying
 
     local shouldShow = false
@@ -495,6 +584,10 @@ EventWatcherFrame:RegisterEvent("PLAYER_ENTERING_WORLD")       -- When logging i
 EventWatcherFrame:RegisterEvent("PLAYER_REGEN_DISABLED")        -- Entering combat
 EventWatcherFrame:RegisterEvent("PLAYER_REGEN_ENABLED")         -- Exiting combat
 EventWatcherFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED") -- Mounting / Dismounting
+EventWatcherFrame:RegisterEvent("CHALLENGE_MODE_START")         -- Mythic+ key started
+EventWatcherFrame:RegisterEvent("CHALLENGE_MODE_COMPLETED")     -- Mythic+ key completed
+EventWatcherFrame:RegisterEvent("CHALLENGE_MODE_RESET")         -- Mythic+ key reset
+EventWatcherFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")        -- Zone change
 
 EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == "LazySpeedBiggins" then
@@ -541,26 +634,48 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
             LazySpeed_StopEngine()
         end
 
-    elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_MOUNT_DISPLAY_CHANGED" then
+    elseif event == "CHALLENGE_MODE_START" then
+        -- Mythic+ key started: speed queries return secret values
+        LazySpeed_StopEngine()
+
+    elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_MOUNT_DISPLAY_CHANGED"
+        or event == "CHALLENGE_MODE_COMPLETED" or event == "CHALLENGE_MODE_RESET" or event == "ZONE_CHANGED_NEW_AREA" then
         LazySpeed_EvaluateState()
     end
 end)
 
--- Passive Takeoff / Dive Detector (Runs at low 4 Hz / every 0.25s while inactive)
+-- Passive Takeoff / Dive / Resume Detector (Runs at low 4 Hz / every 0.25s while inactive)
 local passivePollTimer = 0
 EventWatcherFrame:SetScript("OnUpdate", function(self, elapsed)
     local db = LazySpeedBigginsDB or DB_DEFAULTS
     
-    -- If high-speed loop is already running, or if ground mode is on (which runs continuous loop), or in combat with hideInCombat on, skip
-    if isEngineActive or db.showGround or (db.hideInCombat and InCombatLockdown()) then return end
+    -- If high-speed loop is already active, or in combat with hideInCombat enabled, skip
+    if isEngineActive then return end
+    if db.hideInCombat and IsPlayerInCombat() then return end
 
     passivePollTimer = passivePollTimer + elapsed
     if passivePollTimer < 0.25 then return end
     passivePollTimer = 0
 
+    -- Restricted Environment / Secret Value check: do not activate in Mythic+ or secret contexts
+    if IsRestrictedEnvironment() then return end
+
+    local testSpeed = GetUnitSpeed("player")
+    if IsSecret(testSpeed) then return end
+
+    -- If showGround is enabled and we are not restricted/in combat, resume engine
+    if db.showGround then
+        LazySpeed_StartEngine()
+        return
+    end
+
     local isGliding = GetGlidingInfo()
+    if IsSecret(isGliding) then return end
+
     local isSteadyFlying = IsFlying and IsFlying()
     local isSwimming = IsSwimming and IsSwimming()
+    if IsSecret(isSteadyFlying) or IsSecret(isSwimming) then return end
+
     local isAirborne = isGliding or isSteadyFlying
 
     if (isAirborne and db.showFlying) or (isSwimming and db.showSwimming) then
@@ -597,7 +712,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         UpdateFrameDimensions()
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position and dimensions reset to default.")
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.6.0|r:")
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.6.1|r:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r - Reset position.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed defaults|r - Reset all options to default.")
