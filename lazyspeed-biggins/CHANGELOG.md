@@ -5,6 +5,13 @@ All notable changes to LazySpeed Biggins will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.2] - 2026-09-20
+
+### Changed
+- **Patch 12.1.5 Compatibility:** Updated TOC Interface version to `120105` for full compatibility with World of Warcraft: Midnight Patch 12.1.5 without triggering "Out of Date" client flags.
+
+---
+
 ## [3.6.1] - 2026-09-17
 
 ### Fixed

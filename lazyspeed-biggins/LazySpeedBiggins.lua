@@ -1,8 +1,8 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.6.1 - High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.6.2 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
-    Compatibility: World of Warcraft: Midnight (Patch 12.1+)
+    Compatibility: World of Warcraft: Midnight (Patch 12.1.5 / 12.1+)
     
     ARCHITECTURAL OVERVIEW:
     1. Zero Idle Footprint: When inactive based on user settings (e.g. grounded in
