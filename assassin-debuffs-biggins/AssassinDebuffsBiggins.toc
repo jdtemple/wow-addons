@@ -1,0 +1,8 @@
+## Interface: 120105, 120100, 120007, 120010
+## Title: |cFFFFD100Assassin Debuffs Biggins|r
+## Notes: Soft gradient halo borders for Garrote, Rupture, Deathstalker's Mark, Kingsbane, and Deathmark on stock nameplates.
+## Author: Biggins
+## Version: 1.0.0
+## SavedVariables: AssassinDebuffsBigginsDB
+
+AssassinDebuffsBiggins.lua
