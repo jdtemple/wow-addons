@@ -13,10 +13,10 @@ On Blizzard's default nameplates, debuff countdown numbers are rendered dead-cen
 Additionally, Blizzard's stock UI places debuff icons flush against each other (`0px` spacing), preventing clean borders and crowding the display.
 
 **Assassin Debuffs Biggins** solves this by:
-1. **Injecting horizontal spacing** between nameplate debuffs so each icon has dedicated breathing room.
-2. **Applying soft gradient halo borders** around your core bleeds and burst cooldowns that fade smoothly into transparency toward the outer edges.
-3. **Built-in auto-scaling**: Halo borders naturally conform to your debuff dimensions, and spacing/glow thickness scale proportionally whenever you adjust the game's native debuff icon size.
-4. **Preserving your large centered timers** so you keep the valuable countdown numbers without visual clutter.
+1. **Applying collision-free outward gradient halo borders** around your core bleeds and burst cooldowns that radiate cleanly above and below the icon.
+2. **Eliminating icon collisions without layout crashes**: By radiating vertically (top and bottom only), neighboring debuffs in the horizontal row never bleed colors into each other, with zero risk of Blizzard layout engine errors or taint.
+3. **Native button texture layering**: Renders directly on each debuff button on the high OVERLAY layer, naturally inheriting frame levels, scale, and visibility without separate child frame desync.
+4. **Clean frame pool recycling**: Automatically clears glows on hide, guaranteeing recycled nameplate buttons never display stale colors from previous debuffs.
 5. **Preserving 100% of your native CVars**: Runs purely in memory on UI frames without ever touching `SetCVar`.
 
 ---
@@ -35,10 +35,10 @@ Additionally, Blizzard's stock UI places debuff icons flush against each other (
 
 ## Features
 
-* **Soft Feathered Halo Borders**: Directional gradient edges that radiate from the icon boundary and smoothly dissolve into the background.
-* **Built-in Auto-Scaling**: Halos automatically stretch to match any debuff icon size configured in game options. Halo thickness and spacing automatically adjust proportionally so your visual balance is maintained across all scales.
-* **Customizable Debuff Spacing**: Slider in the game options to adjust horizontal gaps from `0px` to `12px` (Default: `4px`).
-* **Glow Thickness Control**: Slider to adjust how far the halo radiates from `1px` to `8px` (Default: `3px`).
+* **Soft Feathered Halo Bars**: Directional gradient edges that radiate outward and smoothly dissolve into transparency.
+* **Collision-Free Architecture**: Radiates outward above and below each icon, keeping horizontal edges clean so neighboring debuffs never collide or blend colors into each other.
+* **Configurable Halo Position**: Dropdown selector to display halos above & below (`Top & Bottom`), above only (`Top Only`), or below only (`Bottom Only`).
+* **Glow Thickness Control**: Slider to adjust how far the halo radiates from `1px` to `8px` (Default: `4px`).
 * **Interactive Color Pickers**: Full color customization with native color picker integration for all 5 tracked debuffs.
 * **Zero-Allocation Architecture**: Pre-cached `ColorMixin` objects and reusable border textures; generates **0 bytes/sec of Lua garbage** heap allocations during combat aura updates.
 * **Native Settings Integration**: Configurable in `Escape -> Options -> AddOns -> Assassin Debuffs Biggins` or via `/adb` / `/assassindebuffs`.
@@ -54,10 +54,10 @@ Open the options panel via:
 * `Escape -> Options -> AddOns -> Assassin Debuffs Biggins`
 
 ### Controls Available:
-* **Horizontal Spacing Slider**: Set the base gap between debuff icons (`0` - `12` px).
-* **Glow Halo Thickness Slider**: Set base halo width (`1` - `8` px).
+* **Halo Position Dropdown**: Choose between `Top & Bottom` (default), `Top Only`, or `Bottom Only`.
+* **Halo Thickness Slider**: Set base halo thickness (`1` - `8` px).
 * **Color Swatches**: Click to customize the halo color for any of the 5 debuffs.
-* **Reset to Defaults Button**: Restores original spacing, thickness, and color presets in one click.
+* **Reset to Defaults Button**: Restores original position, thickness, and color presets in one click.
 
 ---
 

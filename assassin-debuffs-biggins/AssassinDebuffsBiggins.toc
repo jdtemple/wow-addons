@@ -2,7 +2,8 @@
 ## Title: |cFFFFD100Assassin Debuffs Biggins|r
 ## Notes: Soft gradient halo borders for Garrote, Rupture, Deathstalker's Mark, Kingsbane, and Deathmark on stock nameplates.
 ## Author: Biggins
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: AssassinDebuffsBigginsDB
+## Dependencies: Blizzard_NamePlates
 
 AssassinDebuffsBiggins.lua
