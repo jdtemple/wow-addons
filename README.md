@@ -25,6 +25,23 @@ A high-performance flight, swim, and movement speedometer featuring a sleek name
 * **Blizzard Settings Integration:** Full native settings panel in `Escape -> Options -> AddOns -> LazySpeed Biggins` (or `/lazyspeed` / `/lsb`) with configurable **Speed Units** (MPH, Y/S, KM/H, %), custom **Bar Width & Height Sliders**, **Reset to Defaults Button**, and modular triggers.
 * **Release & Publishing Guide:** See [CURSEFORGE_PUBLISHING.md](CURSEFORGE_PUBLISHING.md) for packaging and distribution instructions.
 
+### [SummonPet Biggins (v1.0.2)](./summonpet-biggins)
+An ultra-lightweight, event-driven companion pet summoner designed to keep your favorite companion pet summoned automatically without CPU stutter, memory bloat, or clumsy UI overlays. Inspired by Callie's (Caliaha) classic [BartrubySummonPet](https://github.com/Caliaha/BartrubySummonPet).
+
+* **0.00% Movement CPU Usage:** Purely event-driven. Completely eliminates legacy movement and camera key hooking loops. Only executes for microseconds when you dismount, exit stealth, drop combat, or zone.
+* **Native Game Engine Keybinding:** First-class `Bindings.xml` integration under `Game Menu -> Options -> Keybindings -> AddOns -> SummonPet Biggins`. Bind your toggle and pet-pinning hotkeys directly without consuming action bar slots or requiring macros.
+* **Unified Native Settings:** Clean settings panel inside `Game Menu -> Options -> AddOns -> SummonPet Biggins` (or `/spb options`) with zero hooking or tampering of Blizzard's PetJournal frames (100% taint-free).
+* **1-Click Pet Pinning:** Summon whatever companion pet you want in-game, then click `[ Use Currently Summoned Pet ]` (or type `/spb pin`) to instantly pin it.
+* **Three Flexible Modes:** Random Favorites (starred pets), Completely Random (entire collection), or Specific Pinned Pet (e.g. Byte).
+* **Granular Instance Auto-Dismiss:** Master toggle with individual sub-toggles ordered by challenge level:
+  * **Raids**
+  * **Mythic+ Dungeons**
+  * **Regular Dungeons**
+  * **Delves & Labyrinths**
+* **Smart Stealth & Mounted Summoning:** Auto-dismisses in stealth for Rogues and Druids. Features an optional "Summon Companion While Mounted (Ground Only)" toggle with a touchdown watcher that instantly summons your pet upon landing from flight while continuously running.
+* **Ultra-Lightweight (< 20 KB Footprint):** Pure standalone Lua with zero external library dependencies (no Ace3 overhead).
+* **Release & Publishing Guide:** See [CURSEFORGE_PUBLISHING.md](CURSEFORGE_PUBLISHING.md) for packaging and distribution instructions.
+
 ---
 
 ## Performance & Engineering Philosophy
