@@ -1,0 +1,8 @@
+<Bindings>
+    <Binding name="SUMMONPETBIGGINS_TOGGLE" category="SummonPetBiggins" header="SUMMONPETBIGGINS_HEADER">
+        SummonPetBiggins:Toggle()
+    </Binding>
+    <Binding name="SUMMONPETBIGGINS_PIN" category="SummonPetBiggins">
+        SummonPetBiggins:PinCurrentPet()
+    </Binding>
+</Bindings>

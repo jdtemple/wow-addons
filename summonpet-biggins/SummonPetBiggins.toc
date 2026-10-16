@@ -1,0 +1,10 @@
+## Interface: 120105, 120100, 120007, 120010
+## Title: |cFFFFD100SummonPet Biggins|r
+## Notes: Ultra-lightweight, event-driven companion pet summoner with native keybind, zero PetJournal hooking, and clean settings.
+## Author: Biggins
+## X-Credits: Callie (Caliaha) - Creator of the original BartrubySummonPet
+## Version: 1.0.2
+## SavedVariables: SummonPetBigginsDB
+
+Bindings.xml
+SummonPetBiggins.lua

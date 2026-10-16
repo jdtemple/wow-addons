@@ -1,2 +1,3 @@
 # Temporary packaging staging folders inside dist/
-lazyspeed-biggins/dist/*/
+lazyspeed-biggins/dist/
+summonpet-biggins/dist/

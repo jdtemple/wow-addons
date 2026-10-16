@@ -1,14 +1,15 @@
 # CurseForge Addon Publishing Guide
 
-Comprehensive guide for publishing and maintaining World of Warcraft addons from the `wow-addons` repository on [CurseForge](https://authors.curseforge.com).
+Comprehensive guide for packaging, publishing, and updating World of Warcraft addons from this repository on [CurseForge](https://authors.curseforge.com).
 
 ---
 
 ## 1. Prerequisites
 
 1. **CurseForge Author Account:** Register or log in at [authors.curseforge.com](https://authors.curseforge.com).
-2. **Project Artwork:** A square logo (minimum 512x512 PNG/JPG) showcasing the addon's interface (e.g., the gold nameplate speedometer HUD).
-3. **Packaging Tool:** PowerShell (built-in on Windows).
+2. **Project Artwork:** A square logo (minimum 512x512 PNG/JPG, ideally 1024x1024) showcasing the addon's identity (e.g. `logo.jpg` in the addon folder).
+3. **Gallery Screenshots:** 2-4 clean screenshots showing settings, keybinds, or in-game usage placed in the addon's `screenshots/` directory.
+4. **PowerShell:** Built-in on Windows for running the automated release packager.
 
 ---
 
@@ -16,29 +17,41 @@ Comprehensive guide for publishing and maintaining World of Warcraft addons from
 
 CurseForge requires addon archives to be structured so that extracting the ZIP puts the root addon folder directly into `World of Warcraft\_retail_\Interface\AddOns\`.
 
-The folder name inside the ZIP **must match the `.toc` file prefix** (e.g. `LazySpeedBiggins`).
+The folder name inside the ZIP **must match the `.toc` file prefix** (e.g. `SummonPetBiggins` or `LazySpeedBiggins`).
 
-### Automated Packaging Script (PowerShell)
-Run the automated packaging script from the addon's directory (`lazyspeed-biggins/`) to generate a clean distribution ZIP:
+### Automated Packaging Script
+
+Each addon directory contains its own `package.ps1` script. Run it from within the specific addon folder:
 
 ```powershell
-# Run from within lazyspeed-biggins/
+# Example: Packaging SummonPet Biggins
+cd summonpet-biggins
+.\package.ps1
+
+# Example: Packaging LazySpeed Biggins
+cd lazyspeed-biggins
 .\package.ps1
 ```
 
-The script automatically detects the current version from `LazySpeedBiggins.toc`, stages the files, creates the release ZIP, and cleans up the staging area:
-```
-lazyspeed-biggins/dist/LazySpeedBiggins-v<version>.zip
-```
+The script automatically:
+1. Reads the current version from the addon's `.toc` file (`## Version:`).
+2. Creates a clean staging directory with the proper addon folder name.
+3. Copies all required release files (`.lua`, `.toc`, `.xml`, `README.md`, `CHANGELOG.md`).
+4. Generates a compressed archive in `dist/<AddonName>-v<Version>.zip`.
+5. Cleans up temporary staging folders.
 
 ### Archive Structure Verification
+
 CurseForge expects this exact structure inside the archive:
-```
-LazySpeedBiggins-v3.4.zip
-└── LazySpeedBiggins/
-    ├── LazySpeedBiggins.lua
-    ├── LazySpeedBiggins.toc
-    └── README.md
+
+```text
+<AddonName>-v<Version>.zip
+└── <AddonName>/
+    ├── <AddonName>.toc
+    ├── <AddonName>.lua
+    ├── Bindings.xml (if applicable)
+    ├── README.md
+    └── CHANGELOG.md
 ```
 
 ---
@@ -47,19 +60,32 @@ LazySpeedBiggins-v3.4.zip
 
 1. Navigate to the [CurseForge Author Dashboard](https://authors.curseforge.com).
 2. Click **Start a Project** (or **Create Project**).
-3. Fill in the project details:
+3. Select **World of Warcraft** as the game.
+4. Fill in the project details:
 
-| Field | Recommended Value | Notes |
-| :--- | :--- | :--- |
-| **Game** | `World of Warcraft` | Retail |
-| **Project Name** | `LazySpeed Biggins` | Public display name |
-| **Project Slug** | `lazyspeed-biggins` | URL: `curseforge.com/wow/addons/lazyspeed-biggins` |
-| **Summary** | *High-performance flight, swim & movement speedometer with nameplate-style HUD and Blizzard Gold UI.* | Max 200 characters |
-| **Primary Category** | `Interface` $\rightarrow$ `Unit Frames` or `Action Bars` | Also tag `Miscellaneous` / `Map & Minimap` |
-| **License** | `MIT License` | Matches repository LICENSE |
-| **Avatar / Icon** | 512x512 PNG/JPG | Screenshot of the nameplate speedometer HUD |
+| Field                | Description & Guidance                              | Repository Examples                                         |
+| :------------------- | :-------------------------------------------------- | :---------------------------------------------------------- |
+| **Game**             | `World of Warcraft`                                 | Retail                                                      |
+| **Project Name**     | Public display name                                 | `SummonPet Biggins` / `LazySpeed Biggins`                   |
+| **Project Slug**     | URL identifier (`curseforge.com/wow/addons/<slug>`) | `summonpet-biggins` / `lazyspeed-biggins`                  |
+| **Summary**          | Punchy 1-2 sentence description (max 200 chars)     | Short summary from the addon's `README.md`                  |
+| **Primary Category** | Primary browse category                             | `Pet Battles` / `Companions` or `Unit Frames` / `Interface` |
+| **License**          | Project open-source license                         | `MIT License` (matches repository root `LICENSE`)           |
+| **Avatar / Icon**    | Square 512x512+ PNG/JPG                             | Use the addon's `logo.jpg`                                  |
 
-4. **Description:** Copy and paste the full markdown contents of [`lazyspeed-biggins/README.md`](./lazyspeed-biggins/README.md) into the description editor.
+5. **Description:** Copy and paste the markdown contents of the addon's `README.md` into the CurseForge description editor.
+6. **Gallery:** Upload the images from the addon's `screenshots/` directory (e.g. options panel, keybindings, commands).
+7. **Linking External GitHub Issue Tracker:**
+   CurseForge buries the external issue tracker redirect setting in the legacy project interface:
+   * From your project overview, click **Manage Project** (top right).
+   * Click **Issues** from the menu (this redirects to the legacy CurseForge issues page).
+   * On the legacy page, click the **Issues** tab.
+   * Under **Issue Tracker**, change the selection to **External**.
+   * Paste your GitHub repository issues link:
+     ```
+     https://github.com/<YourUsername>/<YourRepo>/issues
+     ```
+   * Click **Save Changes**. Clicking "Issues" on your public project page will now redirect straight to GitHub.
 
 ---
 
@@ -67,38 +93,29 @@ LazySpeedBiggins-v3.4.zip
 
 1. In your project dashboard, navigate to the **Files** tab on the left sidebar.
 2. Click **Upload File**.
-3. Upload `dist\LazySpeedBiggins-v3.4.zip`.
+3. Select the generated archive from `dist/<AddonName>-v<Version>.zip`.
 4. Configure the release options:
-
-* **Display Name:** `LazySpeed Biggins v3.4`
-* **Release Type:** **Release** (stable public release)
-* **Game Version:** Check the boxes for the current live client (e.g. `12.1.0` / current patch)
-* **Changelog:**
-  ```markdown
-  ### v3.4 Release Highlights:
-  * Sleek 180px x 20px Nameplate-style integrated status bar with centered numeric telemetry.
-  * Modular checkbox triggers: Skyriding/Flight, Swimming, Ground movement, and In-Combat hide.
-  * Zero-allocation C++ rendering pipeline with static format string pointers.
-  * True script detachment engine (OnUpdate unhooked when inactive) for zero background CPU usage.
-  * Full Blizzard Settings integration (/lazyspeed).
-  ```
+   - **Display Name:** `<Addon Name> v<Version>` (e.g. `SummonPet Biggins v1.0.2` or `LazySpeed Biggins v3.4`)
+   - **Release Type:** **Release** (stable public build)
+   - **Game Version:** Check the boxes for the live client versions supported in your `.toc` (e.g. current live patches).
+   - **Changelog:** Copy and paste the latest release notes from the top of the addon's `CHANGELOG.md`.
 5. Click **Submit File**.
 
 ---
 
 ## 5. Review & Going Live
 
-* **Moderation Queue:** New projects undergo a standard manual review by CurseForge staff to verify code safety (typically 1 to 24 hours).
-* **Live Discovery:** Once approved:
-  * The project page is immediately accessible on the web.
-  * The addon is indexed by the **CurseForge App**, **WoWUp**, and other addon managers for one-click installation and automatic future updates.
+- **Moderation Queue:** Initial submissions for a new addon undergo standard manual review by CurseForge staff (typically 1 to 24 hours).
+- **Live Discovery:** Once approved:
+  - The project page goes live on the CurseForge website.
+  - The addon is automatically indexed by the **CurseForge App**, **WoWUp**, and other addon managers for one-click installation and automated updates.
 
 ---
 
 ## 6. Pushing Future Updates
 
-When releasing a new version (e.g. `v3.5`):
-1. Bump the `## Version:` field in `LazySpeedBiggins.toc` and update the version header in `README.md`.
-2. Run the packaging command to produce `LazySpeedBiggins-vX.X.zip`.
-3. In your CurseForge project dashboard, go to **Files** $\rightarrow$ **Upload File**.
-4. Tag the new game version, paste the changelog, and submit. (Subsequent updates to existing projects are approved much faster, often within minutes).
+When releasing an update for any addon:
+1. Update the `## Version:` field in the addon's `.toc` file and add the release notes under a new version heading in `CHANGELOG.md`.
+2. Run `.\package.ps1` from within the addon directory to produce the new release ZIP.
+3. In the CurseForge dashboard for that addon, go to **Files** -> **Upload File**.
+4. Tag the supported game versions, paste the new section from `CHANGELOG.md`, and submit. Subsequent version uploads for approved projects are typically approved in minutes.
