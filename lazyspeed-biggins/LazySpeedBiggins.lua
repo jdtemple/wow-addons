@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.6.2 - High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.7.0 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.5 / 12.1+)
@@ -111,13 +111,19 @@ local LazySpeed_StopEngine
 -- ==============================================================================
 -- LazySpeedBigginsDB is automatically persisted by WoW across reloads and sessions.
 local DB_DEFAULTS = {
+    enabled       = true,  -- Master enable toggle
     showFlying    = true,  -- Show while Flying / Skyriding
     showSwimming  = true,  -- Show while Swimming / Submerged in water
     showGround    = false, -- Show while on Ground (foot or ground mounts)
     hideInCombat  = true,  -- Hide immediately during combat
-    unitMode      = 2,     -- Default to MPH (2)
+    locked        = false, -- Lock frame position to prevent dragging
+    unitMode      = 4,     -- Default to Percentage (4)
     barWidth      = 180,   -- Frame width in pixels (Range: 100 - 300)
     barHeight     = 22,    -- Frame height in pixels (Range: 14 - 36)
+    point         = "CENTER",
+    relativePoint = "CENTER",
+    xOfs          = 0,
+    yOfs          = -200,
 }
 
 -- ==============================================================================
@@ -143,12 +149,38 @@ SpeedoFrame:SetBackdrop({
 SpeedoFrame:SetBackdropColor(0.05, 0.05, 0.05, 0.85)
 SpeedoFrame:SetBackdropBorderColor(0.8, 0.7, 0.2, 1) -- Blizzard Metallic Gold
 
--- Make Frame Moveable by Left-Click Dragging
+-- Restore saved screen position
+local function RestorePosition()
+    local db = LazySpeedBigginsDB or DB_DEFAULTS
+    SpeedoFrame:ClearAllPoints()
+    SpeedoFrame:SetPoint(db.point or "CENTER", UIParent, db.relativePoint or "CENTER", db.xOfs or 0, db.yOfs or -200)
+end
+
+-- Update mouse interactivity based on locked state
+local function UpdateMouseInteractivity()
+    local db = LazySpeedBigginsDB or DB_DEFAULTS
+    SpeedoFrame:EnableMouse(not db.locked)
+end
+
+-- Make Frame Moveable by Left-Click Dragging with persistent position saving
 SpeedoFrame:SetMovable(true)
 SpeedoFrame:EnableMouse(true)
 SpeedoFrame:RegisterForDrag("LeftButton")
-SpeedoFrame:SetScript("OnDragStart", SpeedoFrame.StartMoving)
-SpeedoFrame:SetScript("OnDragStop", SpeedoFrame.StopMovingOrSizing)
+SpeedoFrame:SetScript("OnDragStart", function(self)
+    local db = LazySpeedBigginsDB or DB_DEFAULTS
+    if not db.locked then
+        self:StartMoving()
+    end
+end)
+SpeedoFrame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local point, _, relPoint, x, y = self:GetPoint()
+    if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+    LazySpeedBigginsDB.point = point or "CENTER"
+    LazySpeedBigginsDB.relativePoint = relPoint or "CENTER"
+    LazySpeedBigginsDB.xOfs = x or 0
+    LazySpeedBigginsDB.yOfs = y or -200
+end)
 
 -- ==============================================================================
 -- 4. HARDWARE-ACCELERATED STATUS BAR & INTEGRATED TELEMETRY TEXT
@@ -194,7 +226,7 @@ end
 
 -- Helper: Reset visual elements to zero state
 local function ResetDisplay()
-    local unit = (LazySpeedBigginsDB and LazySpeedBigginsDB.unitMode) or 2
+    local unit = (LazySpeedBigginsDB and LazySpeedBigginsDB.unitMode) or 4
     if unit == 1 then
         SpeedText:SetText("0.0 y/s")
     elseif unit == 2 then
@@ -300,7 +332,7 @@ local function SpeedometerUpdateLoop(self, elapsed)
 
     -- Format display string using Blizzard's native C++ SetFormattedText method.
     -- This formats directly on the C++ side, creating LITERAL ZERO Lua string allocations!
-    local unit = db.unitMode or 2
+    local unit = db.unitMode or 4
     if unit == 1 then
         SpeedText:SetFormattedText(FORMAT_YS, currentSpeed)
     elseif unit == 2 then
@@ -358,6 +390,7 @@ function LazySpeed_StartEngine()
     landingDebounce = 0
     
     ResetDisplay()
+    UpdateMouseInteractivity()
     SpeedoFrame:Show()
     -- ATTACH THE SCRIPT: Protected by SafeSpeedometerUpdateLoop failsafe wrapper
     SpeedoFrame:SetScript("OnUpdate", SafeSpeedometerUpdateLoop)
@@ -379,7 +412,12 @@ end
 function LazySpeed_EvaluateState()
     if not LazySpeedBigginsDB then return end
     local db = LazySpeedBigginsDB
-    
+
+    if db.enabled == false then
+        LazySpeed_StopEngine()
+        return
+    end
+
     if db.hideInCombat and IsPlayerInCombat() then
         LazySpeed_StopEngine()
         return
@@ -434,19 +472,65 @@ end
 -- ------------------------------------------------------------------------------
 -- Registers native checkboxes, dropdowns, sliders & reset button in WoW settings.
 -- ==============================================================================
-local registeredSettings = {}
+-- ==============================================================================
+-- 7. BLIZZARD MODERN SETTINGS API INTEGRATION (Canvas Layout)
+-- ==============================================================================
+local uiWidgets = {}
+local categoryID = nil
 
-local function ResetAllToDefaults()
-    for varName, defVal in pairs(DB_DEFAULTS) do
-        local setting = registeredSettings[varName]
-        if setting then
-            setting:SetValue(defVal)
-        end
-        if LazySpeedBigginsDB then
-            LazySpeedBigginsDB[varName] = defVal
+local function UpdateOptionsUI()
+    if not uiWidgets.panel or not LazySpeedBigginsDB then return end
+    local isEnabled = LazySpeedBigginsDB.enabled ~= false
+
+    if uiWidgets.cbEnable then uiWidgets.cbEnable:SetChecked(isEnabled) end
+    if uiWidgets.cbFlying then uiWidgets.cbFlying:SetChecked(LazySpeedBigginsDB.showFlying) end
+    if uiWidgets.cbSwimming then uiWidgets.cbSwimming:SetChecked(LazySpeedBigginsDB.showSwimming) end
+    if uiWidgets.cbGround then uiWidgets.cbGround:SetChecked(LazySpeedBigginsDB.showGround) end
+    if uiWidgets.cbCombat then uiWidgets.cbCombat:SetChecked(LazySpeedBigginsDB.hideInCombat) end
+    if uiWidgets.cbLocked then uiWidgets.cbLocked:SetChecked(LazySpeedBigginsDB.locked or false) end
+
+    local currentUnit = LazySpeedBigginsDB.unitMode or 4
+    if uiWidgets.radioMPH then uiWidgets.radioMPH:SetChecked(currentUnit == 2) end
+    if uiWidgets.radioYS  then uiWidgets.radioYS:SetChecked(currentUnit == 1) end
+    if uiWidgets.radioKMH then uiWidgets.radioKMH:SetChecked(currentUnit == 3) end
+    if uiWidgets.radioPCT then uiWidgets.radioPCT:SetChecked(currentUnit == 4) end
+
+    if uiWidgets.sliderWidth then
+        uiWidgets.sliderWidth:SetValue(LazySpeedBigginsDB.barWidth or 180)
+        if uiWidgets.sliderWidth.valueText then
+            uiWidgets.sliderWidth.valueText:SetText(tostring(LazySpeedBigginsDB.barWidth or 180) .. " px")
         end
     end
+    if uiWidgets.sliderHeight then
+        uiWidgets.sliderHeight:SetValue(LazySpeedBigginsDB.barHeight or 22)
+        if uiWidgets.sliderHeight.valueText then
+            uiWidgets.sliderHeight.valueText:SetText(tostring(LazySpeedBigginsDB.barHeight or 22) .. " px")
+        end
+    end
+
+    -- Gray out child controls when disabled
+    local childWidgets = {
+        uiWidgets.cbFlying, uiWidgets.cbSwimming, uiWidgets.cbGround, uiWidgets.cbCombat, uiWidgets.cbLocked,
+        uiWidgets.unitHeader, uiWidgets.radioMPH, uiWidgets.radioYS, uiWidgets.radioKMH, uiWidgets.radioPCT,
+        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.btnResetPos
+    }
+    for _, w in ipairs(childWidgets) do
+        if w then
+            if w.SetEnabled then w:SetEnabled(isEnabled) end
+            w:SetAlpha(isEnabled and 1.0 or 0.5)
+        end
+    end
+end
+
+local function ResetAllToDefaults()
+    if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+    for varName, defVal in pairs(DB_DEFAULTS) do
+        LazySpeedBigginsDB[varName] = defVal
+    end
+    RestorePosition()
     UpdateFrameDimensions()
+    UpdateMouseInteractivity()
+    UpdateOptionsUI()
     LazySpeed_EvaluateState()
     lastSpeed = -1
     ResetDisplay()
@@ -454,124 +538,215 @@ local function ResetAllToDefaults()
 end
 
 local function InitializeBlizzardSettings()
-    if not Settings or not Settings.RegisterVerticalLayoutCategory then return end
+    local panel = CreateFrame("Frame", "LazySpeedBigginsOptionsPanel", UIParent)
+    panel.name = "LazySpeed Biggins"
+    uiWidgets.panel = panel
 
-    -- 1. Create Native AddOn Category
-    local category, layout = Settings.RegisterVerticalLayoutCategory("LazySpeed Biggins")
+    -- Title (Blizzard Gold)
+    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("|cFFFFD100LazySpeed Biggins|r")
 
-    -- 2. Helper to register boolean Checkbox Settings
-    local function RegisterCheckbox(varName, label, tooltip, defaultValue)
-        local setting = Settings.RegisterAddOnSetting(
-            category,
-            "LazySpeedBiggins_" .. varName,
-            varName,
-            LazySpeedBigginsDB,
-            Settings.VarType.Boolean,
-            label,
-            defaultValue
-        )
-        setting:SetValueChangedCallback(function(setting, value)
-            LazySpeedBigginsDB[varName] = value
-            LazySpeed_EvaluateState()
-        end)
-        Settings.CreateCheckbox(category, setting, tooltip)
-        registeredSettings[varName] = setting
-        return setting
-    end
+    -- Subtitle / Description
+    local desc = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+    desc:SetText("High-precision dynamic speedometer with contextual color theming.")
 
-    -- 3. Register Modular Checkboxes
-    RegisterCheckbox("showFlying",   "Show While Flying / Skyriding", "Displays the speedometer while airborne (Skyriding or Steady Flight).", true)
-    RegisterCheckbox("showSwimming", "Show While Swimming",           "Displays the speedometer while submerged in water, tracking swim and aquatic mount speeds.", true)
-    RegisterCheckbox("showGround",   "Show While on Ground",          "Displays the speedometer while running on foot or riding ground mounts.", false)
-    RegisterCheckbox("hideInCombat", "Hide During Combat",            "Instantly hides and detaches the speedometer during combat to keep your screen clear.", true)
-
-    -- 4. Define the 4 Speed Measurement Unit Options
-    local function GetUnitDropdownOptions()
-        local container = Settings.CreateControlTextContainer()
-        container:Add(1, "Yards per Second (y/s)")
-        container:Add(2, "Miles per Hour (mph)")
-        container:Add(3, "Kilometers per Hour (km/h)")
-        container:Add(4, "Percentage (%)")
-        return container:GetData()
-    end
-
-    -- 5. Register AddOn Setting bound to LazySpeedBigginsDB.unitMode
-    local unitSetting = Settings.RegisterAddOnSetting(
-        category,
-        "LazySpeedBiggins_UnitMode",
-        "unitMode",
-        LazySpeedBigginsDB,
-        Settings.VarType.Number,
-        "Speed Measurement Unit",
-        2 -- Default to MPH
-    )
-
-    -- 6. Hook Callback when unit is changed from settings menu
-    unitSetting:SetValueChangedCallback(function(setting, value)
-        LazySpeedBigginsDB.unitMode = value
-        lastSpeed = -1 -- Invalidate dirty check to trigger immediate UI redraw
-        ResetDisplay()
+    -- Top-Right "Defaults" Button
+    local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    btnDefaults:SetPoint("TOPRIGHT", -24, -20)
+    btnDefaults:SetSize(110, 22)
+    btnDefaults:SetText("Defaults")
+    btnDefaults:SetScript("OnClick", function()
+        ResetAllToDefaults()
     end)
-    registeredSettings["unitMode"] = unitSetting
+    btnDefaults:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Restore all LazySpeed settings back to default.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    btnDefaults:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- 7. Create native Blizzard Dropdown for Units
-    Settings.CreateDropdown(category, unitSetting, GetUnitDropdownOptions, "Choose your preferred speed measurement unit.")
+    -- Helper to create and bind checkboxes
+    local function CreateSettingCheckbox(key, label, tooltip, anchorPoint, relativeTo, relPoint, x, y, onClickCallback)
+        local cb = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+        cb:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
+        cb.Text:SetText(label)
+        cb.Text:SetFontObject("GameFontHighlight")
+        cb.tooltipText = tooltip
+        local currentVal = (LazySpeedBigginsDB and LazySpeedBigginsDB[key] ~= nil) and LazySpeedBigginsDB[key] or DB_DEFAULTS[key]
+        cb:SetChecked(currentVal)
+        cb:SetScript("OnClick", function(self)
+            if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+            LazySpeedBigginsDB[key] = self:GetChecked()
+            if onClickCallback then onClickCallback(self:GetChecked()) end
+            LazySpeed_EvaluateState()
+            UpdateOptionsUI()
+        end)
+        cb:SetScript("OnEnter", function(self)
+            if self.tooltipText then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
+                GameTooltip:Show()
+            end
+        end)
+        cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        return cb
+    end
 
-    -- 8. Helper to register numeric Slider Settings
-    local function RegisterSlider(varName, label, tooltip, minValue, maxValue, step, defaultValue)
-        local setting = Settings.RegisterAddOnSetting(
-            category,
-            "LazySpeedBiggins_" .. varName,
-            varName,
-            LazySpeedBigginsDB,
-            Settings.VarType.Number,
-            label,
-            defaultValue
-        )
-        local options = Settings.CreateSliderOptions(minValue, maxValue, step)
-        if MinimalSliderWithSteppersMixin and MinimalSliderWithSteppersMixin.Label and MinimalSliderWithSteppersMixin.Label.Right then
-            options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)
-        end
-        setting:SetValueChangedCallback(function(setting, value)
-            LazySpeedBigginsDB[varName] = value
+    -- Master Enable Checkbox
+    local cbEnable = CreateSettingCheckbox("enabled", "Enable Speedometer", "Show or hide the dynamic speedometer overlay.", "TOPLEFT", desc, "BOTTOMLEFT", 0, -18, function(val)
+        local status = val and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Speedometer is now " .. status .. ".")
+    end)
+    uiWidgets.cbEnable = cbEnable
+
+    -- Child Checkboxes (Indented 20px)
+    local cbFlying = CreateSettingCheckbox("showFlying", "Show While Flying / Skyriding", "Displays speedometer while airborne (Skyriding or Steady Flight).", "TOPLEFT", cbEnable, "BOTTOMLEFT", 20, -6)
+    uiWidgets.cbFlying = cbFlying
+
+    local cbSwimming = CreateSettingCheckbox("showSwimming", "Show While Swimming", "Displays speedometer while submerged in water, tracking swim and aquatic mount speeds.", "TOPLEFT", cbFlying, "BOTTOMLEFT", 0, -6)
+    uiWidgets.cbSwimming = cbSwimming
+
+    local cbGround = CreateSettingCheckbox("showGround", "Show While on Ground", "Displays speedometer while running on foot or riding ground mounts.", "TOPLEFT", cbSwimming, "BOTTOMLEFT", 0, -6)
+    uiWidgets.cbGround = cbGround
+
+    local cbCombat = CreateSettingCheckbox("hideInCombat", "Hide During Combat", "Instantly hides and detaches the speedometer during combat to keep your screen clear.", "TOPLEFT", cbGround, "BOTTOMLEFT", 0, -6)
+    uiWidgets.cbCombat = cbCombat
+
+    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the speedometer frame with the mouse.", "TOPLEFT", cbCombat, "BOTTOMLEFT", 0, -6, function(val)
+        UpdateMouseInteractivity()
+        local status = val and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position is now " .. status .. ".")
+    end)
+    uiWidgets.cbLocked = cbLocked
+
+    -- Unit Selection Header
+    local unitHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    unitHeader:SetPoint("TOPLEFT", cbLocked, "BOTTOMLEFT", 0, -16)
+    unitHeader:SetText("Speed Measurement Unit:")
+    uiWidgets.unitHeader = unitHeader
+
+    -- Radio Helper
+    local function CreateUnitRadio(unitVal, label, anchorPoint, relativeTo, relPoint, x, y)
+        local radio = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
+        radio:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
+        radio.text = radio:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        radio.text:SetPoint("LEFT", radio, "RIGHT", 4, 0)
+        radio.text:SetText(label)
+        radio:SetScript("OnClick", function()
+            if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+            LazySpeedBigginsDB.unitMode = unitVal
+            lastSpeed = -1
+            ResetDisplay()
+            UpdateOptionsUI()
+        end)
+        return radio
+    end
+
+    local radioMPH = CreateUnitRadio(2, "Miles per Hour (mph)", "TOPLEFT", unitHeader, "BOTTOMLEFT", 6, -8)
+    uiWidgets.radioMPH = radioMPH
+
+    local radioYS = CreateUnitRadio(1, "Yards per Second (y/s)", "TOPLEFT", radioMPH, "BOTTOMLEFT", 0, -6)
+    uiWidgets.radioYS = radioYS
+
+    local radioKMH = CreateUnitRadio(3, "Kilometers per Hour (km/h)", "TOPLEFT", radioYS, "BOTTOMLEFT", 0, -6)
+    uiWidgets.radioKMH = radioKMH
+
+    local radioPCT = CreateUnitRadio(4, "Percentage (%)", "TOPLEFT", radioKMH, "BOTTOMLEFT", 0, -6)
+    uiWidgets.radioPCT = radioPCT
+
+    -- Helper to create and bind sliders
+    local function CreateSettingSlider(key, label, tooltip, minVal, maxVal, step, anchorPoint, relativeTo, relPoint, x, y)
+        local slider = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
+        slider:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
+        slider:SetSize(220, 16)
+        slider:SetMinMaxValues(minVal, maxVal)
+        slider:SetValueStep(step)
+        slider:SetObeyStepOnDrag(true)
+
+        local val = (LazySpeedBigginsDB and LazySpeedBigginsDB[key]) or DB_DEFAULTS[key]
+        slider:SetValue(val)
+
+        local titleText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        titleText:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
+        titleText:SetText(label)
+
+        local valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        valueText:SetPoint("BOTTOMRIGHT", slider, "TOPRIGHT", 0, 4)
+        valueText:SetText(tostring(val) .. " px")
+
+        if slider.Low then slider.Low:SetText(tostring(minVal)) end
+        if slider.High then slider.High:SetText(tostring(maxVal)) end
+
+        slider:SetScript("OnValueChanged", function(self, newVal)
+            newVal = floor(newVal + 0.5)
+            if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+            LazySpeedBigginsDB[key] = newVal
+            valueText:SetText(tostring(newVal) .. " px")
             UpdateFrameDimensions()
         end)
-        Settings.CreateSlider(category, setting, options, tooltip)
-        registeredSettings[varName] = setting
-        return setting
+        slider:SetScript("OnEnter", function(self)
+            if tooltip then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(tooltip, 1, 1, 1, true)
+                GameTooltip:Show()
+            end
+        end)
+        slider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        slider.titleText = titleText
+        slider.valueText = valueText
+        return slider
     end
 
-    -- 9. Register Width & Height Sliders (1px granular step)
-    RegisterSlider("barWidth",  "Bar Width",  "Adjust the horizontal width of the speedometer bar (in pixels).", 100, 300, 1, 180)
-    RegisterSlider("barHeight", "Bar Height", "Adjust the vertical height of the speedometer bar (in pixels).", 14, 36, 1, 22)
+    -- Sliders (Anchored below unit radios)
+    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust horizontal width of speedometer bar in pixels.", 100, 300, 1, "TOPLEFT", radioPCT, "BOTTOMLEFT", -6, -24)
+    uiWidgets.sliderWidth = sliderWidth
 
-    -- 10. Register "Reset to Defaults" Button
-    if layout and layout.AddInitializer then
-        local btnInitializer
-        if CreateSettingsButtonInitializer then
-            btnInitializer = CreateSettingsButtonInitializer(
-                "Reset All Options",
-                "Reset to Defaults",
-                ResetAllToDefaults,
-                "Restores all checkboxes, speed units, and bar dimensions back to their default settings.",
-                false
-            )
-        elseif Settings and Settings.CreateElementInitializer then
-            btnInitializer = Settings.CreateElementInitializer("SettingButtonControlTemplate", {
-                name = "Reset All Options",
-                buttonText = "Reset to Defaults",
-                buttonClick = ResetAllToDefaults,
-                tooltip = "Restores all checkboxes, speed units, and bar dimensions back to their default settings.",
-            })
-        end
+    local sliderHeight = CreateSettingSlider("barHeight", "Bar Height", "Adjust vertical height of speedometer bar in pixels.", 14, 36, 1, "TOPLEFT", sliderWidth, "BOTTOMLEFT", 0, -28)
+    uiWidgets.sliderHeight = sliderHeight
 
-        if btnInitializer then
-            layout:AddInitializer(btnInitializer)
-        end
+    -- Reset Position Button
+    local btnResetPos = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    btnResetPos:SetPoint("TOPLEFT", sliderHeight, "BOTTOMLEFT", -6, -24)
+    btnResetPos:SetSize(160, 24)
+    btnResetPos:SetText("Reset Position")
+    btnResetPos:SetScript("OnClick", function()
+        if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+        LazySpeedBigginsDB.point = "CENTER"
+        LazySpeedBigginsDB.relativePoint = "CENTER"
+        LazySpeedBigginsDB.xOfs = 0
+        LazySpeedBigginsDB.yOfs = -200
+        RestorePosition()
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position reset to screen center.")
+    end)
+    btnResetPos:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Resets speedometer frame back to center screen.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    btnResetPos:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    uiWidgets.btnResetPos = btnResetPos
+
+    -- Slash Command Help Note
+    local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", 0, -18)
+    helpNote:SetText("Slash commands: /lazyspeed or /lsb (settings, toggle, lock, reset, defaults, status)")
+
+    panel:SetScript("OnShow", function()
+        UpdateOptionsUI()
+    end)
+
+    if Settings and Settings.RegisterCanvasLayoutCategory then
+        local category = Settings.RegisterCanvasLayoutCategory(panel, "LazySpeed Biggins")
+        Settings.RegisterAddOnCategory(category)
+        categoryID = category:GetID()
+    else
+        InterfaceOptions_AddCategory(panel)
     end
 
-    -- 11. Register Category into Blizzard Settings Panel
-    Settings.RegisterAddOnCategory(category)
+    UpdateOptionsUI()
 end
 
 -- ==============================================================================
@@ -621,8 +796,10 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
             end
         end
 
-        -- Apply user saved dimensions and font scaling
+        -- Apply user saved position, dimensions, font scaling and mouse lock state
+        RestorePosition()
         UpdateFrameDimensions()
+        UpdateMouseInteractivity()
 
         -- Register Blizzard Settings Panel
         InitializeBlizzardSettings()
@@ -690,32 +867,58 @@ SLASH_LAZYSPEED1 = "/lazyspeed"
 SLASH_LAZYSPEED2 = "/lsb"
 SlashCmdList["LAZYSPEED"] = function(msg)
     local command = msg:lower():trim()
+    local db = LazySpeedBigginsDB or DB_DEFAULTS
+
     if command == "options" or command == "config" or command == "settings" then
-        if Settings and Settings.OpenToCategory then
+        if categoryID and Settings and Settings.OpenToCategory then
+            Settings.OpenToCategory(categoryID)
+        elseif Settings and Settings.OpenToCategory then
             Settings.OpenToCategory("LazySpeed Biggins")
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Options available in Game Menu -> Options -> AddOns -> LazySpeed Biggins.")
         end
     elseif command == "toggle" then
-        if isEngineActive then
-            LazySpeed_StopEngine()
-        else
-            LazySpeed_StartEngine()
-        end
+        if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+        LazySpeedBigginsDB.enabled = not (LazySpeedBigginsDB.enabled ~= false)
+        UpdateOptionsUI()
+        LazySpeed_EvaluateState()
+        local status = LazySpeedBigginsDB.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Speedometer is now " .. status .. ".")
+    elseif command == "lock" then
+        if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+        LazySpeedBigginsDB.locked = not (LazySpeedBigginsDB.locked or false)
+        UpdateMouseInteractivity()
+        UpdateOptionsUI()
+        local status = LazySpeedBigginsDB.locked and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position is now " .. status .. ".")
     elseif command == "defaults" or command == "reset defaults" then
         ResetAllToDefaults()
     elseif command == "reset" then
-        SpeedoFrame:ClearAllPoints()
-        SpeedoFrame:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
-        if LazySpeedBigginsDB then
-            LazySpeedBigginsDB.barWidth = 180
-            LazySpeedBigginsDB.barHeight = 22
-        end
-        UpdateFrameDimensions()
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position and dimensions reset to default.")
+        if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+        LazySpeedBigginsDB.point = "CENTER"
+        LazySpeedBigginsDB.relativePoint = "CENTER"
+        LazySpeedBigginsDB.xOfs = 0
+        LazySpeedBigginsDB.yOfs = -200
+        RestorePosition()
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position reset to center.")
+    elseif command == "status" then
+        local function ColorBool(val) return val and "|cFF00FF00[ON]|r" or "|cFFFF0000[OFF]|r" end
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r Current Configuration:")
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Master Enable:    %s", ColorBool(db.enabled ~= false)))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Frame Locked:     %s", ColorBool(db.locked or false)))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Show Flying:      %s", ColorBool(db.showFlying)))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Show Swimming:    %s", ColorBool(db.showSwimming)))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Show Ground:      %s", ColorBool(db.showGround)))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Hide in Combat:   %s", ColorBool(db.hideInCombat)))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Measurement Unit: %s", modeLabels[db.unitMode or 4] or "%"))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Dimensions:   %d x %d px", db.barWidth or 180, db.barHeight or 22))
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.6.1|r:")
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.7.0|r:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r - Reset position.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle master speedometer on/off.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed lock|r - Toggle locking frame position.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r - Reset frame position to center.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed defaults|r - Reset all options to default.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle speedometer display.")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed status|r - Display current configuration.")
     end
 end
