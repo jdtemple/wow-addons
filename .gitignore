@@ -1,3 +1,5 @@
 # Temporary packaging staging folders inside dist/
+autojoin-biggins/dist/
 lazyspeed-biggins/dist/
+perf-biggins/dist/
 summonpet-biggins/dist/
