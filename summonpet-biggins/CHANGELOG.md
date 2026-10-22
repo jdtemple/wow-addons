@@ -1,5 +1,14 @@
 # Changelog - SummonPet Biggins
 
+## [1.1.0] - 2026-10-22
+
+### Added
+- **Modern Canvas Options UI:** Transitioned settings interface to Blizzard's modern Canvas layout (`Settings.RegisterCanvasLayoutCategory`) to display multi-tier configuration cleanly without text truncation or awkward column wrapping.
+- **Top-Right Defaults Button:** Standardized top-right `[ Defaults ]` button matching Blizzard UI conventions to easily reset all options and companion selections back to factory defaults.
+- **Master Enable Toggle & Cascading Disables:** Added top-level master toggle to enable or disable the pet summoning engine. Unchecking master enable dynamically grays out and disables all child options throughout the full hierarchy (Raids, Mythic+, Regular Dungeons, Delves & Labyrinths, Stealth auto-dismiss, and mounted summoning).
+
+---
+
 ## [1.0.2] - 2026-10-14
 
 ### Added
