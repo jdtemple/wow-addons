@@ -64,26 +64,3 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 | `/spb options`         | Open the native settings panel                           |
 | `/spb status`          | Display current addon configuration and zone diagnostics |
 | `/spb help`            | Display list of available commands                       |
-
----
-
-## Installation
-
-### CurseForge App (Recommended)
-Search for **SummonPet Biggins** in the CurseForge App and click **Install**.
-
-### Manual Installation
-1. Download the latest release `.zip` from the **Files** tab.
-2. Extract the archive into your World of Warcraft AddOns folder:
-   ```
-   World of Warcraft\_retail_\Interface\AddOns\
-   ```
-3. Ensure the folder is named `SummonPetBiggins` and contains `SummonPetBiggins.toc`.
-4. Launch World of Warcraft (or type `/reload` in-game).
-5. Open **Game Menu -> Options -> Keybindings -> AddOns -> SummonPet Biggins** to assign your hotkeys.
-
----
-
-## License
-
-Licensed under the **MIT License** - free to use, modify, and distribute.

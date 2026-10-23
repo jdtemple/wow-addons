@@ -65,25 +65,3 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
    * Toggle In-Combat hide killswitch
 4. **Reset to Defaults:**
    * In-panel button or `/lazyspeed defaults` to restore all options to defaults.
-
----
-
-## Installation
-
-### CurseForge App (Recommended)
-Simply search for **LazySpeed Biggins** in the CurseForge App and click **Install**.
-
-### Manual Installation
-1. Download the latest release `.zip`.
-2. Extract the archive into your World of Warcraft AddOns folder:
-   ```
-   World of Warcraft\_retail_\Interface\AddOns\
-   ```
-3. Ensure the folder is named `LazySpeedBiggins` and contains `LazySpeedBiggins.toc`.
-4. Launch World of Warcraft (or type `/reload` in-game).
-
----
-
-## License
-
-Licensed under the **MIT License** - free to use, modify, and distribute.
