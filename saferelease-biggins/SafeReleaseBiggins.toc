@@ -1,0 +1,10 @@
+## Interface: 120107, 120105, 120100, 120007, 120010
+## Title: |cFFFFD100SafeRelease Biggins|r
+## Notes: Guards the Release Spirit button during wipes across raids, Mythic+ dungeons, and delves with customizable timers, modifier locks, and wipe detection.
+## Author: Biggins
+## Version: 1.0.0
+## SavedVariables: SafeReleaseBigginsDB
+## IconTexture: Interface\AddOns\SafeReleaseBiggins\logo.jpg
+
+LibBigginsSuite.lua
+SafeReleaseBiggins.lua

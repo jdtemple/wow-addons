@@ -3,6 +3,7 @@ autojoin-biggins/dist/
 lazyspeed-biggins/dist/
 perf-biggins/dist/
 summonpet-biggins/dist/
+saferelease-biggins/dist/
 
 # Ephemeral shared suite files inside individual addon directories
 *-biggins/LibBigginsSuite.lua

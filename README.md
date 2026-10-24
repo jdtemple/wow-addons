@@ -46,17 +46,27 @@ An ultra-lightweight, event-driven companion pet summoner designed to keep your 
 * **Multi-Tier Instance Auto-Dismiss:** Granular hierarchy for Raids, Mythic+ Dungeons, Regular Dungeons, and Delves & Labyrinths.
 * **Modern Canvas Settings UI:** Multi-tier nested hierarchy with top-level master toggle and top-right `[ Defaults ]` button.
 
+### 5. [SafeRelease Biggins (v1.0.0)](./saferelease-biggins)
+An ultra-lightweight group safety utility designed to guard the "Release Spirit" button during wipes across raids, Mythic+ dungeons, and delves to prevent accidental and costly releases.
+* **Physical Click Interception:** Places an inert overlay button directly over the native Release button during lockouts, making early release physically impossible even with high-frequency mouse spam.
+* **3 Flexible Guard Modes:** Configurable for Countdown Timer Delay (1-10s), Modifier-Key Hold (Alt/Shift/Ctrl), or Hybrid Mode (countdown with instant modifier bypass).
+* **Full Raid Wipe Detection:** Automatically detects when the entire raid group is dead and immediately unlocks release for the run-back.
+* **Usable Self-Resurrection Bypass:** Automatically leaves the dialog unblocked if a Shaman Reincarnation, Warlock Soulstone, or other self-rez option is ready.
+* **Modular Content Scoping:** Independent toggles for Raids (Default: ON), Mythic+ Dungeons, Regular Dungeons, and Delves & Scenarios. Never blocks release in open world or PvP.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> SafeRelease` with top-right `[ Defaults ]` button and master toggle.
+
 ---
 
 ## Unified In-Game Settings (`Biggins AddOns`)
 
-All four addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
+All five addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
 
 ```text
 [-] Biggins AddOns
     AutoJoin
     LazySpeed
     Perf
+    SafeRelease
     SummonPet
 ```
 

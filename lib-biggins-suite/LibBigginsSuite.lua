@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 1
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 2
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -95,6 +95,14 @@ function Suite:GetOrCreateParentCategory(addonDir)
             checkLoaded = function() return _G["SummonPetBiggins"] ~= nil end,
             getVersion = function() return (_G["SummonPetBiggins"] and _G["SummonPetBiggins"].version) or "1.2.0" end,
             getCatID = function() return _G["SummonPetBiggins"] and _G["SummonPetBiggins"].categoryID end,
+        },
+        {
+            key = "SafeRelease",
+            title = "SafeRelease Biggins",
+            desc = "Guards the Release Spirit button during wipes in raids, M+, and delves.",
+            checkLoaded = function() return _G["SafeReleaseBiggins"] ~= nil end,
+            getVersion = function() return (_G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].version) or "1.0.0" end,
+            getCatID = function() return _G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].categoryID end,
         },
     }
 

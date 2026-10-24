@@ -46,7 +46,8 @@ $gameAddons = @(
     'AutoJoinBiggins',
     'LazySpeedBiggins',
     'PerfBiggins',
-    'SummonPetBiggins'
+    'SummonPetBiggins',
+    'SafeReleaseBiggins'
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
