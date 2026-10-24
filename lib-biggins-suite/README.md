@@ -14,7 +14,7 @@ Canonical single source of truth for the shared Biggins AddOns settings category
 
 ## Distribution Architecture
 
-This directory is the **Single Source of Truth (SSOT)**. 
+This directory is the **Single Source of Truth (SSOT)**.
 
 Do not edit copies of `LibBigginsSuite.lua` or `suite-logo.jpg` inside individual addon directories. Instead:
 1. Make all suite updates here in `lib-biggins-suite/`.

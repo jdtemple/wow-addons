@@ -45,7 +45,7 @@ Run the included packaging script:
 ```
 
 ### Manual
-1. Copy the `PerfBiggins` folder into your World of Warcraft directory:  
+1. Copy the `PerfBiggins` folder into your World of Warcraft directory:
    `World of Warcraft\_retail_\Interface\AddOns\PerfBiggins`
 2. Restart World of Warcraft or run `/reload`.
 3. Type `/pb` to open settings or drag the HUD to your preferred screen location.

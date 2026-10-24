@@ -47,7 +47,7 @@ Run the included build and install script:
 ```
 
 ### Manual
-1. Copy the `AutoJoinBiggins` folder into your World of Warcraft directory:  
+1. Copy the `AutoJoinBiggins` folder into your World of Warcraft directory:
    `World of Warcraft\_retail_\Interface\AddOns\AutoJoinBiggins`
 2. Restart World of Warcraft or run `/reload`.
 3. Type `/aj` or open **Game Menu -> Options -> AddOns -> AutoJoin Biggins** to customize your settings.

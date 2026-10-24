@@ -17,7 +17,7 @@ Comprehensive guide for packaging, publishing, and updating World of Warcraft ad
 
 CurseForge requires addon archives to be structured so that extracting the ZIP puts the root addon folder directly into `World of Warcraft\_retail_\Interface\AddOns\`.
 
-The folder name inside the ZIP **must match the `.toc` file prefix** (e.g. `SummonPetBiggins` or `LazySpeedBiggins`).
+The folder name inside the ZIP **must match the `.toc` file prefix** (e.g. `AutoJoinBiggins`, `LazySpeedBiggins`, `PerfBiggins`, or `SummonPetBiggins`).
 
 ### Automated Packaging Script
 
@@ -33,12 +33,19 @@ cd lazyspeed-biggins
 .\package.ps1
 ```
 
+> [!TIP]
+> **Batch Package All AddOns:** To build release packages for all four Biggins addons in a single step, run this from the repository root:
+> ```powershell
+> Get-ChildItem -Path . -Filter "package.ps1" -Recurse | ForEach-Object { & $_.FullName }
+> ```
+
 The script automatically:
 1. Reads the current version from the addon's `.toc` file (`## Version:`).
 2. Creates a clean staging directory with the proper addon folder name.
 3. Copies all required release files (`.lua`, `.toc`, `.xml`, `README.md`, `CHANGELOG.md`).
-4. Generates a compressed archive in `dist/<AddonName>-v<Version>.zip`.
-5. Cleans up temporary staging folders.
+4. Pulls the latest canonical [`LibBigginsSuite.lua`](file:///C:/Code/wow-addons/lib-biggins-suite/LibBigginsSuite.lua) and `suite-logo.jpg` directly from `lib-biggins-suite/` into staging so the package is 100% self-contained.
+5. Generates a compressed archive in `dist/<AddonName>-v<Version>.zip`.
+6. Cleans up temporary staging folders.
 
 ### Archive Structure Verification
 
@@ -49,7 +56,10 @@ CurseForge expects this exact structure inside the archive:
 └── <AddonName>/
     ├── <AddonName>.toc
     ├── <AddonName>.lua
+    ├── LibBigginsSuite.lua
+    ├── suite-logo.jpg
     ├── Bindings.xml (if applicable)
+    ├── logo.jpg (if applicable)
     ├── README.md
     └── CHANGELOG.md
 ```
@@ -67,7 +77,7 @@ CurseForge expects this exact structure inside the archive:
 | :------------------- | :-------------------------------------------------- | :---------------------------------------------------------- |
 | **Game**             | `World of Warcraft`                                 | Retail                                                      |
 | **Project Name**     | Public display name                                 | `SummonPet Biggins` / `LazySpeed Biggins`                   |
-| **Project Slug**     | URL identifier (`curseforge.com/wow/addons/<slug>`) | `summonpet-biggins` / `lazyspeed-biggins`                  |
+| **Project Slug**     | URL identifier (`curseforge.com/wow/addons/<slug>`) | `summonpet-biggins` / `lazyspeed-biggins`                   |
 | **Summary**          | Punchy 1-2 sentence description (max 200 chars)     | Short summary from the addon's `README.md`                  |
 | **Primary Category** | Primary browse category                             | `Pet Battles` / `Companions` or `Unit Frames` / `Interface` |
 | **License**          | Project open-source license                         | `MIT License` (matches repository root `LICENSE`)           |

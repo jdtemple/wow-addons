@@ -3,7 +3,7 @@
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+)
-    
+
     ARCHITECTURAL OVERVIEW:
     1. Zero Idle Footprint: When inactive based on user settings (e.g. grounded in
        Flight/Swim-Only mode, or in combat), the OnUpdate script is completely detached
@@ -141,8 +141,8 @@ SpeedoFrame:Hide() -- Starts hidden; shown only when active according to user se
 SpeedoFrame:SetBackdrop({
     bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile     = true, 
-    tileSize = 12, 
+    tile     = true,
+    tileSize = 12,
     edgeSize = 12,
     insets   = { left = 3, right = 3, top = 3, bottom = 3 }
 })
@@ -284,7 +284,7 @@ local function SpeedometerUpdateLoop(self, elapsed)
         LazySpeed_StopEngine()
         return
     end
-    
+
     local currentSpeed = 0
     local maxCap = MAX_CAP_GROUND
     local isCurrentStateActive = false
@@ -384,11 +384,11 @@ end
 -- Starts the 20 FPS high-speed update engine (Attaches OnUpdate script & shows UI)
 function LazySpeed_StartEngine()
     if isEngineActive then return end
-    
+
     isEngineActive = true
     updateTimer = 0
     landingDebounce = 0
-    
+
     ResetDisplay()
     UpdateMouseInteractivity()
     SpeedoFrame:Show()
@@ -399,7 +399,7 @@ end
 -- Stops the engine completely (DETACHES OnUpdate script & hides UI)
 function LazySpeed_StopEngine()
     if not isEngineActive then return end
-    
+
     isEngineActive = false
     -- DETACH THE SCRIPT: Completely removes the OnUpdate hook from the WoW engine.
     -- Result: 0.00ms CPU footprint, zero background execution!
@@ -775,7 +775,7 @@ EventWatcherFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == "LazySpeedBiggins" then
         -- Initialize SavedVariables table with defaults if first run
         LazySpeedBigginsDB = LazySpeedBigginsDB or {}
-        
+
         -- Migrate legacy v3.2 visibilityMode if present
         if LazySpeedBigginsDB.visibilityMode then
             if LazySpeedBigginsDB.visibilityMode == "FLIGHT_ONLY" then
@@ -832,7 +832,7 @@ end)
 local passivePollTimer = 0
 EventWatcherFrame:SetScript("OnUpdate", function(self, elapsed)
     local db = LazySpeedBigginsDB or DB_DEFAULTS
-    
+
     -- If high-speed loop is already active, or in combat with hideInCombat enabled, skip
     if isEngineActive then return end
     if db.hideInCombat and IsPlayerInCombat() then return end

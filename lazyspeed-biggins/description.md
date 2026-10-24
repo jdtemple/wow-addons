@@ -1,6 +1,6 @@
 # LazySpeed Biggins
 
-**LazySpeed Biggins** is an ultra-lightweight, high-performance flight, swim, and movement speedometer for *World of Warcraft: Midnight* and *The War Within*. 
+**LazySpeed Biggins** is an ultra-lightweight, high-performance flight, swim, and movement speedometer for *World of Warcraft: Midnight* and *The War Within*.
 
 Engineered with a sleek, modern **nameplate-style HUD** and a classic **Blizzard Metallic Gold** border, it provides real-time velocity telemetry without ever cluttering your screen or impacting your frame rates.
 
@@ -8,7 +8,7 @@ Engineered with a sleek, modern **nameplate-style HUD** and a classic **Blizzard
 
 ## Credits & Attribution
 
-This project is a modernized, ground-up performance re-architecture of the classic addon **[LazySpeed by Darthterac](https://www.curseforge.com/wow/addons/lazyspeed)**. 
+This project is a modernized, ground-up performance re-architecture of the classic addon **[LazySpeed by Darthterac](https://www.curseforge.com/wow/addons/lazyspeed)**.
 
 Huge thanks and full credit go to **Darthterac** for creating the original concept and mathematical foundation! If you enjoy this addon, please check out and support Darthterac's original work.
 

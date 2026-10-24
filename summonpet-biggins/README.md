@@ -38,7 +38,7 @@
 ## Installation
 
 To install manually:
-1. Copy the `SummonPetBiggins` folder into your World of Warcraft directory:  
+1. Copy the `SummonPetBiggins` folder into your World of Warcraft directory:
    `World of Warcraft\_retail_\Interface\AddOns\SummonPetBiggins`
 2. Restart World of Warcraft or type `/reload`.
 3. Open **Game Menu -> Options -> Keybindings -> AddOns -> SummonPetBiggins** to assign your toggle hotkey.
