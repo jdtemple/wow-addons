@@ -6,7 +6,7 @@ Comprehensive guide for packaging, publishing, and updating World of Warcraft ad
 
 ## 1. Prerequisites
 
-1. **CurseForge Author Account:** Register or log in at [authors.curseforge.com](https://authors.curseforge.com).
+1. **CurseForge Author Account:** Register or log in at [authors.curseforge.com](https://authors.curseforge.com) ([Author Projects Profile](https://www.curseforge.com/members/biggins_whisperwind/projects)).
 2. **Project Artwork:** A square logo (minimum 512x512 PNG/JPG, ideally 1024x1024) showcasing the addon's identity (e.g. `logo.jpg` in the addon folder).
 3. **Gallery Screenshots:** 2-4 clean screenshots showing settings, keybinds, or in-game usage placed in the addon's `screenshots/` directory.
 4. **PowerShell:** Built-in on Windows for running the automated release packager.

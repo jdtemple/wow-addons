@@ -8,7 +8,7 @@ Welcome to the **Biggins AddOns** suite for *World of Warcraft* (Midnight & The 
 
 This repository houses a collection of performance-focused addons and custom tools built with a strict emphasis on **zero-allocation programming, CPU efficiency, native Blizzard UI integration, and cohesive aesthetic design**.
 
-All projects here are open source and shared freely under the [MIT License](LICENSE) for the community to use, fork, or incorporate into upstream projects.
+All projects here are open source and shared freely under the [MIT License](LICENSE) for the community to use, fork, or incorporate into upstream projects. All addons in the suite are available for download on [CurseForge](https://www.curseforge.com/members/biggins_whisperwind/projects).
 
 ---
 
