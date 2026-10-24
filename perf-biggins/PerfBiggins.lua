@@ -1,8 +1,8 @@
 --[[ ==============================================================================
-    Perf Biggins v1.1.0 - High-Performance FPS & Dual-Latency HUD
+    Perf Biggins v1.2.0 - High-Performance FPS & Dual-Latency HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
-    Compatibility: World of Warcraft: The War Within / Midnight (Patch 11.x - 12.x)
+    Compatibility: World of Warcraft: The War Within / Midnight (Patch 11.x - 12.x / 12.1.7)
 
     ARCHITECTURAL OVERVIEW:
     1. Zero-Allocation Rendering: Formats numbers directly in native C++ using
@@ -23,7 +23,11 @@
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.1.0"
+addon.version = "1.2.0"
+
+-- Native Blizzard Keybinding strings
+_G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
+_G["BINDING_NAME_PERFBIGGINS_TOGGLE"] = "Toggle Performance HUD"
 
 -- ==============================================================================
 -- 1. LOCAL UPVALUE CACHING & CONSTANTS
@@ -623,13 +627,16 @@ function addon:RegisterOptions()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", 0, -18)
-    helpNote:SetText("Slash commands: /perf or /pb (toggle, lock, fps, world, home, combat, reset, status)")
+    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: /perf or /pb (toggle, lock, fps, world, home, combat, reset, status)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
     end)
 
-    if Settings and Settings.RegisterCanvasLayoutCategory then
+    -- Register with modern Settings UI as a subcategory under Biggins AddOns
+    if LibBigginsSuite then
+        addon.categoryID = LibBigginsSuite:RegisterSubcategory("PerfBiggins", panel, "Perf")
+    elseif Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, "Perf Biggins")
         Settings.RegisterAddOnCategory(category)
         addon.categoryID = category:GetID()
@@ -638,6 +645,16 @@ function addon:RegisterOptions()
     end
 
     addon:UpdateOptionsUI()
+end
+
+-- Toggle Master HUD Visibility
+function addon:Toggle()
+    local db = PerfBigginsDB or DB_DEFAULTS
+    db.enabled = not db.enabled
+    addon:UpdateOptionsUI()
+    addon:UpdateLayout()
+    local status = db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+    PrintMsg("Performance HUD is now " .. status .. ".")
 end
 
 -- Open Settings Panel
@@ -660,11 +677,7 @@ local function SlashHandler(msg)
     if cmd == "" or cmd == "options" or cmd == "config" then
         addon:OpenSettings()
     elseif cmd == "toggle" then
-        db.enabled = not db.enabled
-        addon:UpdateOptionsUI()
-        addon:UpdateLayout()
-        local status = db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
-        PrintMsg("Performance HUD is now " .. status .. ".")
+        addon:Toggle()
     elseif cmd == "lock" then
         db.locked = not db.locked
         addon:UpdateOptionsUI()

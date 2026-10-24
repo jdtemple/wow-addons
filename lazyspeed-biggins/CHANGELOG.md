@@ -5,6 +5,17 @@ All notable changes to LazySpeed Biggins will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2026-10-23
+
+### Added
+- **Unified Suite Navigation:** Registered as a subcategory under the unified `Biggins AddOns` parent category in the modern Blizzard Settings menu.
+- **Suite Overview Dashboard Integration:** Accessible via the new `/biggins` slash command, featuring live suite module status detection and cross-navigation.
+
+### Changed
+- **Patch 12.1.7 Compatibility:** Updated Interface version to `120107` for full compatibility with World of Warcraft: Midnight Patch 12.1.7.
+
+---
+
 ## [3.7.0] - 2026-10-22
 
 ### Added

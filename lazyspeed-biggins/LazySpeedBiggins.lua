@@ -1,8 +1,8 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.7.0 - High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.8.0 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
-    Compatibility: World of Warcraft: Midnight (Patch 12.1.5 / 12.1+)
+    Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+)
     
     ARCHITECTURAL OVERVIEW:
     1. Zero Idle Footprint: When inactive based on user settings (e.g. grounded in
@@ -537,6 +537,8 @@ local function ResetAllToDefaults()
     DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: All options have been reset to default.")
 end
 
+_G["LazySpeedBiggins_Version"] = "3.8.0"
+
 local function InitializeBlizzardSettings()
     local panel = CreateFrame("Frame", "LazySpeedBigginsOptionsPanel", UIParent)
     panel.name = "LazySpeed Biggins"
@@ -738,10 +740,15 @@ local function InitializeBlizzardSettings()
         UpdateOptionsUI()
     end)
 
-    if Settings and Settings.RegisterCanvasLayoutCategory then
+    -- Register with modern Settings UI as a subcategory under Biggins AddOns
+    if LibBigginsSuite then
+        categoryID = LibBigginsSuite:RegisterSubcategory("LazySpeedBiggins", panel, "LazySpeed")
+        _G["LazySpeedBiggins_CategoryID"] = categoryID
+    elseif Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, "LazySpeed Biggins")
         Settings.RegisterAddOnCategory(category)
         categoryID = category:GetID()
+        _G["LazySpeedBiggins_CategoryID"] = categoryID
     else
         InterfaceOptions_AddCategory(panel)
     end
@@ -913,7 +920,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Measurement Unit: %s", modeLabels[db.unitMode or 4] or "%"))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Dimensions:   %d x %d px", db.barWidth or 180, db.barHeight or 22))
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.7.0|r:")
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.8.0|r:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle master speedometer on/off.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed lock|r - Toggle locking frame position.")

@@ -1,9 +1,10 @@
-## Interface: 120105, 120100, 120007, 120010, 110000, 110002, 110005, 110007, 110100
+## Interface: 120107, 120105, 120100, 120007, 120010, 110000, 110002, 110005, 110007, 110100
 ## Title: |cFFFFD100AutoJoin Biggins|r
 ## Notes: Lightweight, configurable auto-accept for party invitations from Guildmates, Friends, and Battle.net contacts.
 ## Author: Biggins
-## Version: 1.1.0
+## Version: 1.2.0
 ## SavedVariables: AutoJoinBigginsDB
 ## IconTexture: Interface\AddOns\AutoJoinBiggins\logo.jpg
 
+LibBigginsSuite.lua
 AutoJoinBiggins.lua

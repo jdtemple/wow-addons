@@ -4,7 +4,7 @@
 
 local addonName, addon = ...
 _G["AutoJoinBiggins"] = addon
-addon.version = "1.1.0"
+addon.version = "1.2.0"
 
 -- Default Settings
 local defaults = {
@@ -202,8 +202,21 @@ local function SwitchActiveChatChannel()
     end
 end
 
+-- Helper to Determine Current Group State ("NONE", "INSTANCE", "RAID", "PARTY")
+local function GetCurrentGroupType()
+    if not IsInGroup() then
+        return "NONE"
+    elseif IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+        return "INSTANCE"
+    elseif IsInRaid() then
+        return "RAID"
+    else
+        return "PARTY"
+    end
+end
+
 -- State Tracking
-local wasInGroup = false
+local lastGroupType = "NONE"
 
 -- Process Party Invitation
 local function HandlePartyInvite(inviterName, inviterGUID)
@@ -252,25 +265,24 @@ frame:SetScript("OnEvent", function(self, event, ...)
             addon:RegisterOptions()
         end
     elseif event == "PLAYER_ENTERING_WORLD" then
-        wasInGroup = IsInGroup()
+        lastGroupType = GetCurrentGroupType()
     elseif event == "PARTY_INVITE_REQUEST" then
         local inviterName, _, _, _, _, _, inviterGUID = ...
         HandlePartyInvite(inviterName, inviterGUID)
     elseif event == "GROUP_ROSTER_UPDATE" then
-        local inGroup = IsInGroup()
-        if inGroup and not wasInGroup then
-            -- Transitioned into a group: prime active chat channel
-            wasInGroup = true
-            if AutoJoinBigginsDB and AutoJoinBigginsDB.enabled and AutoJoinBigginsDB.autoSwitchChat then
-                if C_Timer and C_Timer.After then
-                    C_Timer.After(0.15, SwitchActiveChatChannel)
-                else
-                    SwitchActiveChatChannel()
+        local currentGroupType = GetCurrentGroupType()
+        if currentGroupType ~= lastGroupType then
+            if currentGroupType ~= "NONE" then
+                -- Joined a group or transitioned between Party <-> Raid <-> Instance
+                if AutoJoinBigginsDB and AutoJoinBigginsDB.enabled and AutoJoinBigginsDB.autoSwitchChat then
+                    if C_Timer and C_Timer.After then
+                        C_Timer.After(0.15, SwitchActiveChatChannel)
+                    else
+                        SwitchActiveChatChannel()
+                    end
                 end
             end
-        elseif not inGroup and wasInGroup then
-            -- Left group
-            wasInGroup = false
+            lastGroupType = currentGroupType
         end
     end
 end)
@@ -418,8 +430,10 @@ function addon:RegisterOptions()
         addon:UpdateOptionsUI()
     end)
 
-    -- Register with modern Settings UI
-    if Settings and Settings.RegisterCanvasLayoutCategory then
+    -- Register with modern Settings UI as a subcategory under Biggins AddOns
+    if LibBigginsSuite then
+        addon.categoryID = LibBigginsSuite:RegisterSubcategory("AutoJoinBiggins", panel, "AutoJoin")
+    elseif Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, "AutoJoin Biggins")
         Settings.RegisterAddOnCategory(category)
         addon.categoryID = category:GetID()

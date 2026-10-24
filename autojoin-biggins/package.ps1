@@ -61,6 +61,15 @@ foreach ($file in $releaseFiles) {
     }
 }
 
+# Pull shared suite library and assets from canonical source of truth into staging
+$canonicalSuiteDir = Join-Path (Split-Path $addonDir -Parent) 'lib-biggins-suite'
+if (Test-Path $canonicalSuiteDir) {
+    Copy-Item (Join-Path $canonicalSuiteDir 'LibBigginsSuite.lua') $stagingDir -Force
+    Copy-Item (Join-Path $canonicalSuiteDir 'suite-logo.jpg') $stagingDir -Force
+} else {
+    Write-Warning "Canonical suite directory not found: $canonicalSuiteDir"
+}
+
 # Optional local installation to WoW client
 $wowAddonDir = "C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\AutoJoinBiggins"
 if ($Install) {

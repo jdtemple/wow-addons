@@ -51,7 +51,7 @@ if (Test-Path $stagingDir) {
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 
 # Copy release files
-$releaseFiles = @('PerfBiggins.lua', 'PerfBiggins.toc', 'logo.jpg', 'README.md', 'CHANGELOG.md')
+$releaseFiles = @('PerfBiggins.lua', 'PerfBiggins.toc', 'Bindings.xml', 'logo.jpg', 'README.md', 'CHANGELOG.md')
 foreach ($file in $releaseFiles) {
     $sourcePath = Join-Path $addonDir $file
     if (Test-Path $sourcePath) {
@@ -59,6 +59,15 @@ foreach ($file in $releaseFiles) {
     } else {
         Write-Warning "File not found: $sourcePath"
     }
+}
+
+# Pull shared suite library and assets from canonical source of truth into staging
+$canonicalSuiteDir = Join-Path (Split-Path $addonDir -Parent) 'lib-biggins-suite'
+if (Test-Path $canonicalSuiteDir) {
+    Copy-Item (Join-Path $canonicalSuiteDir 'LibBigginsSuite.lua') $stagingDir -Force
+    Copy-Item (Join-Path $canonicalSuiteDir 'suite-logo.jpg') $stagingDir -Force
+} else {
+    Write-Warning "Canonical suite directory not found: $canonicalSuiteDir"
 }
 
 # Optional local installation to WoW client

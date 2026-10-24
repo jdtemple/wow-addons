@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.1.0"
+addon.version = "1.2.0"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -649,7 +649,10 @@ function addon:RegisterOptions()
         addon:UpdateOptionsUI()
     end)
 
-    if Settings and Settings.RegisterCanvasLayoutCategory then
+    -- Register with modern Settings UI as a subcategory under Biggins AddOns
+    if LibBigginsSuite then
+        addon.categoryID = LibBigginsSuite:RegisterSubcategory("SummonPetBiggins", panel, "SummonPet")
+    elseif Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, "SummonPet Biggins")
         Settings.RegisterAddOnCategory(category)
         addon.categoryID = category:GetID()
