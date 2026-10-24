@@ -1,0 +1,10 @@
+## Interface: 120107, 120105, 120100, 120007, 120010
+## Title: |cFFFFD100ChatLink Biggins|r
+## Notes: Converts web URLs in chat into clickable links for fast, native copy-pasting.
+## Author: Biggins
+## Version: 1.0.0
+## SavedVariables: ChatLinkBigginsDB
+## IconTexture: Interface\AddOns\ChatLinkBiggins\logo.jpg
+
+LibBigginsSuite.lua
+ChatLinkBiggins.lua

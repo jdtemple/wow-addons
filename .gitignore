@@ -4,6 +4,7 @@ lazyspeed-biggins/dist/
 perf-biggins/dist/
 summonpet-biggins/dist/
 saferelease-biggins/dist/
+chatlink-biggins/dist/
 
 # Ephemeral shared suite files inside individual addon directories
 *-biggins/LibBigginsSuite.lua

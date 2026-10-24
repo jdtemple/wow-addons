@@ -55,15 +55,24 @@ An ultra-lightweight group safety utility designed to guard the "Release Spirit"
 * **Modular Content Scoping:** Independent toggles for Raids (Default: ON), Mythic+ Dungeons, Regular Dungeons, and Delves & Scenarios. Never blocks release in open world or PvP.
 * **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> SafeRelease` with top-right `[ Defaults ]` button and master toggle.
 
+### 6. [ChatLink Biggins (v1.0.0)](./chatlink-biggins)
+An ultra-lightweight chat utility designed to make web URLs in chat clickable for instant, native copy-pasting (`Ctrl+C` -> `Enter`).
+* **100% Blizzard Factory Aesthetic:** Uses native `StaticPopupDialogs` with auto-highlighted text and instant focus. No custom skins or third-party frameworks.
+* **Single-Pattern Protocol Isolation:** Strict protocol matching for `https://` and `http://` eliminating pattern collisions, domain whitelists, and chat loops.
+* **Sentence Punctuation Stripping:** Automatically trims trailing punctuation (`.,;:!?)[]'"`) so links copied at sentence boundaries remain clean and valid.
+* **Pipe Escape Protection:** Safely respects WoW `|` escape sequences, protecting adjacent item links, spell links, and player names.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> ChatLink` with top-right `[ Defaults ]` button and master toggle.
+
 ---
 
 ## Unified In-Game Settings (`Biggins AddOns`)
 
-All five addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
+All six addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
 
 ```text
 [-] Biggins AddOns
     AutoJoin
+    ChatLink
     LazySpeed
     Perf
     SafeRelease

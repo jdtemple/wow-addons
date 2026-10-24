@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 2
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 3
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -103,6 +103,14 @@ function Suite:GetOrCreateParentCategory(addonDir)
             checkLoaded = function() return _G["SafeReleaseBiggins"] ~= nil end,
             getVersion = function() return (_G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].version) or "1.0.0" end,
             getCatID = function() return _G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].categoryID end,
+        },
+        {
+            key = "ChatLink",
+            title = "ChatLink Biggins",
+            desc = "Makes web URLs clickable in chat for fast, native copy-pasting.",
+            checkLoaded = function() return _G["ChatLinkBiggins"] ~= nil end,
+            getVersion = function() return (_G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].version) or "1.0.0" end,
+            getCatID = function() return _G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].categoryID end,
         },
     }
 
