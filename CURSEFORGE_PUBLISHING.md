@@ -33,11 +33,11 @@ cd lazyspeed-biggins
 .\package.ps1
 ```
 
-> [!TIP]
-> **Batch Package All AddOns:** To build release packages for all four Biggins addons in a single step, run this from the repository root:
-> ```powershell
-> Get-ChildItem -Path . -Filter "package.ps1" -Recurse | ForEach-Object { & $_.FullName }
-> ```
+**Batch Package All AddOns:** To build release packages for all four Biggins addons in a single step, run this from the repository root:
+
+```powershell
+Get-ChildItem -Path . -Filter "package.ps1" -Recurse | ForEach-Object { & $_.FullName }
+```
 
 The script automatically:
 1. Reads the current version from the addon's `.toc` file (`## Version:`).

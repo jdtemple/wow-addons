@@ -8,7 +8,7 @@
 
 - **0.00% Movement CPU Usage:** Purely event-driven. Unlike legacy summoners that hook movement and camera keys on every step, SummonPet Biggins only executes for microseconds when you dismount, exit stealth, drop combat, or zone.
 - **Native Game Engine Keybinding:** Binds directly in **Game Menu -> Options -> Keybindings -> AddOns -> SummonPetBiggins**. No action bar buttons, macros, or `/run` scripts needed.
-- **Unified Settings UI:** All options live cleanly inside **Game Menu -> Options -> AddOns -> SummonPetBiggins**. Zero hooking or tampering with Blizzard's PetJournal frames (100% taint-free and compatible with *Rematch*).
+- **Unified Settings UI:** All options live cleanly inside **Game Menu -> Options -> AddOns -> Biggins AddOns -> SummonPet** (or type `/spb options`). Zero hooking or tampering with Blizzard's PetJournal frames (100% taint-free and compatible with *Rematch*).
 - **1-Click Pet Pinning:** Summon whatever companion pet you want in-game, then click **`[ Use Currently Summoned Pet ]`** (or type `/spb pin`) to lock it in. No dragging icons across the screen.
 - **3 Flexible Modes:**
   - **Random Favorites:** Automatically summons a random favorite pet from your Pet Journal stars.
@@ -41,7 +41,7 @@ To install manually:
 1. Copy the `SummonPetBiggins` folder into your World of Warcraft directory:
    `World of Warcraft\_retail_\Interface\AddOns\SummonPetBiggins`
 2. Restart World of Warcraft or type `/reload`.
-3. Open **Game Menu -> Options -> Keybindings -> AddOns -> SummonPetBiggins** to assign your toggle hotkey.
+3. Open **Game Menu -> Options -> Keybindings -> AddOns -> SummonPet Biggins** to assign your toggle hotkey (or open **Options -> AddOns -> Biggins AddOns -> SummonPet** to configure).
 
 ---
 

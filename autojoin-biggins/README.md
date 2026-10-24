@@ -16,7 +16,7 @@
 - **Clean Popup Suppression:** Automatically dismisses the standard `PARTY_INVITE` and `PARTY_INVITE_XREALM` confirmation popups on accepted invitations, preventing screen clutter.
 - **Untouched Non-Whitelisted Invites:** If a direct invite arrives from someone outside your active filters, the normal Blizzard invitation popup remains completely intact for manual review.
 - **Zero Overhead & Zero Dependencies:** Pure standalone Lua (< 15 KB). No Ace3, no bloated libraries, and zero impact on frame rates.
-- **Blizzard Settings UI Integration:** Full configuration panel built into the native modern WoW Settings panel under **Options -> AddOns -> AutoJoin Biggins**.
+- **Blizzard Settings UI Integration:** Full configuration panel built into the native modern WoW Settings panel under **Options -> AddOns -> Biggins AddOns -> AutoJoin** (or type `/aj`).
 
 ---
 
@@ -50,7 +50,7 @@ Run the included build and install script:
 1. Copy the `AutoJoinBiggins` folder into your World of Warcraft directory:
    `World of Warcraft\_retail_\Interface\AddOns\AutoJoinBiggins`
 2. Restart World of Warcraft or run `/reload`.
-3. Type `/aj` or open **Game Menu -> Options -> AddOns -> AutoJoin Biggins** to customize your settings.
+3. Type `/aj` or open **Game Menu -> Options -> AddOns -> Biggins AddOns -> AutoJoin** to customize your settings.
 
 ---
 

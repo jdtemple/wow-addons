@@ -15,7 +15,7 @@
 - **Dynamic Layout & Collapse:** Every bar can be independently toggled on or off. Active bars seamlessly snap together, and the container frame dynamically recalculates its height without empty space.
 - **Movable & Lockable:** Drag the entire tri-bar HUD anywhere on your screen with Left-Click. Easily lock it via settings or `/pb lock` to prevent accidental movement.
 - **Combat Visibility Toggle:** Option to automatically hide the HUD during combat and completely detach the update loop for zero combat overhead.
-- **Blizzard Settings Integration:** Full configuration panel built into the native WoW Settings panel under **Options -> AddOns -> Perf Biggins**.
+- **Blizzard Settings Integration:** Full configuration panel built into the native WoW Settings panel under **Options -> AddOns -> Biggins AddOns -> Perf** (or type `/pb`).
 
 ---
 
@@ -48,7 +48,7 @@ Run the included packaging script:
 1. Copy the `PerfBiggins` folder into your World of Warcraft directory:
    `World of Warcraft\_retail_\Interface\AddOns\PerfBiggins`
 2. Restart World of Warcraft or run `/reload`.
-3. Type `/pb` to open settings or drag the HUD to your preferred screen location.
+3. Type `/pb` or open **Game Menu -> Options -> AddOns -> Biggins AddOns -> Perf** to customize settings, or drag the HUD to your preferred screen location.
 
 ---
 

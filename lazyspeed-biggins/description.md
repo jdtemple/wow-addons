@@ -42,7 +42,7 @@ While traditional speedometers run continuous background timers that churn throu
 
 ## In-Game Configuration
 
-Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> LazySpeed Biggins**) or by typing:
+Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> LazySpeed**) or by typing:
 
 ```
 /lazyspeed

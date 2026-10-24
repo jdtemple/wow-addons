@@ -35,7 +35,7 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 
 ## Blizzard Settings Integration
 
-LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> LazySpeed Biggins` or `/lazyspeed`):
+LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> Biggins AddOns -> LazySpeed` or `/lazyspeed`):
 
 ### 1. Modular Visibility Checkboxes
 * **Show While Flying / Skyriding** *(Default: ON)*

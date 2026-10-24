@@ -45,7 +45,7 @@ While legacy companion summoners rely on continuous movement key hooking (`MoveF
 
 ## In-Game Configuration
 
-Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> SummonPet Biggins**) or by typing:
+Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> SummonPet**) or by typing:
 
 ```
 /togglepet
