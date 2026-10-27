@@ -1,5 +1,14 @@
 # Changelog - SummonPet Biggins
 
+## [1.2.1] - 2026-10-26
+
+### Fixed
+- **Stealth Protection Firewall:** Hardened the pet summoning engine to strictly prevent companion summons while `IsStealthed()` is active, eliminating an issue where landing and stealthing in one fluid motion or entering stealth with "Auto-Dismiss in Stealth" unchecked broke stealth.
+- **Stealth Event Logic:** Removed erroneous re-summon attempt from `UPDATE_STEALTH` when auto-dismiss was unchecked, ensuring entering stealth never triggers a stealth-breaking pet cast.
+- **Touchdown Ticker Guard:** Grounded mount touchdown and movement watchers now verify `IsStealthed()` before dispatching any companion summon requests.
+
+---
+
 ## [1.2.0] - 2026-10-23
 
 ### Added

@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.2.0"
+addon.version = "1.2.1"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -37,8 +37,12 @@ local function PrintMsg(msg)
     print("|cFFFFD100[SummonPetBiggins]|r " .. msg)
 end
 
-local function ShouldSuppressStealth()
-    return SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInStealth and IsStealthed()
+local function IsStealthedActive()
+    return IsStealthed and IsStealthed()
+end
+
+local function ShouldDismissInStealth()
+    return SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInStealth and IsStealthedActive()
 end
 
 -- Instance Content Detection & Auto-Dismiss Check
@@ -106,31 +110,69 @@ local function ShouldDismissMounted()
     return IsMounted() and not (SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted)
 end
 
--- Grounded Mount Touchdown Watcher (triggers summon the instant you touch ground from flight)
+-- Grounded Mount Touchdown Watcher with Landing Debounce
 local mountWatcherTicker = nil
+local touchdownTimer = nil
+local wasInFlight = false
+
+local function CancelTouchdownTimer()
+    if touchdownTimer then
+        touchdownTimer:Cancel()
+        touchdownTimer = nil
+    end
+end
 
 local function StopMountWatcher()
+    CancelTouchdownTimer()
     if mountWatcherTicker then
         mountWatcherTicker:Cancel()
         mountWatcherTicker = nil
     end
+    wasInFlight = false
 end
 
 local function StartMountWatcher()
     if mountWatcherTicker or not SummonPetBigginsDB or not SummonPetBigginsDB.summonWhileMounted then
         return
     end
+    wasInFlight = (IsFlying and IsFlying()) or (IsFalling and IsFalling())
     mountWatcherTicker = C_Timer.NewTicker(0.25, function()
         if not IsMounted() or not SummonPetBigginsDB or not SummonPetBigginsDB.summonWhileMounted then
             StopMountWatcher()
             return
         end
 
-        -- If grounded on mount and no companion is out, summon immediately!
-        local currentPet = C_PetJournal.GetSummonedPetGUID()
-        if not currentPet then
-            if not IsMountedBlocked() and not InCombatLockdown() and not ShouldSuppressStealth() then
-                addon:Summon()
+        local inFlightNow = (IsFlying and IsFlying()) or (IsFalling and IsFalling())
+        if inFlightNow then
+            wasInFlight = true
+            CancelTouchdownTimer()
+            return
+        end
+
+        -- If we just touched down from flight, delay summon decision by 500ms
+        -- to prevent race conditions when landing and stealthing in one fluid motion!
+        if wasInFlight then
+            wasInFlight = false
+            CancelTouchdownTimer()
+            touchdownTimer = C_Timer.After(0.5, function()
+                touchdownTimer = nil
+                if IsMounted() and not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
+                    local currentPet = C_PetJournal.GetSummonedPetGUID()
+                    if not currentPet then
+                        addon:Summon()
+                    end
+                end
+            end)
+            return
+        end
+
+        -- Grounded mount steady-state check
+        if not touchdownTimer then
+            local currentPet = C_PetJournal.GetSummonedPetGUID()
+            if not currentPet then
+                if not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
+                    addon:Summon()
+                end
             end
         end
     end)
@@ -138,14 +180,19 @@ end
 
 addon.StartMountWatcher = StartMountWatcher
 addon.StopMountWatcher = StopMountWatcher
+addon.CancelTouchdownTimer = CancelTouchdownTimer
 
 -- Grounded Mount Movement Hook (backup trigger when starting movement on a mount)
 local function OnMovementStart()
     if SummonPetBigginsDB and SummonPetBigginsDB.enabled and SummonPetBigginsDB.summonWhileMounted and IsMounted() then
-        if not IsMountedBlocked() and not InCombatLockdown() and not ShouldSuppressStealth() then
-            local currentPet = C_PetJournal.GetSummonedPetGUID()
-            if not currentPet then
-                addon:Summon()
+        -- Do not trigger during flight or touchdown delay
+        local inFlightNow = (IsFlying and IsFlying()) or (IsFalling and IsFalling())
+        if not inFlightNow and not wasInFlight and not touchdownTimer then
+            if not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
+                local currentPet = C_PetJournal.GetSummonedPetGUID()
+                if not currentPet then
+                    addon:Summon()
+                end
             end
         end
     end
@@ -157,7 +204,8 @@ function addon:Summon()
         return
     end
 
-    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMountedBlocked() or ShouldSuppressStealth() or ShouldDismissInCurrentInstance() then
+    -- Hard stealth guard: summoning a companion pet via API ALWAYS breaks stealth!
+    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMountedBlocked() or IsStealthedActive() or ShouldDismissInCurrentInstance() then
         return
     end
 
@@ -194,7 +242,7 @@ function addon:Dismiss(attempt)
     -- Retry up to 3 times to catch pets delayed by unmounting or combat sync
     if attempt < 4 then
         C_Timer.After(0.25 * attempt, function()
-            local shouldDismiss = ShouldSuppressStealth() or ShouldDismissInCurrentInstance() or ShouldDismissMounted()
+            local shouldDismiss = ShouldDismissInStealth() or ShouldDismissInCurrentInstance() or ShouldDismissMounted()
             if shouldDismiss then
                 local pet = C_PetJournal.GetSummonedPetGUID()
                 if pet or InCombatLockdown() then
@@ -378,22 +426,22 @@ frame:SetScript("OnEvent", function(self, event, arg1)
             StartMountWatcher()
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
-        if ShouldSuppressStealth() or ShouldDismissMounted() then
+        if ShouldDismissInStealth() or ShouldDismissMounted() then
             addon:Dismiss(1)
-        elseif SummonPetBigginsDB and SummonPetBigginsDB.enabled and not IsMountedBlocked() then
+        elseif SummonPetBigginsDB and SummonPetBigginsDB.enabled and not IsMountedBlocked() and not IsStealthedActive() then
             addon:Summon()
         end
     elseif event == "PLAYER_MOUNT_DISPLAY_CHANGED" then
         if not IsMounted() then
             StopMountWatcher()
-            if ShouldSuppressStealth() then
+            if ShouldDismissInStealth() then
                 addon:Dismiss(1)
             else
                 C_Timer.After(0.25, function()
-                    if not IsMounted() and not ShouldSuppressStealth() then
+                    if not IsMounted() and not IsStealthedActive() then
                         if IsFalling() then
                             C_Timer.After(0.4, function()
-                                if not IsMounted() and not ShouldSuppressStealth() then
+                                if not IsMounted() and not IsStealthedActive() then
                                     addon:Summon()
                                 end
                             end)
@@ -408,7 +456,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
             if SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted then
                 StartMountWatcher()
                 C_Timer.After(0.3, function()
-                    if IsMounted() and not IsMountedBlocked() and not ShouldSuppressStealth() then
+                    if IsMounted() and not IsMountedBlocked() and not IsStealthedActive() then
                         addon:Summon()
                     end
                 end)
@@ -417,11 +465,10 @@ frame:SetScript("OnEvent", function(self, event, arg1)
             end
         end
     elseif event == "UPDATE_STEALTH" then
+        CancelTouchdownTimer()
         if IsStealthed() then
             if SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInStealth then
                 addon:Dismiss(1)
-            else
-                addon:Summon()
             end
         else
             addon:Summon()
@@ -541,8 +588,8 @@ function addon:RegisterOptions()
     -- Child Checkboxes (Level 1: Indented 20px)
     local cbStealth = CreateSettingCheckbox("autoDismissInStealth", "Auto-Dismiss in Stealth", "Automatically dismiss companion pet when entering stealth.", "TOPLEFT", cbEnable, "BOTTOMLEFT", 20, -6, function(val)
         if val then
-            if IsStealthed() then addon:Dismiss(1) end
-        else
+            if IsStealthedActive() then addon:Dismiss(1) end
+        elseif not IsStealthedActive() then
             addon:Summon()
         end
     end)
