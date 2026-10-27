@@ -3,7 +3,7 @@
 ## Notes: Ultra-lightweight, event-driven companion pet summoner with native keybind, zero PetJournal hooking, and clean settings.
 ## Author: Biggins
 ## X-Credits: Callie (Caliaha) - Creator of the original BartrubySummonPet
-## Version: 1.2.1
+## Version: 1.2.2
 ## SavedVariables: SummonPetBigginsDB
 
 Bindings.xml

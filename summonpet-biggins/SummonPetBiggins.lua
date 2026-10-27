@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.2.1"
+addon.version = "1.2.2"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -149,12 +149,12 @@ local function StartMountWatcher()
             return
         end
 
-        -- If we just touched down from flight, delay summon decision by 500ms
+        -- If we were in flight and just touched down, delay summon decision by 1.0s
         -- to prevent race conditions when landing and stealthing in one fluid motion!
         if wasInFlight then
             wasInFlight = false
             CancelTouchdownTimer()
-            touchdownTimer = C_Timer.After(0.5, function()
+            touchdownTimer = C_Timer.After(1.0, function()
                 touchdownTimer = nil
                 if IsMounted() and not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
                     local currentPet = C_PetJournal.GetSummonedPetGUID()
@@ -166,13 +166,16 @@ local function StartMountWatcher()
             return
         end
 
-        -- Grounded mount steady-state check
-        if not touchdownTimer then
-            local currentPet = C_PetJournal.GetSummonedPetGUID()
-            if not currentPet then
-                if not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
-                    addon:Summon()
-                end
+        -- While the 1.0s touchdown timer is running, absolutely NO summons!
+        if touchdownTimer then
+            return
+        end
+
+        -- Grounded mount steady-state check (only when grounded for > 1.0s)
+        local currentPet = C_PetJournal.GetSummonedPetGUID()
+        if not currentPet then
+            if not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
+                addon:Summon()
             end
         end
     end)
@@ -185,7 +188,6 @@ addon.CancelTouchdownTimer = CancelTouchdownTimer
 -- Grounded Mount Movement Hook (backup trigger when starting movement on a mount)
 local function OnMovementStart()
     if SummonPetBigginsDB and SummonPetBigginsDB.enabled and SummonPetBigginsDB.summonWhileMounted and IsMounted() then
-        -- Do not trigger during flight or touchdown delay
         local inFlightNow = (IsFlying and IsFlying()) or (IsFalling and IsFalling())
         if not inFlightNow and not wasInFlight and not touchdownTimer then
             if not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then

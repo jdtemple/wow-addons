@@ -38,7 +38,7 @@ A high-performance tri-bar telemetry HUD displaying real-time FPS, World Latency
 * **Zero Garbage Generation:** Uses Blizzard's native C++ `FontString:SetFormattedText()` with pre-cached static format string pointers.
 * **Modern Canvas Settings UI:** Granular width/height sliders, lock toggle, combat hide, and position reset.
 
-### 4. [SummonPet Biggins (v1.2.1)](./summonpet-biggins)
+### 4. [SummonPet Biggins (v1.2.2)](./summonpet-biggins)
 An ultra-lightweight, event-driven companion pet summoner designed to keep your favorite companion pet summoned automatically without CPU stutter or memory bloat.
 * **0.00% Movement CPU Usage:** Purely event-driven lifecycles triggered on dismount, stealth exit, combat drop, or zone transitions.
 * **Native Game Engine Keybinding:** First-class `Bindings.xml` integration under `Keybindings -> AddOns -> SummonPet Biggins`.
