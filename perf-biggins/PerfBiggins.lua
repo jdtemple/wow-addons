@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Perf Biggins v1.2.0 - High-Performance FPS & Dual-Latency HUD
+    Perf Biggins v1.3.0 - High-Performance FPS & Dual-Latency HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: The War Within / Midnight (Patch 11.x - 12.x / 12.1.7)
@@ -7,23 +7,28 @@
     ARCHITECTURAL OVERVIEW:
     1. Zero-Allocation Rendering: Formats numbers directly in native C++ using
        FontString:SetFormattedText with pre-cached static format string pointers.
-    2. Dirty-Tracking Throttled Engine: 20 FPS (0.05s) update loop that skips GPU
-       redraws and text updates when integer values haven't changed.
+    2. Throttled Telemetry Engine: 10 FPS (0.10s) update loop delivering silky-smooth
+       responsiveness with virtually zero CPU footprint and zero memory churn.
     3. Tri-Bar Stacked HUD:
-         - Bar 1: FPS (Frames Per Second)
+         - Bar 1: FPS (Frames Per Second) with dynamic auto-scaling ceiling
          - Bar 2: World Latency (Combat, Abilities, Positioning, Instance Mechanics)
          - Bar 3: Home Latency (Chat, Auction House, Guild, Realm Connection)
-    4. Dynamic Layout & Collapse: Independent toggles for each bar; active bars
+    4. Dynamic Hardware & CVar FPS Scaling:
+         - Auto-detects active foreground limit from GetCVar("maxFPS") when enabled.
+         - Adaptive uncapped mode starting at 60Hz and dynamically expanding upward.
+         - Event-driven rescaling on CVAR_UPDATE with zero /reload required.
+         - Transparent settings UX with auto-updating disabled indicator slider.
+    5. Dynamic Layout & Collapse: Independent toggles for each bar; active bars
        snap together seamlessly and the frame dynamically resizes without gaps.
-    5. Blizzard Gold Aesthetic: Matching LazySpeed styling with dark slate tooltip
+    6. Blizzard Gold Aesthetic: Matching LazySpeed styling with dark slate tooltip
        backdrop and Blizzard metallic gold border.
-    6. Modern Settings UI: Integrated into Options -> AddOns -> Perf Biggins with
-       sliders, checkboxes, lock toggle, and slash commands (/perf, /pb).
+    7. Modern Settings UI: Integrated into Options -> AddOns -> Biggins AddOns -> Perf
+       with sliders, checkboxes, lock toggle, and slash commands (/perf, /pb).
 ============================================================================== ]]--
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.2.0"
+addon.version = "1.3.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
@@ -58,7 +63,8 @@ local FORMAT_WORLD = "%.0f ms World"
 local FORMAT_HOME  = "%.0f ms Home"
 
 -- Max fill limits for 100% status bar display
-local MAX_FPS_CAP     = 144  -- Max FPS scale cap
+local DEFAULT_FPS_CAP = 144  -- Default fallback FPS cap
+local activeFpsCap    = 144  -- Active dynamic FPS scale cap
 local MAX_LATENCY_CAP = 200  -- Max Latency scale cap in ms
 
 -- Update Loop Rate: 10 FPS (0.10s) for silky smooth responsiveness
@@ -72,6 +78,8 @@ local DB_DEFAULTS = {
     showFps      = true,
     showWorld    = true,
     showHome     = true,
+    autoFpsCap   = true,
+    manualFpsCap = 144,
     barWidth     = 180,
     barHeight    = 18,
     locked       = false,
@@ -95,14 +103,45 @@ local function IsInCombat()
     return false
 end
 
+
+-- Helper to calculate the active maximum FPS scale ceiling
+function addon:CalculateActiveFpsCap()
+    local db = PerfBigginsDB or DB_DEFAULTS
+    if not db.autoFpsCap then
+        activeFpsCap = max(30, db.manualFpsCap or DEFAULT_FPS_CAP)
+        return activeFpsCap, "Manual"
+    end
+
+    -- Tier 1: Check foreground maxFPS CVar (Only if the checkbox useMaxFPS is enabled)
+    local useMax = (GetCVarBool and GetCVarBool("useMaxFPS")) or (GetCVar and GetCVar("useMaxFPS") == "1")
+    if useMax then
+        local maxFpsStr = GetCVar and GetCVar("maxFPS")
+        local maxFps = tonumber(maxFpsStr) or 0
+        if maxFps > 0 then
+            activeFpsCap = maxFps
+            addon._lastFpsTier = "maxFPS"
+            return activeFpsCap, "maxFPS"
+        end
+    end
+
+    -- Tier 2: Adaptive floor for uncapped setups (start at 60Hz baseline, expand with actual FPS)
+    local baseline = 60
+    if activeFpsCap and activeFpsCap > baseline and (addon._lastFpsTier == "Adaptive") then
+        baseline = activeFpsCap
+    end
+    addon._lastFpsTier = "Adaptive"
+    activeFpsCap = baseline
+    return activeFpsCap, "Adaptive"
+end
+
 -- ==============================================================================
 -- 3. COLOR GRADIENT EVALUATION
 -- ==============================================================================
--- FPS: High is good (Green >= 60, Yellow 30-59, Red < 30)
+-- FPS: High is good (Green >= 59.5 rounds to 60.0 FPS, Yellow 30-59, Red < 30)
 local function GetFpsColor(fps)
-    if fps >= 60 then
+    if fps >= 59.5 then
         return 0.10, 0.90, 0.20 -- Vibrant Emerald Green
-    elseif fps >= 30 then
+    elseif fps >= 29.5 then
         return 0.95, 0.82, 0.10 -- Golden Yellow
     else
         return 0.95, 0.20, 0.20 -- Warning Red
@@ -311,7 +350,14 @@ local function TelemetryUpdateLoop(self, elapsed)
         local currentFps = GetFramerate() or 0
         barFps.text:SetFormattedText(FORMAT_FPS, currentFps)
 
-        local pct = min(100, max(0, (currentFps / MAX_FPS_CAP) * 100))
+        -- If completely uncapped (Tier 3 Adaptive) in Auto mode and current FPS exceeds current ceiling by >= 1 FPS, adapt upward cleanly
+        if db.autoFpsCap and addon._lastFpsTier == "Adaptive" and currentFps >= (activeFpsCap + 1.0) then
+            activeFpsCap = math.floor(currentFps + 0.5)
+            if addon.UpdateOptionsUI then addon:UpdateOptionsUI() end
+        end
+
+        local cap = max(30, activeFpsCap or DEFAULT_FPS_CAP)
+        local pct = min(100, max(0, (currentFps / cap) * 100))
         barFps:SetValue(pct)
 
         local r, g, b = GetFpsColor(currentFps)
@@ -362,6 +408,7 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("CVAR_UPDATE")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
@@ -379,6 +426,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
                 end
             end
 
+            addon:CalculateActiveFpsCap()
             addon:RestorePosition()
             addon:UpdateLayout()
             addon:RegisterOptions()
@@ -388,9 +436,16 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             SafeOnUpdate(mainFrame, 1.0)
         end
     elseif event == "PLAYER_ENTERING_WORLD" then
+        addon:CalculateActiveFpsCap()
         addon:RestorePosition()
         addon:UpdateLayout()
         SafeOnUpdate(mainFrame, 1.0)
+    elseif event == "CVAR_UPDATE" then
+        local cvarName = ...
+        if cvarName == "maxFPS" or cvarName == "useMaxFPS" or not cvarName then
+            addon:CalculateActiveFpsCap()
+            addon:UpdateOptionsUI()
+        end
     elseif event == "PLAYER_REGEN_DISABLED" then
         -- Entered Combat
         local db = PerfBigginsDB
@@ -441,6 +496,21 @@ function addon:UpdateOptionsUI()
     if uiWidgets.cbLocked then uiWidgets.cbLocked:SetChecked(PerfBigginsDB.locked) end
     if uiWidgets.cbCombat then uiWidgets.cbCombat:SetChecked(PerfBigginsDB.hideInCombat) end
 
+    -- Auto FPS detection toggle and dynamic cap slider
+    local isAutoFps = PerfBigginsDB.autoFpsCap ~= false
+    if uiWidgets.cbAutoFps then uiWidgets.cbAutoFps:SetChecked(isAutoFps) end
+
+    if uiWidgets.sliderFpsCap then
+        local capVal = isAutoFps and activeFpsCap or (PerfBigginsDB.manualFpsCap or DEFAULT_FPS_CAP)
+        uiWidgets.sliderFpsCap:SetValue(capVal)
+        if uiWidgets.sliderFpsCap.valueText then
+            local suffix = isAutoFps and " FPS (Auto)" or " FPS"
+            uiWidgets.sliderFpsCap.valueText:SetText(tostring(math.floor(capVal)) .. suffix)
+        end
+        uiWidgets.sliderFpsCap:SetEnabled(isEnabled and not isAutoFps)
+        uiWidgets.sliderFpsCap:SetAlpha((isEnabled and not isAutoFps) and 1.0 or 0.5)
+    end
+
     if uiWidgets.sliderWidth then
         uiWidgets.sliderWidth:SetValue(PerfBigginsDB.barWidth or 180)
         if uiWidgets.sliderWidth.valueText then
@@ -457,6 +527,7 @@ function addon:UpdateOptionsUI()
     -- Gray out child controls when disabled
     local childWidgets = {
         uiWidgets.cbFps, uiWidgets.cbWorld, uiWidgets.cbHome,
+        uiWidgets.cbAutoFps,
         uiWidgets.cbLocked, uiWidgets.cbCombat,
         uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.btnResetPos
     }
@@ -551,8 +622,15 @@ function addon:RegisterOptions()
     local cbCombat = CreateSettingCheckbox("hideInCombat", "Hide During Combat", "Automatically hides the HUD while in combat to reduce screen clutter.", "TOPLEFT", cbLocked, "BOTTOMLEFT", 0, -6)
     uiWidgets.cbCombat = cbCombat
 
+    -- Auto-Detect Max FPS Checkbox
+    local cbAutoFps = CreateSettingCheckbox("autoFpsCap", "Auto-Detect Max FPS (Recommended)", "Automatically detects your Max Foreground FPS limit or display refresh rate from WoW settings.", "TOPLEFT", cbCombat, "BOTTOMLEFT", 0, -6, function(val)
+        addon:CalculateActiveFpsCap()
+        addon:UpdateOptionsUI()
+    end)
+    uiWidgets.cbAutoFps = cbAutoFps
+
     -- Helper to create and bind sliders
-    local function CreateSettingSlider(key, label, tooltip, minVal, maxVal, step, anchorPoint, relativeTo, relPoint, x, y)
+    local function CreateSettingSlider(key, label, tooltip, minVal, maxVal, step, anchorPoint, relativeTo, relPoint, x, y, unitSuffix)
         local slider = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
         slider:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
         slider:SetSize(220, 16)
@@ -560,6 +638,7 @@ function addon:RegisterOptions()
         slider:SetValueStep(step)
         slider:SetObeyStepOnDrag(true)
 
+        local suffix = unitSuffix or " px"
         local val = (PerfBigginsDB and PerfBigginsDB[key]) or DB_DEFAULTS[key]
         slider:SetValue(val)
 
@@ -569,7 +648,7 @@ function addon:RegisterOptions()
 
         local valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
         valueText:SetPoint("BOTTOMRIGHT", slider, "TOPRIGHT", 0, 4)
-        valueText:SetText(tostring(val) .. " px")
+        valueText:SetText(tostring(val) .. suffix)
 
         if slider.Low then slider.Low:SetText(tostring(minVal)) end
         if slider.High then slider.High:SetText(tostring(maxVal)) end
@@ -578,7 +657,10 @@ function addon:RegisterOptions()
             newVal = floor(newVal + 0.5)
             if not PerfBigginsDB then PerfBigginsDB = {} end
             PerfBigginsDB[key] = newVal
-            valueText:SetText(tostring(newVal) .. " px")
+            valueText:SetText(tostring(newVal) .. suffix)
+            if key == "manualFpsCap" then
+                addon:CalculateActiveFpsCap()
+            end
             addon:UpdateLayout()
         end)
         slider:SetScript("OnEnter", function(self)
@@ -596,7 +678,11 @@ function addon:RegisterOptions()
     end
 
     -- Sliders (Anchored below checkboxes, aligned with 20px indent)
-    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust the horizontal width of telemetry bars in pixels.", 100, 300, 1, "TOPLEFT", cbCombat, "BOTTOMLEFT", 4, -22)
+    local sliderFpsCap = CreateSettingSlider("manualFpsCap", "FPS Bar Max Scale", "Sets the frame rate target required for a 100% full status bar.", 60, 360, 1, "TOPLEFT", cbAutoFps, "BOTTOMLEFT", 4, -22, " FPS")
+    sliderFpsCap.valueText:SetText(tostring(activeFpsCap) .. " FPS")
+    uiWidgets.sliderFpsCap = sliderFpsCap
+
+    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust the horizontal width of telemetry bars in pixels.", 100, 300, 1, "TOPLEFT", sliderFpsCap, "BOTTOMLEFT", 0, -28)
     uiWidgets.sliderWidth = sliderWidth
 
     local sliderHeight = CreateSettingSlider("barHeight", "Bar Height", "Adjust the vertical height of telemetry bars in pixels.", 12, 36, 1, "TOPLEFT", sliderWidth, "BOTTOMLEFT", 0, -28)
@@ -724,6 +810,8 @@ local function SlashHandler(msg)
         print(string.format("  Show Home Bar:    %s", ColorBool(db.showHome)))
         print(string.format("  Frame Locked:     %s", ColorBool(db.locked)))
         print(string.format("  Hide in Combat:   %s", ColorBool(db.hideInCombat)))
+        print(string.format("  Auto-Detect FPS:  %s", ColorBool(db.autoFpsCap ~= false)))
+        print(string.format("  Active FPS Scale: %d FPS", math.floor(activeFpsCap)))
         print(string.format("  Bar Dimensions:   %d x %d px", db.barWidth, db.barHeight))
     else
         PrintMsg("Available commands: /pb [toggle | lock | fps | world | home | combat | reset | status | config]")

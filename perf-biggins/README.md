@@ -7,7 +7,7 @@
 ## Key Features
 
 - **Tri-Bar Performance HUD:**
-  - **FPS Bar:** Real-time frames per second with dynamic color shifts (Green &ge; 60, Yellow 30-59, Red < 30).
+  - **FPS Bar:** Real-time frames per second with dynamic color shifts (Green &ge; 60, Yellow 30-59, Red < 30) and automatic refresh rate detection (scales 100% full capacity dynamically to match 60Hz, 144Hz, 240Hz+, or custom framerate caps).
   - **World Latency Bar:** Latency to the combat/gameplay server (abilities, encounters, player positions). Color coded from optimal green (< 50ms) to lag spike red (> 200ms).
   - **Home Latency Bar:** Latency to the realm server (chat, auction house, guild system). Compare with World latency to isolate local Wi-Fi issues vs. Blizzard server load.
 - **Zero Memory Churn:** Uses pre-cached format pointers with native C++ string formatting (`FontString:SetFormattedText`). Zero runtime string allocations and zero garbage collection spikes.

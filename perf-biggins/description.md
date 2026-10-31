@@ -5,7 +5,7 @@
 ### Features
 - **Integrated Tri-Bar HUD:** Real-time telemetry for FPS, World ping, and Home ping in a single cohesive unit.
 - **Isolate Network Issues:** Comparing World latency (combat & mechanics) and Home latency (realm connection) makes diagnosing lag spikes instant.
-- **Dynamic Color Shifts:** Clean, color-coded bars for optimal (green), acceptable (yellow), and critical (red) thresholds.
+- **Dynamic Color Shifts & Auto-Scale:** Clean, color-coded bars for optimal (green), acceptable (yellow), and critical (red) thresholds with auto-detection for 60Hz, 144Hz, 240Hz+ monitors.
 - **Zero Garbage Collection:** Uses pre-cached format pointers and native C++ formatting with zero Lua string allocations.
 - **Independent Bar Toggles:** Turn off any bar you don't need; visible bars collapse seamlessly and the container resizes automatically.
 - **Draggable & Lockable:** Drag anywhere on screen with Left-Click and lock in place via settings.
