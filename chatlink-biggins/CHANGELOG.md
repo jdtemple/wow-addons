@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-11-01
+
+### Added
+- **Player Name Hover Tooltips:** Moving your mouse over any player name in chat now displays their character tooltip in the native `GameTooltip` frame.
+- **Tier 1 Unit Token Resolution:** For party members, raid members, current target, or nearby players, automatically resolves live unit tokens and calls `GameTooltip:SetUnit()`. Seamlessly inherits enhancements from tooltip addons like **MouseOverTooltip** (item level, spec, mount, class borders).
+- **Tier 2 Remote Player Identity Cards:** For cross-zone players or strangers in Trade/General chat, uses `GetPlayerInfoByGUID()` to render a clean, stock-styled identity card showing class color, race, realm, and guild info (when available).
+- **Chat Line GUID Resolution:** Resolves player GUIDs via `C_ChatInfo.GetChatLineSenderGUID()` and incoming chat event caching to reliably retrieve player identity data.
+- **Temporary Window & Whisper Tab Support:** Automatically hooks floating chat windows and whisper tabs via `FCF_OpenTemporaryWindow`.
+- **Options & Slash Commands:** Added `[x] Show Player Tooltips on Name Hover` in Options, and added `/clb tooltips` (or `/clb hover`) slash command toggle.
+
+---
+
 ## [1.0.0] - 2026-10-24
 
 ### Added
