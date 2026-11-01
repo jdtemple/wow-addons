@@ -4,7 +4,7 @@
 
 local addonName, addon = ...
 _G["AutoJoinBiggins"] = addon
-addon.version = "1.3.0"
+addon.version = "1.3.1"
 
 -- Default Settings
 local defaults = {

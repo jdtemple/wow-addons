@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v3.8.0 - High-Performance Speedometer, Flight & Swim Gauge
+    LazySpeedBiggins v3.8.1 - High-Performance Speedometer, Flight & Swim Gauge
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+)
@@ -537,7 +537,7 @@ local function ResetAllToDefaults()
     DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: All options have been reset to default.")
 end
 
-_G["LazySpeedBiggins_Version"] = "3.8.0"
+_G["LazySpeedBiggins_Version"] = "3.8.1"
 
 local function InitializeBlizzardSettings()
     local panel = CreateFrame("Frame", "LazySpeedBigginsOptionsPanel", UIParent)
@@ -920,7 +920,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Measurement Unit: %s", modeLabels[db.unitMode or 4] or "%"))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Dimensions:   %d x %d px", db.barWidth or 180, db.barHeight or 22))
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.8.0|r:")
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.8.1|r:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle master speedometer on/off.")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed lock|r - Toggle locking frame position.")

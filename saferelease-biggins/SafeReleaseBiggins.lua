@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    SafeRelease Biggins v1.0.0 - Release Spirit Guard (Raids, Dungeons & Delves)
+    SafeRelease Biggins v1.0.1 - Release Spirit Guard (Raids, Dungeons & Delves)
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
@@ -22,7 +22,7 @@
 
 local addonName, addon = ...
 _G["SafeReleaseBiggins"] = addon
-addon.version = "1.0.0"
+addon.version = "1.0.1"
 
 -- Upvalue caching
 local CreateFrame     = CreateFrame

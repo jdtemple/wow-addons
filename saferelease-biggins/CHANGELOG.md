@@ -4,6 +4,13 @@ All notable changes to **SafeRelease Biggins** will be documented in this file.
 
 ---
 
+## [1.0.1] - 2026-11-01
+
+### Changed
+- **Suite Dashboard Integration:** Updated embedded LibBigginsSuite to 1.0.4 for instantaneous module detection and reliable first-click settings display.
+
+---
+
 ## [1.0.0] - 2026-10-24
 
 ### Added

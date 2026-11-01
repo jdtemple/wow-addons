@@ -12,7 +12,9 @@
 #>
 
 [CmdletBinding()]
-param()
+param(
+    [switch]$Install
+)
 
 $ErrorActionPreference = 'Stop'
 $addonDir = $PSScriptRoot
@@ -61,6 +63,18 @@ if (Test-Path $canonicalSuiteDir) {
     Copy-Item (Join-Path $canonicalSuiteDir 'suite-logo.jpg') $stagingDir -Force
 } else {
     Write-Warning "Canonical suite directory not found: $canonicalSuiteDir"
+}
+
+# Optional local installation to WoW client
+$wowAddonDir = "C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\SummonPetBiggins"
+if ($Install) {
+    Write-Host "Installing to WoW retail client: $wowAddonDir" -ForegroundColor Yellow
+    if (Test-Path $wowAddonDir) {
+        Remove-Item -Path $wowAddonDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $wowAddonDir -Force | Out-Null
+    Copy-Item -Path (Join-Path $stagingDir '*') -Destination $wowAddonDir -Recurse -Force
+    Write-Host "Successfully installed to WoW retail client!" -ForegroundColor Green
 }
 
 # Compress to ZIP

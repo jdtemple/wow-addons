@@ -1,5 +1,12 @@
 # Changelog - SummonPet Biggins
 
+## [1.2.3] - 2026-11-01
+
+### Changed
+- **Suite Dashboard Integration:** Updated embedded LibBigginsSuite to 1.0.4 for instantaneous module detection and reliable first-click settings display.
+
+---
+
 ## [1.2.2] - 2026-10-26
 
 ### Fixed

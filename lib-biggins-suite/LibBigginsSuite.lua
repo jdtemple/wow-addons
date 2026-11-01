@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 3
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 4
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -25,6 +25,7 @@ function Suite:GetOrCreateParentCategory(addonDir)
 
     local parentPanel = CreateFrame("Frame", "BigginsAddOnsParentPanel", UIParent)
     parentPanel.name = "Biggins AddOns"
+    parentPanel:Hide() -- Force initial hidden state so the first presentation to the user triggers a clean OnShow
 
     -- Title (Blizzard Gold)
     local title = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -69,15 +70,23 @@ function Suite:GetOrCreateParentCategory(addonDir)
             title = "AutoJoin Biggins",
             desc = "Configurable auto-accept for party invitations from Guild, Friends, and BNet.",
             checkLoaded = function() return _G["AutoJoinBiggins"] ~= nil end,
-            getVersion = function() return (_G["AutoJoinBiggins"] and _G["AutoJoinBiggins"].version) or "1.2.0" end,
+            getVersion = function() return (_G["AutoJoinBiggins"] and _G["AutoJoinBiggins"].version) or "1.3.1" end,
             getCatID = function() return _G["AutoJoinBiggins"] and _G["AutoJoinBiggins"].categoryID end,
+        },
+        {
+            key = "ChatLink",
+            title = "ChatLink Biggins",
+            desc = "Converts web URLs into clickable links and displays player tooltips on name hover.",
+            checkLoaded = function() return _G["ChatLinkBiggins"] ~= nil end,
+            getVersion = function() return (_G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].version) or "1.1.1" end,
+            getCatID = function() return _G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].categoryID end,
         },
         {
             key = "LazySpeed",
             title = "LazySpeed Biggins",
             desc = "High-precision flight, swim, and movement speedometer with dynamic HUD.",
             checkLoaded = function() return _G["LazySpeedBigginsFrame"] ~= nil or _G["LazySpeedBigginsDB"] ~= nil end,
-            getVersion = function() return _G["LazySpeedBiggins_Version"] or "3.8.0" end,
+            getVersion = function() return _G["LazySpeedBiggins_Version"] or "3.8.1" end,
             getCatID = function() return _G["LazySpeedBiggins_CategoryID"] end,
         },
         {
@@ -85,32 +94,24 @@ function Suite:GetOrCreateParentCategory(addonDir)
             title = "Perf Biggins",
             desc = "High-performance FPS and dual-latency telemetry HUD in a nameplate stack.",
             checkLoaded = function() return _G["PerfBiggins"] ~= nil end,
-            getVersion = function() return (_G["PerfBiggins"] and _G["PerfBiggins"].version) or "1.2.0" end,
+            getVersion = function() return (_G["PerfBiggins"] and _G["PerfBiggins"].version) or "1.3.1" end,
             getCatID = function() return _G["PerfBiggins"] and _G["PerfBiggins"].categoryID end,
-        },
-        {
-            key = "SummonPet",
-            title = "SummonPet Biggins",
-            desc = "Ultra-lightweight companion pet summoner with native keybind & smart auto-dismiss.",
-            checkLoaded = function() return _G["SummonPetBiggins"] ~= nil end,
-            getVersion = function() return (_G["SummonPetBiggins"] and _G["SummonPetBiggins"].version) or "1.2.0" end,
-            getCatID = function() return _G["SummonPetBiggins"] and _G["SummonPetBiggins"].categoryID end,
         },
         {
             key = "SafeRelease",
             title = "SafeRelease Biggins",
             desc = "Guards the Release Spirit button during wipes in raids, M+, and delves.",
             checkLoaded = function() return _G["SafeReleaseBiggins"] ~= nil end,
-            getVersion = function() return (_G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].version) or "1.0.0" end,
+            getVersion = function() return (_G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].version) or "1.0.1" end,
             getCatID = function() return _G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].categoryID end,
         },
         {
-            key = "ChatLink",
-            title = "ChatLink Biggins",
-            desc = "Makes web URLs clickable in chat for fast, native copy-pasting.",
-            checkLoaded = function() return _G["ChatLinkBiggins"] ~= nil end,
-            getVersion = function() return (_G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].version) or "1.0.0" end,
-            getCatID = function() return _G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].categoryID end,
+            key = "SummonPet",
+            title = "SummonPet Biggins",
+            desc = "Ultra-lightweight companion pet summoner with native keybind & smart auto-dismiss.",
+            checkLoaded = function() return _G["SummonPetBiggins"] ~= nil end,
+            getVersion = function() return (_G["SummonPetBiggins"] and _G["SummonPetBiggins"].version) or "1.2.3" end,
+            getCatID = function() return _G["SummonPetBiggins"] and _G["SummonPetBiggins"].categoryID end,
         },
     }
 
@@ -167,6 +168,11 @@ function Suite:GetOrCreateParentCategory(addonDir)
     end
 
     parentPanel:SetScript("OnShow", RefreshParentPanel)
+    self.Refresh = RefreshParentPanel
+    parentPanel.Refresh = RefreshParentPanel
+
+    -- Initial population so texts and buttons are ready immediately
+    RefreshParentPanel()
 
     local parentCategory = Settings.RegisterCanvasLayoutCategory(parentPanel, "Biggins AddOns")
     Settings.RegisterAddOnCategory(parentCategory)
@@ -178,6 +184,9 @@ function Suite:GetOrCreateParentCategory(addonDir)
     -- Register /biggins slash command to open the suite overview
     SLASH_BIGGINS1 = "/biggins"
     SlashCmdList["BIGGINS"] = function()
+        if Suite.Refresh then
+            Suite:Refresh()
+        end
         if Settings and Settings.OpenToCategory and Suite.categoryID then
             Settings.OpenToCategory(Suite.categoryID)
         end
@@ -187,16 +196,34 @@ function Suite:GetOrCreateParentCategory(addonDir)
 end
 
 function Suite:RegisterSubcategory(addonDir, panel, shortName)
+    local subcatID = nil
     if Settings and Settings.RegisterCanvasLayoutSubcategory then
         local parent = self:GetOrCreateParentCategory(addonDir)
         local subcategory = Settings.RegisterCanvasLayoutSubcategory(parent, panel, shortName)
-        return subcategory:GetID()
+        subcatID = subcategory:GetID()
     elseif Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name or shortName)
         Settings.RegisterAddOnCategory(category)
-        return category:GetID()
+        subcatID = category:GetID()
     else
         InterfaceOptions_AddCategory(panel)
-        return nil
+        subcatID = nil
     end
+
+    -- Dynamically refresh parent panel whenever a new subcategory registers
+    if self.Refresh then
+        self:Refresh()
+    end
+
+    return subcatID
 end
+
+-- Refresh suite dashboard at PLAYER_LOGIN when all addons are fully loaded into memory
+local suiteEventFrame = CreateFrame("Frame")
+suiteEventFrame:RegisterEvent("PLAYER_LOGIN")
+suiteEventFrame:SetScript("OnEvent", function(frameSelf, event)
+    if Suite.Refresh then
+        Suite:Refresh()
+    end
+    frameSelf:UnregisterEvent("PLAYER_LOGIN")
+end)

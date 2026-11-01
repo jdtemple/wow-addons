@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-11-01
+
+### Changed
+- **Suite Dashboard Integration:** Updated embedded LibBigginsSuite to 1.0.4 for instantaneous module detection and reliable first-click settings display.
+
+---
+
 ## [1.1.0] - 2026-11-01
 
 ### Added

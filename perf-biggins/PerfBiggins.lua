@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Perf Biggins v1.3.0 - High-Performance FPS & Dual-Latency HUD
+    Perf Biggins v1.3.1 - High-Performance FPS & Dual-Latency HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: The War Within / Midnight (Patch 11.x - 12.x / 12.1.7)
@@ -28,7 +28,7 @@
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.3.0"
+addon.version = "1.3.1"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
