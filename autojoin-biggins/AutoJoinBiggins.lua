@@ -4,7 +4,7 @@
 
 local addonName, addon = ...
 _G["AutoJoinBiggins"] = addon
-addon.version = "1.2.0"
+addon.version = "1.3.0"
 
 -- Default Settings
 local defaults = {
@@ -13,6 +13,7 @@ local defaults = {
     friends = true,
     bnet = true,
     all = false,
+    pauseWhileAFK = true,
     autoSwitchChat = true,
     announce = true,
 }
@@ -142,27 +143,37 @@ local function ShouldAutoJoin(inviterName, inviterGUID)
         return false, nil
     end
 
+    local isWhitelisted = false
+    local reason = nil
+
     -- 1. All / Anyone Toggle (Explicit user opt-in)
     if db.all then
-        return true, "All Players"
-    end
-
+        isWhitelisted = true
+        reason = "All Players"
     -- 2. Guild Members
-    if db.guild and IsGuildMember(inviterGUID, inviterName) then
-        return true, "Guild Member"
-    end
-
+    elseif db.guild and IsGuildMember(inviterGUID, inviterName) then
+        isWhitelisted = true
+        reason = "Guild Member"
     -- 3. In-Game Friends List
-    if db.friends and IsCharacterFriend(inviterGUID, inviterName) then
-        return true, "Character Friend"
-    end
-
+    elseif db.friends and IsCharacterFriend(inviterGUID, inviterName) then
+        isWhitelisted = true
+        reason = "Character Friend"
     -- 4. Battle.net Friends
-    if db.bnet and IsBattleNetFriend(inviterGUID, inviterName) then
-        return true, "Battle.net Friend"
+    elseif db.bnet and IsBattleNetFriend(inviterGUID, inviterName) then
+        isWhitelisted = true
+        reason = "Battle.net Friend"
     end
 
-    return false, nil
+    if not isWhitelisted then
+        return false, nil
+    end
+
+    -- AFK Safety Check: Do not auto-accept if player is marked AFK
+    if db.pauseWhileAFK and UnitIsAFK and UnitIsAFK("player") then
+        return false, "AFK"
+    end
+
+    return true, reason
 end
 
 -- Suppress Standard WoW Invitation Popups
@@ -222,6 +233,10 @@ local lastGroupType = "NONE"
 local function HandlePartyInvite(inviterName, inviterGUID)
     local shouldAccept, reason = ShouldAutoJoin(inviterName, inviterGUID)
     if not shouldAccept then
+        if reason == "AFK" and AutoJoinBigginsDB and AutoJoinBigginsDB.announce then
+            local displayName = inviterName or "Unknown"
+            PrintMsg(string.format("Party invitation from |cFF00FF00%s|r not auto-accepted (you are AFK).", displayName))
+        end
         return
     end
 
@@ -310,11 +325,12 @@ function addon:UpdateOptionsUI()
     if uiWidgets.cbFriends then uiWidgets.cbFriends:SetChecked(AutoJoinBigginsDB.friends) end
     if uiWidgets.cbBnet then uiWidgets.cbBnet:SetChecked(AutoJoinBigginsDB.bnet) end
     if uiWidgets.cbAll then uiWidgets.cbAll:SetChecked(AutoJoinBigginsDB.all) end
+    if uiWidgets.cbAFK then uiWidgets.cbAFK:SetChecked(AutoJoinBigginsDB.pauseWhileAFK) end
     if uiWidgets.cbChat then uiWidgets.cbChat:SetChecked(AutoJoinBigginsDB.autoSwitchChat) end
     if uiWidgets.cbAnnounce then uiWidgets.cbAnnounce:SetChecked(AutoJoinBigginsDB.announce) end
 
     -- Dynamic Graying Out of Child Checkboxes
-    local subWidgets = { uiWidgets.cbGuild, uiWidgets.cbFriends, uiWidgets.cbBnet, uiWidgets.cbAll, uiWidgets.cbChat, uiWidgets.cbAnnounce }
+    local subWidgets = { uiWidgets.cbGuild, uiWidgets.cbFriends, uiWidgets.cbBnet, uiWidgets.cbAll, uiWidgets.cbAFK, uiWidgets.cbChat, uiWidgets.cbAnnounce }
     for _, widget in ipairs(subWidgets) do
         if widget then
             widget:SetEnabled(isEnabled)
@@ -415,7 +431,10 @@ function addon:RegisterOptions()
     end)
     uiWidgets.cbAll = cbAll
 
-    local cbChat = CreateSettingCheckbox("autoSwitchChat", "Auto-Switch Active Chat to Group Channel", "Automatically primes your chat input to Party, Raid, or Instance chat upon joining a group.", "TOPLEFT", cbAll, "BOTTOMLEFT", 0, -8)
+    local cbAFK = CreateSettingCheckbox("pauseWhileAFK", "Pause Auto-Accept While AFK", "When enabled, party invitations will not be accepted automatically while your character is flagged as Away (AFK). The invitation dialog remains on screen for manual acceptance.", "TOPLEFT", cbAll, "BOTTOMLEFT", 0, -8)
+    uiWidgets.cbAFK = cbAFK
+
+    local cbChat = CreateSettingCheckbox("autoSwitchChat", "Auto-Switch Active Chat to Group Channel", "Automatically primes your chat input to Party, Raid, or Instance chat upon joining a group.", "TOPLEFT", cbAFK, "BOTTOMLEFT", 0, -8)
     uiWidgets.cbChat = cbChat
 
     local cbAnnounce = CreateSettingCheckbox("announce", "Show Chat Announcements on Auto-Join", "Print a notification in the chat window whenever an invite is automatically accepted or chat is switched.", "TOPLEFT", cbChat, "BOTTOMLEFT", 0, -8)
@@ -424,7 +443,7 @@ function addon:RegisterOptions()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", cbAnnounce, "BOTTOMLEFT", -20, -24)
-    helpNote:SetText("Slash commands: /autojoin or /aj (toggle, guild, friends, bnet, all, chat, announce, status)")
+    helpNote:SetText("Slash commands: /autojoin or /aj (toggle, guild, friends, bnet, all, afk, chat, announce, status)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
@@ -464,10 +483,11 @@ function addon:PrintStatus()
     print(string.format("  Master Enable:   %s", ColorBool(db.enabled)))
     print(string.format("  Guild Members:   %s", ColorBool(db.guild)))
     print(string.format("  Character Friends:%s", ColorBool(db.friends)))
-    print(string.format("  Battle.net:      %s", ColorBool(db.bnet)))
-    print(string.format("  All Players:     %s", ColorBool(db.all)))
-    print(string.format("  Auto-Switch Chat:%s", ColorBool(db.autoSwitchChat)))
-    print(string.format("  Announcements:   %s", ColorBool(db.announce)))
+    print(string.format("  Battle.net:       %s", ColorBool(db.bnet)))
+    print(string.format("  All Players:      %s", ColorBool(db.all)))
+    print(string.format("  Pause While AFK:  %s", ColorBool(db.pauseWhileAFK)))
+    print(string.format("  Auto-Switch Chat: %s", ColorBool(db.autoSwitchChat)))
+    print(string.format("  Announcements:    %s", ColorBool(db.announce)))
 end
 
 -- Slash Command Handler (/autojoin, /aj)
@@ -502,6 +522,11 @@ local function SlashHandler(msg)
         local status = db.all and "|cFFFF3333Enabled (ALL PLAYERS)|r" or "|cFF00FF00Disabled|r"
         PrintMsg("All Players auto-join is now " .. status .. ".")
         addon:UpdateOptionsUI()
+    elseif cmd == "afk" then
+        db.pauseWhileAFK = not db.pauseWhileAFK
+        local status = db.pauseWhileAFK and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+        PrintMsg("Pause while AFK is now " .. status .. ".")
+        addon:UpdateOptionsUI()
     elseif cmd == "chat" then
         db.autoSwitchChat = not db.autoSwitchChat
         local status = db.autoSwitchChat and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
@@ -515,7 +540,7 @@ local function SlashHandler(msg)
     elseif cmd == "status" then
         addon:PrintStatus()
     else
-        PrintMsg("Available commands: /aj [toggle | guild | friends | bnet | all | chat | announce | status | config]")
+        PrintMsg("Available commands: /aj [toggle | guild | friends | bnet | all | afk | chat | announce | status | config]")
     end
 end
 

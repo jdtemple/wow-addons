@@ -9,6 +9,7 @@
 
 ### Features
 - **Auto-Switch Chat Channel:** Automatically sets your active chat channel to **Party** (`/p`), **Raid** (`/ra`), or **Instance** (`/i`) as soon as you join a group.
+- **Pause While AFK:** Automatically pauses auto-acceptance while your character is flagged as Away (AFK), preserving the invitation popup for manual handling.
 - **Instant & Event-Driven:** Hooks into `PARTY_INVITE_REQUEST` with zero background polling and zero frame stutter.
 - **Popup Suppression:** Automatically dismisses the standard party invitation confirmation dialogs on accepted invites.
 - **Safe Fallback:** If an invite arrives from someone outside your active filters, the normal Blizzard dialog remains untouched for manual handling.

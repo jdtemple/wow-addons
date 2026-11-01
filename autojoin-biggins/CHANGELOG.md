@@ -4,6 +4,17 @@ All notable changes to **AutoJoin Biggins** will be documented in this file.
 
 ---
 
+## [1.3.0] - 2026-11-01
+
+### Added
+- **AFK Protection (Pause While AFK):** Automatically pauses party invitation auto-acceptance whenever your character is flagged as Away (AFK).
+- **Blizzard Dialog Preservation:** When invitations arrive while AFK, the standard Blizzard invitation popup is preserved on screen so you can manually accept or decline when you return to your desk.
+- **AFK Chat Notification:** Prints a quiet notification in chat when an invitation is held due to AFK status (if announcements are enabled).
+- **New Settings Toggle:** Added [x] Pause Auto-Accept While AFK in the options menu (enabled by default).
+- **New Slash Command:** Added /aj afk toggle command.
+
+---
+
 ## [1.2.0] - 2026-10-23
 
 ### Added

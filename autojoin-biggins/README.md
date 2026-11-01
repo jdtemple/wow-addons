@@ -12,6 +12,7 @@
   - **Character Friends:** Auto-joins party invites from your in-game friends list.
   - **Battle.net Friends:** Auto-joins party invites from active Battle.net contacts playing WoW.
   - **All Players (Optional):** Opt-in toggle to accept direct invitations from any player (disabled by default for safety).
+- **Pause Auto-Accept While AFK:** Automatically pauses auto-acceptance whenever your character is flagged as Away (AFK). Leaves the standard Blizzard invitation popup on screen so you can review and accept when you return.
 - **Auto-Switch Active Chat to Group:** Automatically primes your chat input (`chatType`) to **Party** (`/p`), **Raid** (`/ra`), or **Instance** (`/i`) the moment you join a group so you never forget to type in the right channel.
 - **Clean Popup Suppression:** Automatically dismisses the standard `PARTY_INVITE` and `PARTY_INVITE_XREALM` confirmation popups on accepted invitations, preventing screen clutter.
 - **Untouched Non-Whitelisted Invites:** If a direct invite arrives from someone outside your active filters, the normal Blizzard invitation popup remains completely intact for manual review.
