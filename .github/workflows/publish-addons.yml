@@ -95,4 +95,4 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($relType)) { $relType = "release" }
           $forceFlag = "${{ github.event.inputs.force }}"
           $forceArg = if ($forceFlag -eq "true") { @("-Force") } else { @() }
-          ./scripts/publish-curseforge.ps1 -Addon "${{ matrix.addon }}" -ReleaseType $relType @forceArg
+          ./scripts/publish-curseforge.ps1 -Addon "${{ matrix.addon }}" -ReleaseType $relType -ApiKey "$env:CF_API_KEY" @forceArg

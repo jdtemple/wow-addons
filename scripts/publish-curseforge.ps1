@@ -45,6 +45,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($ApiKey) -and -not [string]::IsNullOrWhiteSpace($env:CF_API_KEY)) {
+    $ApiKey = $env:CF_API_KEY
+}
+Write-Host "CurseForge API Key detected: $(if ($ApiKey) { 'Yes (length ' + $ApiKey.Length + ')' } else { 'NO (Empty)' })"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $configPath = Join-Path $PSScriptRoot "addons-config.json"
 
