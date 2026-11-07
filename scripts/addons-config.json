@@ -1,0 +1,32 @@
+{
+  "supportedGameVersions": [
+    "12.1.7",
+    "12.1.5"
+  ],
+  "addons": {
+    "autojoin-biggins": {
+      "name": "AutoJoin Biggins",
+      "projectId": 1760364
+    },
+    "chatlink-biggins": {
+      "name": "ChatLink Biggins",
+      "projectId": 1763882
+    },
+    "lazyspeed-biggins": {
+      "name": "LazySpeed Biggins",
+      "projectId": 1678350
+    },
+    "perf-biggins": {
+      "name": "Perf Biggins",
+      "projectId": 1760380
+    },
+    "saferelease-biggins": {
+      "name": "SafeRelease Biggins",
+      "projectId": 1763542
+    },
+    "summonpet-biggins": {
+      "name": "SummonPet Biggins",
+      "projectId": 1747339
+    }
+  }
+}

@@ -1,4 +1,4 @@
-## Interface: 120107, 120105, 120100, 120007, 120010
+## Interface: 120107, 120105
 ## Title: |cFFFFD100Perf Biggins|r
 ## Notes: Lightweight, high-performance tri-bar HUD displaying FPS, World Latency, and Home Latency with zero garbage collection.
 ## Author: Biggins

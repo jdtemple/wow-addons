@@ -1,0 +1,87 @@
+name: Publish Addons
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'autojoin-biggins/**'
+      - 'chatlink-biggins/**'
+      - 'lazyspeed-biggins/**'
+      - 'perf-biggins/**'
+      - 'saferelease-biggins/**'
+      - 'summonpet-biggins/**'
+      - 'lib-biggins-suite/**'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Addon to publish (or "all")'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - autojoin-biggins
+          - chatlink-biggins
+          - lazyspeed-biggins
+          - perf-biggins
+          - saferelease-biggins
+          - summonpet-biggins
+      releaseType:
+        description: 'Release Channel'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - beta
+          - alpha
+
+jobs:
+  detect-changes:
+    name: Detect Changed Addons
+    runs-on: windows-latest
+    outputs:
+      addons: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Determine Changed Addons
+        id: detect
+        shell: pwsh
+        run: |
+          ./scripts/detect-changed-addons.ps1 -ManualTarget "${{ github.event.inputs.target }}"
+
+  publish:
+    name: Publish ${{ matrix.addon }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.addons != '[]' && needs.detect-changes.outputs.addons != ''
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git Credentials
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Package & Publish to CurseForge
+        shell: pwsh
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+        run: |
+          $relType = "${{ github.event.inputs.releaseType }}"
+          if ([string]::IsNullOrWhiteSpace($relType)) { $relType = "release" }
+          ./scripts/publish-curseforge.ps1 -Addon "${{ matrix.addon }}" -ReleaseType $relType

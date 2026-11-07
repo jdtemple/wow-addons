@@ -1,131 +1,224 @@
 # CurseForge Addon Publishing Guide
 
-Comprehensive guide for packaging, publishing, and updating World of Warcraft addons from this repository on [CurseForge](https://authors.curseforge.com).
+Comprehensive guide for packaging, publishing, and automating World of Warcraft addon releases for the Biggins AddOns suite on [CurseForge](https://authors.curseforge.com).
 
 ---
 
-## 1. Prerequisites
+## 1. Automation vs. Manual Matrix
 
-1. **CurseForge Author Account:** Register or log in at [authors.curseforge.com](https://authors.curseforge.com) ([Author Projects Profile](https://www.curseforge.com/members/biggins_whisperwind/projects)).
-2. **Project Artwork:** A square logo (minimum 512x512 PNG/JPG, ideally 1024x1024) showcasing the addon's identity (e.g. `logo.jpg` in the addon folder).
-3. **Gallery Screenshots:** 2-4 clean screenshots showing settings, keybinds, or in-game usage placed in the addon's `screenshots/` directory.
-4. **PowerShell:** Built-in on Windows for running the automated release packager.
+This repository uses a native **GitHub Actions CI/CD Pipeline** that automatically packages and publishes releases on every push to `main`. Because CurseForge does not expose API endpoints for storefront metadata, project setup and media remain a one-time manual task in the CurseForge portal.
+
+| Area                | Component              | Method                | Details                                                                            |
+| :------------------ | :--------------------- | :-------------------- | :--------------------------------------------------------------------------------- |
+| **Release Files**   | `.zip` Packaging       | **Automated (CI/CD)** | GitHub Actions runner executes `package.ps1` in an ephemeral VM                    |
+| **Release Upload**  | Submitting Builds      | **Automated (CI/CD)** | Native `curl.exe` streams `.zip` directly to CurseForge Upload REST API            |
+| **Release Notes**   | Changelog Field        | **Automated (CI/CD)** | 1:1 verbatim text read directly from the addon's `CHANGELOG.md`                    |
+| **Game Versions**   | Patch Compatibility    | **Automated (CI/CD)** | Auto-detected from active Retail game version endpoints                            |
+| **Git Release Tag** | Version Tagging        | **Automated (CI/CD)** | Automatically tags the commit with `<addon>-<version>` (e.g. `perf-biggins-1.4.0`) |
+| **Storefront Icon** | Project Avatar         | **Manual (One-time)** | Set once in CurseForge Author Portal using addon `logo.jpg`                        |
+| **Media / Gallery** | Screenshots            | **Manual (Optional)** | Uploaded via CurseForge Author Portal Media tab                                    |
+| **Storefront Text** | Project Description    | **Manual (One-time)** | Copied from addon `description.md` or `README.md` into web editor                  |
+| **Issue Tracker**   | External GitHub Issues | **Manual (One-time)** | Configured once in project settings to redirect to GitHub                          |
 
 ---
 
-## 2. Packaging Release Archives
+## 2. Active Addons & CurseForge Project IDs
 
-CurseForge requires addon archives to be structured so that extracting the ZIP puts the root addon folder directly into `World of Warcraft\_retail_\Interface\AddOns\`.
+Each addon folder in this monorepo maps to a specific numeric **Project ID** on CurseForge, configured in [`scripts/addons-config.json`](file:///C:/Code/wow-addons/scripts/addons-config.json):
 
-The folder name inside the ZIP **must match the `.toc` file prefix** (e.g. `AutoJoinBiggins`, `LazySpeedBiggins`, `PerfBiggins`, or `SummonPetBiggins`).
+| Addon Directory       | Public Display Name | CurseForge Project ID | Primary Category          |
+| :-------------------- | :------------------ | :-------------------- | :------------------------ |
+| `autojoin-biggins`    | AutoJoin Biggins    | `1760364`             | Chat & Communication      |
+| `chatlink-biggins`    | ChatLink Biggins    | `1763882`             | Chat & Communication      |
+| `lazyspeed-biggins`   | LazySpeed Biggins   | `1678350`             | Action Bars / Movement    |
+| `perf-biggins`        | Perf Biggins        | `1760380`             | Unit Frames / Performance |
+| `saferelease-biggins` | SafeRelease Biggins | `1763542`             | Buffs & Debuffs / Utility |
+| `summonpet-biggins`   | SummonPet Biggins   | `1747339`             | Pet Battles / Companions  |
 
-### Automated Packaging Script
+---
 
-Each addon directory contains its own `package.ps1` script. Run it from within the specific addon folder:
+## 3. Supported Game Versions & Compatibility Whitelist
 
-```powershell
-# Example: Packaging SummonPet Biggins
-cd summonpet-biggins
-.\package.ps1
+To protect against accidentally tagging unsupported game versions (such as Classic, Era, Forever, or legacy 11.x expansions), game version targeting is controlled strictly via a whitelist in [`scripts/addons-config.json`](file:///C:/Code/wow-addons/scripts/addons-config.json).
 
-# Example: Packaging LazySpeed Biggins
-cd lazyspeed-biggins
-.\package.ps1
+### Suite-Wide Default
+By default, all addons inherit the top-level `supportedGameVersions` array:
+```json
+{
+  "supportedGameVersions": [
+    "12.1.7",
+    "12.1.5"
+  ],
+  "addons": { ... }
+}
 ```
 
-**Batch Package All AddOns:** To build release packages for all four Biggins addons in a single step, run this from the repository root:
-
-```powershell
-Get-ChildItem -Path . -Filter "package.ps1" -Recurse | ForEach-Object { & $_.FullName }
+### Per-Addon Overrides
+If an individual addon ever has unique compatibility requirements (e.g. it only supports a specific patch, or targets an upcoming PTR/beta build ahead of the rest of the suite), specify `supportedGameVersions` directly inside that addon's block:
+```json
+"addons": {
+  "special-addon": {
+    "name": "Special Biggins",
+    "projectId": 1234567,
+    "supportedGameVersions": [
+      "12.1.7"
+    ]
+  }
+}
 ```
 
-The script automatically:
-1. Reads the current version from the addon's `.toc` file (`## Version:`).
-2. Creates a clean staging directory with the proper addon folder name.
-3. Copies all required release files (`.lua`, `.toc`, `.xml`, `README.md`, `CHANGELOG.md`).
-4. Pulls the latest canonical [`LibBigginsSuite.lua`](file:///C:/Code/wow-addons/lib-biggins-suite/LibBigginsSuite.lua) and `suite-logo.jpg` directly from `lib-biggins-suite/` into staging so the package is 100% self-contained.
-5. Generates a compressed archive in `dist/<AddonName>-v<Version>.zip`.
-6. Cleans up temporary staging folders.
+### Resolution Hierarchy
+When publishing, [`scripts/publish-curseforge.ps1`](file:///C:/Code/wow-addons/scripts/publish-curseforge.ps1) resolves version IDs using this order of precedence:
+1. **Per-Addon Override:** Checks for `supportedGameVersions` in the addon's configuration block.
+2. **Suite-Wide Default:** Falls back to the root `supportedGameVersions` list.
+3. **CurseForge Filter:** Queries CurseForge strictly for **Retail** (`gameVersionTypeID: 517`) and matches **only** the exact version strings declared in the whitelist.
 
-### Archive Structure Verification
-
-CurseForge expects this exact structure inside the archive:
-
+### Coordinating with `.toc` (`## Interface:`)
+Always keep the `.toc` interface directive coordinated with your target versions:
 ```text
-<AddonName>-v<Version>.zip
-└── <AddonName>/
-    ├── <AddonName>.toc
-    ├── <AddonName>.lua
-    ├── LibBigginsSuite.lua
-    ├── suite-logo.jpg
-    ├── Bindings.xml (if applicable)
-    ├── logo.jpg (if applicable)
-    ├── README.md
-    └── CHANGELOG.md
+## Interface: 120107, 120105
+```
+- `120105` = 12.1.5 (current live retail build)
+- `120107` = 12.1.7 (upcoming patch)
+---
+
+## 4. One-Time Pipeline Setup: GitHub Configuration
+
+### A. Add CurseForge API Secret
+To allow the GitHub Actions runner to authenticate with CurseForge's upload API:
+
+1. Log into your [CurseForge Account Settings](https://authors.curseforge.com).
+2. Click your profile pic -> Preferences -> **My API Tokens** and generate an API key.
+3. In your GitHub repository (`jdtemple/wow-addons`), navigate to:
+   **Settings -> Secrets and variables -> Actions**
+4. Click **New repository secret**:
+   - **Name:** `CF_API_KEY`
+   - **Secret:** *(Paste your CurseForge API token)*
+5. Click **Add secret**.
+
+### B. Enable Workflow Read & Write Permissions
+To allow the GitHub Actions runner to automatically create and push Git release tags (e.g. `perf-biggins-1.4.0`) after a successful upload:
+
+1. In your GitHub repository (`jdtemple/wow-addons`), navigate to:
+   **Settings -> Actions -> General**
+2. Scroll down to **Workflow permissions**.
+3. Select **Read and write permissions**.
+4. Click **Save**.
+
+---
+
+## 5. Day-to-Day Workflow: Automated Push-to-Deploy
+
+Once your addon is registered on CurseForge and the API secret is configured in GitHub, publishing a new version requires **zero manual uploads**:
+
+### Step 1: Bump the Version
+Update the `## Version:` field in the addon's `.toc` file (e.g. `PerfBiggins.toc`):
+```text
+## Version: 1.4.0
+```
+
+### Step 2: Write Release Notes
+Write the release notes directly in `<addon-folder>/CHANGELOG.md`.
+
+> [!TIP]
+> Under our **1:1 Parity Model**, `CHANGELOG.md` contains *only* the notes for the current release. Git serves as the cumulative historical record. Whatever markdown you write in `CHANGELOG.md` lands directly in CurseForge's release changelog verbatim with zero parsing.
+
+Example `CHANGELOG.md`:
+```markdown
+# Perf Biggins v1.4.0
+
+### Added
+- **Configurable Stacking Mode:** Added support for horizontal vs. vertical telemetry bar layouts.
+  - **Vertical (Default):** Retains the classic nameplate stack.
+  - **Horizontal:** Places active telemetry bars side-by-side in a sleek ribbon.
+- **Slash Command:** Toggle stacking modes on the fly using `/pb stack`.
+```
+
+### Step 3: Commit and Push to `main`
+Commit your code changes, the bumped `.toc`, and `CHANGELOG.md`, then push to `main`.
+
+> [!TIP]
+> **Skipping CI Deployment (`[skip ci]`):**
+> If you are pushing changes (such as documentation, guides, or script adjustments) that should not trigger addon releases to CurseForge, include `[skip ci]` or `[ci skip]` in your commit message. GitHub Actions natively detects these keywords and skips workflow execution entirely:
+> ```bash
+> git commit -m "update publishing docs [skip ci]"
+> git push origin main
+> ```
+
+### Step 4: GitHub Actions Deploys Automatically
+1. The **`detect-changes`** job checks which files were modified.
+2. If only `perf-biggins/` changed, only `perf-biggins` is queued.
+3. If [`lib-biggins-suite/`](file:///C:/Code/wow-addons/lib-biggins-suite) changed, the pipeline automatically packages and publishes **all 6 addons** in parallel.
+4. The **`publish`** matrix job runs, executes `package.ps1` in an isolated VM, and streams the `.zip` directly to CurseForge via REST API.
+5. Upon a successful CurseForge upload, the pipeline automatically creates and pushes the matching Git release tag (e.g. `perf-biggins-1.4.0`) to your GitHub repository.
+
+---
+
+## 6. Manual Pipeline Trigger (On-Demand Releases)
+
+You can trigger a deployment on demand without making a commit:
+
+1. Navigate to the **Actions** tab in your GitHub repository.
+2. Select the **Publish Addons** workflow from the left sidebar.
+3. Click the **Run workflow** dropdown:
+   - **Addon to publish:** Select a specific addon or choose `all`.
+   - **Release Channel:** Select `release`, `beta`, or `alpha`.
+4. Click the green **Run workflow** button.
+
+---
+
+## 7. Local Dry-Run Testing
+
+You can test packaging, changelog extraction, and payload generation locally on your PC at any time without calling CurseForge:
+
+```powershell
+# 1. Test change detection locally:
+.\scripts\detect-changed-addons.ps1 -Local
+.\scripts\detect-changed-addons.ps1 -ManualTarget "perf-biggins" -Local
+
+# 2. Test full packaging and payload generation (automatically deletes temporary zip when done):
+.\scripts\publish-curseforge.ps1 -Addon "perf-biggins" -DryRun
 ```
 
 ---
 
-## 3. Creating the Project on CurseForge
+## 8. Onboarding a Brand New Addon (Step-by-Step)
 
+Because CurseForge requires project creation and initial staff moderation, onboarding a new addon into the suite follows this checklist:
+
+### Phase 1: Create the Project on CurseForge (Manual)
 1. Navigate to the [CurseForge Author Dashboard](https://authors.curseforge.com).
 2. Click **Start a Project** (or **Create Project**).
 3. Select **World of Warcraft** as the game.
-4. Fill in the project details:
+4. Fill in project details:
+   - **Project Name:** Public display name (e.g. `CoolNew Biggins`).
+   - **Project Slug:** URL slug (e.g. `coolnew-biggins`).
+   - **Summary:** Short 1-2 sentence overview (under 200 characters).
+   - **Primary Category:** Select appropriate category (e.g. `Buffs & Debuffs`, `Action Bars`).
+   - **License:** `MIT License` (matches repository root `LICENSE`).
+   - **Avatar / Icon:** Upload the addon's square `logo.jpg` (512x512+).
+5. **Description:** Paste the markdown from the addon's `description.md` or `README.md`.
+6. Click **Submit Project**. CurseForge will assign a **Numeric Project ID** visible on the project's overview page.
 
-| Field                | Description & Guidance                              | Repository Examples                                         |
-| :------------------- | :-------------------------------------------------- | :---------------------------------------------------------- |
-| **Game**             | `World of Warcraft`                                 | Retail                                                      |
-| **Project Name**     | Public display name                                 | `SummonPet Biggins` / `LazySpeed Biggins`                   |
-| **Project Slug**     | URL identifier (`curseforge.com/wow/addons/<slug>`) | `summonpet-biggins` / `lazyspeed-biggins`                   |
-| **Summary**          | Punchy 1-2 sentence description (max 200 chars)     | Short summary from the addon's `README.md`                  |
-| **Primary Category** | Primary browse category                             | `Pet Battles` / `Companions` or `Unit Frames` / `Interface` |
-| **License**          | Project open-source license                         | `MIT License` (matches repository root `LICENSE`)           |
-| **Avatar / Icon**    | Square 512x512+ PNG/JPG                             | Use the addon's `logo.jpg`                                  |
+### Phase 2: Link External GitHub Issue Tracker (Manual)
+1. In your project dashboard, click **Manage Project** (top right).
+2. Click **Issues** in the sidebar (redirects to legacy issues page).
+3. Under **Issue Tracker**, change the setting to **External**.
+4. Enter your GitHub repository issues link:
+   ```text
+   https://github.com/jdtemple/wow-addons/issues
+   ```
+5. Click **Save Changes**.
 
-5. **Description:** Copy and paste the markdown contents of the addon's `README.md` into the CurseForge description editor.
-6. **Gallery:** Upload the images from the addon's `screenshots/` directory (e.g. options panel, keybindings, commands).
-7. **Linking External GitHub Issue Tracker:**
-   CurseForge buries the external issue tracker redirect setting in the legacy project interface:
-   * From your project overview, click **Manage Project** (top right).
-   * Click **Issues** from the menu (this redirects to the legacy CurseForge issues page).
-   * On the legacy page, click the **Issues** tab.
-   * Under **Issue Tracker**, change the selection to **External**.
-   * Paste your GitHub repository issues link:
-     ```
-     https://github.com/<YourUsername>/<YourRepo>/issues
-     ```
-   * Click **Save Changes**. Clicking "Issues" on your public project page will now redirect straight to GitHub.
-
----
-
-## 4. Uploading the Release File
-
-1. In your project dashboard, navigate to the **Files** tab on the left sidebar.
-2. Click **Upload File**.
-3. Select the generated archive from `dist/<AddonName>-v<Version>.zip`.
-4. Configure the release options:
-   - **Display Name:** `<Addon Name> v<Version>` (e.g. `SummonPet Biggins v1.0.2` or `LazySpeed Biggins v3.4`)
-   - **Release Type:** **Release** (stable public build)
-   - **Game Version:** Check the boxes for the live client versions supported in your `.toc` (e.g. current live patches).
-   - **Changelog:** Copy and paste the latest release notes from the top of the addon's `CHANGELOG.md`.
-5. Click **Submit File**.
-
----
-
-## 5. Review & Going Live
-
-- **Moderation Queue:** Initial submissions for a new addon undergo standard manual review by CurseForge staff (typically 1 to 24 hours).
-- **Live Discovery:** Once approved:
-  - The project page goes live on the CurseForge website.
-  - The addon is automatically indexed by the **CurseForge App**, **WoWUp**, and other addon managers for one-click installation and automated updates.
-
----
-
-## 6. Pushing Future Updates
-
-When releasing an update for any addon:
-1. Update the `## Version:` field in the addon's `.toc` file and add the release notes under a new version heading in `CHANGELOG.md`.
-2. Run `.\package.ps1` from within the addon directory to produce the new release ZIP.
-3. In the CurseForge dashboard for that addon, go to **Files** -> **Upload File**.
-4. Tag the supported game versions, paste the new section from `CHANGELOG.md`, and submit. Subsequent version uploads for approved projects are typically approved in minutes.
+### Phase 3: Register in Repository Automation (Code)
+1. Add the addon entry to [`scripts/addons-config.json`](file:///C:/Code/wow-addons/scripts/addons-config.json):
+   ```json
+   "coolnew-biggins": {
+     "name": "CoolNew Biggins",
+     "projectId": YOUR_NEW_PROJECT_ID
+   }
+   ```
+2. Add the directory path to [`.github/workflows/publish-addons.yml`](file:///C:/Code/wow-addons/.github/workflows/publish-addons.yml):
+   - Under `on.push.paths`: add `- 'coolnew-biggins/**'`
+   - Under `on.workflow_dispatch.inputs.target.options`: add `- coolnew-biggins`
+3. Commit and push to `main`. GitHub Actions will automatically compile and upload the initial release file.
