@@ -23,15 +23,16 @@
 
 ## Slash Commands
 
-| Command                | Action                                                   |
-| :--------------------- | :------------------------------------------------------- |
-| `/togglepet` or `/spb` | Toggle companion auto-summoning on or off                |
-| `/spb pin`             | Pin your currently summoned pet as your active companion |
-| `/spb fav`             | Switch mode to Random Favorites                          |
-| `/spb random`          | Switch mode to Completely Random                         |
-| `/spb status`          | Display current addon status in chat                     |
-| `/spb options`         | Open the native settings panel                           |
-| `/spb help`            | Display list of commands                                 |
+| Command                | Action                                                             |
+| :--------------------- | :----------------------------------------------------------------- |
+| `/togglepet` or `/spb` | Toggle companion auto-summoning on or off                          |
+| `/spb pin`             | Pin your currently summoned pet as your active companion           |
+| `/spb pin <name>`      | Search by nickname or species name, pin it, and immediately summon |
+| `/spb fav`             | Switch mode to Random Favorites                                    |
+| `/spb random`          | Switch mode to Completely Random                                   |
+| `/spb status`          | Display current addon status in chat                               |
+| `/spb options`         | Open the native settings panel                                     |
+| `/spb help`            | Display list of commands                                           |
 
 ---
 

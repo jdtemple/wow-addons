@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.2.4"
+addon.version = "1.3.0"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -415,6 +415,93 @@ function addon:PinCurrentPet()
     SummonPetBigginsDB.pinnedPetName = displayName
 
     PrintMsg("Pinned active companion: |cFF00FF00" .. displayName .. "|r (Mode set to Pinned).")
+    addon:UpdateOptionsUI()
+    return true
+end
+
+-- Search for an owned pet by custom nickname or species name
+local function FindPetByName(targetName)
+    if not targetName or targetName == "" then return nil end
+    local searchLower = targetName:lower()
+
+    local numPets = C_PetJournal.GetNumPets()
+    local matchedPetID, matchedDisplayName
+
+    -- First pass: search current view (prioritizing custom nickname over species name)
+    for i = 1, numPets do
+        local petID, _, isOwned, customName, _, _, _, speciesName = C_PetJournal.GetPetInfoByIndex(i)
+        if isOwned and petID then
+            if customName and customName:lower() == searchLower then
+                return petID, customName
+            elseif speciesName and speciesName:lower() == searchLower and not matchedPetID then
+                matchedPetID = petID
+                matchedDisplayName = speciesName
+            end
+        end
+    end
+
+    if matchedPetID then
+        return matchedPetID, matchedDisplayName
+    end
+
+    -- Second pass: if user had an active search/filter in Pet Journal, clear filter and retry
+    if C_PetJournal.ClearSearchFilter then
+        C_PetJournal.ClearSearchFilter()
+        numPets = C_PetJournal.GetNumPets()
+        for i = 1, numPets do
+            local petID, _, isOwned, customName, _, _, _, speciesName = C_PetJournal.GetPetInfoByIndex(i)
+            if isOwned and petID then
+                if customName and customName:lower() == searchLower then
+                    return petID, customName
+                elseif speciesName and speciesName:lower() == searchLower and not matchedPetID then
+                    matchedPetID = petID
+                    matchedDisplayName = speciesName
+                end
+            end
+        end
+    end
+
+    return matchedPetID, matchedDisplayName
+end
+
+-- Pin & Summon Pet by Name
+function addon:PinPetByName(targetName)
+    if not targetName or targetName:trim() == "" then
+        return addon:PinCurrentPet()
+    end
+
+    targetName = targetName:trim():gsub('^["\']', ''):gsub('["\']$', '')
+    local petID, displayName = FindPetByName(targetName)
+
+    if not petID then
+        PrintMsg("|cFFFF5555Could not find an owned companion pet named '|r" .. targetName .. "|cFFFF5555'.|r")
+        return false
+    end
+
+    SummonPetBigginsDB.mode = "PINNED"
+    SummonPetBigginsDB.pinnedPetGUID = petID
+    SummonPetBigginsDB.pinnedPetName = displayName
+
+    local currentPet = C_PetJournal.GetSummonedPetGUID()
+    if CanSummon() then
+        if currentPet ~= petID then
+            C_PetJournal.SummonPetByGUID(petID)
+        end
+        PrintMsg("Pinned and summoned: |cFF00FF00" .. displayName .. "|r (Mode set to Pinned).")
+    else
+        local reason = "will summon when conditions allow"
+        if IsStealthedActive() then
+            reason = "will summon when exiting stealth"
+        elseif IsInFlightActive() or IsMountedBlocked() then
+            reason = "will summon upon landing / dismounting"
+        elseif InCombatLockdown() then
+            reason = "will summon after combat"
+        elseif ShouldDismissInCurrentInstance() then
+            reason = "will summon outside instance"
+        end
+        PrintMsg("Pinned: |cFF00FF00" .. displayName .. "|r (" .. reason .. ").")
+    end
+
     addon:UpdateOptionsUI()
     return true
 end
@@ -836,10 +923,17 @@ end
 SLASH_SUMMONPETBIGGINS1 = "/togglepet"
 SLASH_SUMMONPETBIGGINS2 = "/spb"
 SlashCmdList["SUMMONPETBIGGINS"] = function(msg)
-    local cmd = msg and msg:trim():lower() or ""
+    local raw = msg and msg:trim() or ""
+    local cmd, arg = raw:match("^(%S+)%s*(.*)$")
+    cmd = cmd and cmd:lower() or ""
+    arg = arg and arg:trim() or ""
 
     if cmd == "pin" then
-        addon:PinCurrentPet()
+        if arg ~= "" then
+            addon:PinPetByName(arg)
+        else
+            addon:PinCurrentPet()
+        end
     elseif cmd == "fav" or cmd == "favorites" then
         addon:SetMode("FAVORITES")
     elseif cmd == "random" or cmd == "rand" then
@@ -879,7 +973,7 @@ SlashCmdList["SUMMONPETBIGGINS"] = function(msg)
     elseif cmd == "help" then
         PrintMsg("Commands:")
         print("  |cFFFFD100/togglepet|r or |cFFFFD100/spb|r - Toggle pet summoning on/off")
-        print("  |cFFFFD100/spb pin|r - Pin currently summoned pet as your active companion")
+        print("  |cFFFFD100/spb pin [name]|r - Pin current pet, or search and summon by name")
         print("  |cFFFFD100/spb fav|r - Set mode to random favorites")
         print("  |cFFFFD100/spb random|r - Set mode to completely random")
         print("  |cFFFFD100/spb mount|r - Toggle companion summoning while mounted on ground")

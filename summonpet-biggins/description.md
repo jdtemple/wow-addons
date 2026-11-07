@@ -54,13 +54,14 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 
 ### Slash Commands:
 
-| Command                | Action                                                   |
-| :--------------------- | :------------------------------------------------------- |
-| `/togglepet` or `/spb` | Toggle companion auto-summoning on or off                |
-| `/spb pin`             | Pin your currently summoned pet as your active companion |
-| `/spb fav`             | Switch summon mode to Random Favorites                   |
-| `/spb random`          | Switch summon mode to Completely Random                  |
-| `/spb mount`           | Toggle companion summoning while mounted on the ground   |
-| `/spb options`         | Open the native settings panel                           |
-| `/spb status`          | Display current addon configuration and zone diagnostics |
-| `/spb help`            | Display list of available commands                       |
+| Command                | Action                                                             |
+| :--------------------- | :----------------------------------------------------------------- |
+| `/togglepet` or `/spb` | Toggle companion auto-summoning on or off                          |
+| `/spb pin`             | Pin your currently summoned pet as your active companion           |
+| `/spb pin <name>`      | Search by nickname or species name, pin it, and immediately summon |
+| `/spb fav`             | Switch summon mode to Random Favorites                             |
+| `/spb random`          | Switch summon mode to Completely Random                            |
+| `/spb mount`           | Toggle companion summoning while mounted on the ground             |
+| `/spb options`         | Open the native settings panel                                     |
+| `/spb status`          | Display current addon configuration and zone diagnostics           |
+| `/spb help`            | Display list of available commands                                 |
