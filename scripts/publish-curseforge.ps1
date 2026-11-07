@@ -75,8 +75,8 @@ if (-not (Test-Path $pkgScript)) {
 
 Write-Host "Executing packaging script: $pkgScript"
 & $pkgScript
-if ($LASTEXITCODE -ne 0) {
-    throw "Packaging script failed with exit code $LASTEXITCODE"
+if (-not $?) {
+    throw "Packaging script execution failed."
 }
 
 # 2. Locate generated zip in dist/
