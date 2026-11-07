@@ -115,11 +115,29 @@ foreach ($item in $selected) {
     Write-Host "  - $item"
 }
 
+# Resolve suite tag if lib-biggins-suite was modified or target is all
+$suiteTag = ""
+if ($suiteChanged -or $ManualTarget -eq "all") {
+    $suiteToc = Join-Path $repoRoot "lib-biggins-suite\LibBigginsSuite.toc"
+    if (Test-Path $suiteToc) {
+        $tocContent = Get-Content -Path $suiteToc -Raw -Encoding utf8
+        if ($tocContent -match '(?m)^##\s*Version:\s*([^\r\n]+)') {
+            $suiteVer = $matches[1].Trim()
+            $suiteTag = "lib-biggins-suite-$suiteVer"
+            Write-Host "Detected LibBigginsSuite tag target: $suiteTag"
+        }
+    }
+}
+
 $jsonMatrix = @($selected) | ConvertTo-Json -Compress
 
 if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT) -and -not $Local) {
     "matrix=$jsonMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    "suite_tag=$suiteTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
     Write-Host "Exported matrix to GITHUB_OUTPUT: matrix=$jsonMatrix"
+    if ($suiteTag) {
+        Write-Host "Exported suite_tag to GITHUB_OUTPUT: suite_tag=$suiteTag"
+    }
 }
 
 return $selected

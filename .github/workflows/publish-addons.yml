@@ -47,6 +47,7 @@ jobs:
     runs-on: windows-latest
     outputs:
       addons: ${{ steps.detect.outputs.matrix }}
+      suite_tag: ${{ steps.detect.outputs.suite_tag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -96,3 +97,37 @@ jobs:
           $forceFlag = "${{ github.event.inputs.force }}"
           $forceArg = if ($forceFlag -eq "true") { @("-Force") } else { @() }
           ./scripts/publish-curseforge.ps1 -Addon "${{ matrix.addon }}" -ReleaseType $relType -ApiKey "$env:CF_API_KEY" @forceArg
+
+  tag-suite:
+    name: Tag LibBigginsSuite
+    needs: detect-changes
+    if: needs.detect-changes.outputs.suite_tag != ''
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git Credentials
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Tag Suite Library
+        shell: pwsh
+        run: |
+          $suiteTag = "${{ needs.detect-changes.outputs.suite_tag }}"
+          Write-Host "Evaluating Git tag for shared suite: $suiteTag"
+          $remoteTag = git ls-remote --tags origin "refs/tags/$suiteTag" 2>$null
+          if ([string]::IsNullOrWhiteSpace($remoteTag)) {
+              Write-Host "Creating Git tag: $suiteTag"
+              git tag $suiteTag
+              git push origin "refs/tags/$suiteTag"
+              Write-Host "Successfully pushed Git tag '$suiteTag' to GitHub!"
+          } else {
+              Write-Host "Git tag '$suiteTag' already exists on remote origin; skipping."
+          }
