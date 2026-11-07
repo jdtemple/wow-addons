@@ -35,6 +35,11 @@ on:
           - release
           - beta
           - alpha
+      force:
+        description: 'Force upload even if Git tag already exists'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   detect-changes:
@@ -84,4 +89,6 @@ jobs:
         run: |
           $relType = "${{ github.event.inputs.releaseType }}"
           if ([string]::IsNullOrWhiteSpace($relType)) { $relType = "release" }
-          ./scripts/publish-curseforge.ps1 -Addon "${{ matrix.addon }}" -ReleaseType $relType
+          $forceFlag = "${{ github.event.inputs.force }}"
+          $forceArg = if ($forceFlag -eq "true") { @("-Force") } else { @() }
+          ./scripts/publish-curseforge.ps1 -Addon "${{ matrix.addon }}" -ReleaseType $relType @forceArg

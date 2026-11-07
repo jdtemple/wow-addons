@@ -39,6 +39,8 @@ param(
 
     [int[]]$GameVersions = @(),
 
+    [switch]$Force,
+
     [switch]$DryRun
 )
 
@@ -61,13 +63,39 @@ $projectId = $addonMeta.projectId
 $addonName = $addonMeta.name
 $addonDir = Join-Path $repoRoot $Addon
 
+# 1. Resolve addon version from TOC
+$tocFile = Get-ChildItem -Path $addonDir -Filter "*.toc" | Select-Object -First 1
+$version = ""
+if ($tocFile) {
+    $tocContent = Get-Content -Path $tocFile.FullName -Raw -Encoding utf8
+    if ($tocContent -match '(?m)^##\s*Version:\s*([^\r\n]+)') {
+        $version = $matches[1].Trim()
+    }
+}
+$tagName = if ($version) { "$Addon-$version" } else { "" }
+
 Write-Host "============================================================"
 Write-Host "Publishing: $addonName ($Addon)"
 Write-Host "CurseForge Project ID: $projectId"
+Write-Host "Addon Version: $version (Git Tag: $tagName)"
 Write-Host "Release Type: $ReleaseType"
 Write-Host "============================================================"
 
-# 1. Execute addon's package.ps1
+# Idempotency Guard: skip if version was already released and tagged on GitHub
+if ($tagName -and -not $Force) {
+    try {
+        $remoteTag = git ls-remote --tags origin "refs/tags/$tagName" 2>$null
+        if (-not [string]::IsNullOrWhiteSpace($remoteTag)) {
+            Write-Host "Git tag '$tagName' already exists on remote origin."
+            Write-Host "Version $version has already been published. Skipping deployment (pass -Force to override)."
+            return
+        }
+    } catch {
+        Write-Warning "Could not query remote tags: $_"
+    }
+}
+
+# 2. Execute addon's package.ps1
 $pkgScript = Join-Path $addonDir "package.ps1"
 if (-not (Test-Path $pkgScript)) {
     throw "Packaging script not found at: $pkgScript"
@@ -79,7 +107,7 @@ if (-not $?) {
     throw "Packaging script execution failed."
 }
 
-# 2. Locate generated zip in dist/
+# 3. Locate generated zip in dist/
 $distDir = Join-Path $addonDir "dist"
 if (-not (Test-Path $distDir)) {
     throw "Dist directory does not exist at: $distDir"
@@ -92,22 +120,10 @@ if (-not $zipFile) {
 
 Write-Host "Release Zip: $($zipFile.FullName) ($([math]::Round($zipFile.Length / 1KB, 2)) KB)"
 
-# Extract version from TOC for Git tagging and display
-$tocFile = Get-ChildItem -Path $addonDir -Filter "*.toc" | Select-Object -First 1
-$version = ""
-if ($tocFile) {
-    $tocContent = Get-Content -Path $tocFile.FullName -Raw -Encoding utf8
-    if ($tocContent -match '(?m)^##\s*Version:\s*([^
-
-]+)') {
-        $version = $matches[1].Trim()
-    }
-}
 if (-not $version -and $zipFile.BaseName -match '-v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)') {
     $version = $matches[1]
+    $tagName = "$Addon-$version"
 }
-$tagName = if ($version) { "$Addon-$version" } else { "" }
-Write-Host "Addon Version: $version (Git Tag: $tagName)"
 
 # 3. Read CHANGELOG.md verbatim (1:1 with CurseForge release changelog)
 $changelogPath = Join-Path $addonDir "CHANGELOG.md"
