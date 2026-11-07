@@ -87,6 +87,10 @@ jobs:
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
         run: |
+          $envLen = if ($env:CF_API_KEY) { $env:CF_API_KEY.Length } else { 0 }
+          $secLen = if ('${{ secrets.CF_API_KEY }}') { '${{ secrets.CF_API_KEY }}'.Length } else { 0 }
+          Write-Host "CF_API_KEY env character count: $envLen"
+          Write-Host "CF_API_KEY secret character count: $secLen"
           $relType = "${{ github.event.inputs.releaseType }}"
           if ([string]::IsNullOrWhiteSpace($relType)) { $relType = "release" }
           $forceFlag = "${{ github.event.inputs.force }}"
