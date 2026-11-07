@@ -44,7 +44,7 @@ jobs:
       addons: ${{ steps.detect.outputs.matrix }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -67,7 +67,7 @@ jobs:
         addon: ${{ fromJson(needs.detect-changes.outputs.addons) }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
