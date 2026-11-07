@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 4
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 5
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -65,6 +65,14 @@ function Suite:GetOrCreateParentCategory(addonDir)
 
     -- Dynamic rows for each addon
     local modules = {
+        {
+            key = "Angler",
+            title = "Angler Biggins",
+            desc = "Automates Underlight Angler water walking, fish form, and underwater breathing.",
+            checkLoaded = function() return _G["AnglerBiggins"] ~= nil end,
+            getVersion = function() return (_G["AnglerBiggins"] and _G["AnglerBiggins"].version) or "1.0.0" end,
+            getCatID = function() return _G["AnglerBiggins"] and _G["AnglerBiggins"].categoryID end,
+        },
         {
             key = "AutoJoin",
             title = "AutoJoin Biggins",

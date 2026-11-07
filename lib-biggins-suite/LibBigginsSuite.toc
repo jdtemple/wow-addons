@@ -2,7 +2,7 @@
 ## Title: |cFFFFD100LibBigginsSuite|r
 ## Notes: Canonical single source of truth for the shared Biggins AddOns settings category and suite management library.
 ## Author: Biggins
-## Version: 1.0.4
+## Version: 1.0.5
 ## IconTexture: Interface\AddOns\LibBigginsSuite\suite-logo.jpg
 
 LibBigginsSuite.lua

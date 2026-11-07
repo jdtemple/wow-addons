@@ -1,0 +1,9 @@
+# Angler Biggins v1.0.0
+
+### Added
+- **Initial Release:** Complete Underlight Angler automation for World of Warcraft Retail (The War Within / Midnight).
+- **Zero Bag Juggling:** Directly integrates with Fishing Profession Tool slot 28 (and main hand weapon slot 16).
+- **Dragonflight Passive-Slot Wakeup:** Resolves Blizzard's dormant profession equipment trait bug cleanly when entering water.
+- **Instance & Delve Resilience:** Fully supported across Dungeons, Raids, and underwater Delves without gear swapping loops.
+- **Persistent Water Walking:** Never strips the rod on dry land or water surface, allowing uninterrupted water walking and fishing on water surfaces.
+- **Modern Blizzard Canvas Settings:** Options -> AddOns -> Biggins AddOns -> Angler with master enable toggle, instance controls, and live telemetry diagnostics.

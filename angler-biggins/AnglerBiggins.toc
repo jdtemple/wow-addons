@@ -1,0 +1,11 @@
+## Interface: 120107, 120105
+## Title: |cFFFFD100Angler Biggins|r
+## Notes: Automates Underlight Angler water walking, fish form, and underwater breathing with zero bag juggling and seamless instance support.
+## Author: Biggins
+## X-Credits: LegolandoBloom - Creator of the original Angleur_Underlight
+## Version: 1.0.0
+## SavedVariables: AnglerBigginsDB
+## IconTexture: Interface\AddOns\AnglerBiggins\logo.jpg
+
+LibBigginsSuite.lua
+AnglerBiggins.lua

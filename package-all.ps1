@@ -25,6 +25,7 @@ $ErrorActionPreference = 'Stop'
 $rootDir = $PSScriptRoot
 
 $addons = @(
+    'angler-biggins',
     'autojoin-biggins',
     'chatlink-biggins',
     'lazyspeed-biggins',

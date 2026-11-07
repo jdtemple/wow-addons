@@ -1,10 +1,12 @@
 # Temporary packaging staging folders inside dist/
+*-biggins/dist/
+angler-biggins/dist/
 autojoin-biggins/dist/
+chatlink-biggins/dist/
 lazyspeed-biggins/dist/
 perf-biggins/dist/
-summonpet-biggins/dist/
 saferelease-biggins/dist/
-chatlink-biggins/dist/
+summonpet-biggins/dist/
 
 # Ephemeral shared suite files inside individual addon directories
 *-biggins/LibBigginsSuite.lua

@@ -4,6 +4,10 @@
     "12.1.5"
   ],
   "addons": {
+    "angler-biggins": {
+      "name": "Angler Biggins",
+      "projectId": 1790339
+    },
     "autojoin-biggins": {
       "name": "AutoJoin Biggins",
       "projectId": 1760364

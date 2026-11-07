@@ -43,6 +43,7 @@ if (-not (Test-Path $RetailPath)) {
 }
 
 $gameAddons = @(
+    'AnglerBiggins',
     'AutoJoinBiggins',
     'LazySpeedBiggins',
     'PerfBiggins',

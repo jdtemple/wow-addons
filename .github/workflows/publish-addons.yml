@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - 'angler-biggins/**'
       - 'autojoin-biggins/**'
       - 'chatlink-biggins/**'
       - 'lazyspeed-biggins/**'
@@ -20,6 +21,7 @@ on:
         type: choice
         options:
           - all
+          - angler-biggins
           - autojoin-biggins
           - chatlink-biggins
           - lazyspeed-biggins

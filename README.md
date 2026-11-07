@@ -63,14 +63,23 @@ An ultra-lightweight chat utility designed to make web URLs in chat clickable fo
 * **Pipe Escape Protection:** Safely respects WoW `|` escape sequences, protecting adjacent item links, spell links, and player names.
 * **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> ChatLink` with top-right `[ Defaults ]` button and master toggle.
 
+### 7. [Angler Biggins (v1.0.0)](./angler-biggins)
+An ultra-lightweight fishing utility that automates the Underlight Angler artifact fishing pole's water walking, fish form, swim speed, and underwater breathing without bag clutter, item juggling, or gear-swapping loops.
+* **Dedicated Slot 28 Integration:** Interacts directly with your character's dedicated Fishing Profession Tool slot (slot 28) and weapon slot (slot 16), eliminating bag shuffling.
+* **Dragonflight & The War Within Trait Wakeup:** Resolves Blizzard's dormant profession equipment trait bug cleanly when entering water.
+* **Instance & Delve Resilience:** Fully functional across Dungeons, Raids, and Delves without getting caught in gear-swapping loops.
+* **Persistent Water Walking & Stand-on-Water Fishing:** Never strips the Underlight Angler upon transitioning to surface walking or dry land, allowing you to walk across lakes and fish directly on top of deep water pools.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Angler` with master enable toggle, live telemetry diagnostics, and top-right `[ Defaults ]` button.
+
 ---
 
 ## Unified In-Game Settings (`Biggins AddOns`)
 
-All six addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
+All seven addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
 
 ```text
 [-] Biggins AddOns
+    Angler
     AutoJoin
     ChatLink
     LazySpeed
