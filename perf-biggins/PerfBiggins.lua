@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Perf Biggins v1.3.1 - High-Performance FPS & Dual-Latency HUD
+    Perf Biggins v1.4.0 - High-Performance FPS & Dual-Latency HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: The War Within / Midnight (Patch 11.x - 12.x / 12.1.7)
@@ -28,7 +28,7 @@
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.3.1"
+addon.version = "1.4.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
@@ -78,6 +78,7 @@ local DB_DEFAULTS = {
     showFps      = true,
     showWorld    = true,
     showHome     = true,
+    stackingMode = "VERTICAL",
     autoFpsCap   = true,
     manualFpsCap = 144,
     barWidth     = 180,
@@ -284,10 +285,17 @@ function addon:UpdateLayout()
         mainFrame:Show()
     end
 
-    -- Split Bar Sizing & Gap (stack of nameplates aesthetic)
+    -- Split Bar Sizing & Gap (Vertical stack or Horizontal ribbon)
     local gap = 4
-    local totalWidth  = width
-    local totalHeight = (count * height) + ((count - 1) * gap)
+    local isHorizontal = (db.stackingMode == "HORIZONTAL")
+    local totalWidth, totalHeight
+    if isHorizontal then
+        totalWidth  = (count * width) + ((count - 1) * gap)
+        totalHeight = height
+    else
+        totalWidth  = width
+        totalHeight = (count * height) + ((count - 1) * gap)
+    end
 
     mainFrame:SetSize(totalWidth, max(1, totalHeight))
 
@@ -295,7 +303,7 @@ function addon:UpdateLayout()
     local fontSize = max(9, min(14, floor(height * 0.62)))
     local fontPath = GetDefaultFont()
 
-    -- Anchor visible bar containers sequentially from top to bottom
+    -- Anchor visible bar containers sequentially
     local prevContainer = nil
     for i, bar in ipairs(visibleBars) do
         local c = bar.container
@@ -309,6 +317,8 @@ function addon:UpdateLayout()
 
         if i == 1 then
             c:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 0, 0)
+        elseif isHorizontal then
+            c:SetPoint("TOPLEFT", prevContainer, "TOPRIGHT", gap, 0)
         else
             c:SetPoint("TOPLEFT", prevContainer, "BOTTOMLEFT", 0, -gap)
         end
@@ -496,6 +506,11 @@ function addon:UpdateOptionsUI()
     if uiWidgets.cbLocked then uiWidgets.cbLocked:SetChecked(PerfBigginsDB.locked) end
     if uiWidgets.cbCombat then uiWidgets.cbCombat:SetChecked(PerfBigginsDB.hideInCombat) end
 
+    -- Stacking Mode radio buttons
+    local isVertical = (PerfBigginsDB.stackingMode or "VERTICAL") == "VERTICAL"
+    if uiWidgets.rbVertical   then uiWidgets.rbVertical:SetChecked(isVertical) end
+    if uiWidgets.rbHorizontal then uiWidgets.rbHorizontal:SetChecked(not isVertical) end
+
     -- Auto FPS detection toggle and dynamic cap slider
     local isAutoFps = PerfBigginsDB.autoFpsCap ~= false
     if uiWidgets.cbAutoFps then uiWidgets.cbAutoFps:SetChecked(isAutoFps) end
@@ -527,6 +542,7 @@ function addon:UpdateOptionsUI()
     -- Gray out child controls when disabled
     local childWidgets = {
         uiWidgets.cbFps, uiWidgets.cbWorld, uiWidgets.cbHome,
+        uiWidgets.stackHeader, uiWidgets.rbVertical, uiWidgets.rbHorizontal,
         uiWidgets.cbAutoFps,
         uiWidgets.cbLocked, uiWidgets.cbCombat,
         uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.btnResetPos
@@ -613,7 +629,43 @@ function addon:RegisterOptions()
     local cbHome = CreateSettingCheckbox("showHome", "Show Home Latency Bar", "Displays Home Latency (chat, auction house, guild system, realm data).", "TOPLEFT", cbWorld, "BOTTOMLEFT", 0, -6)
     uiWidgets.cbHome = cbHome
 
-    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the telemetry frame with the mouse.", "TOPLEFT", cbHome, "BOTTOMLEFT", 0, -6, function(val)
+    -- Stacking Mode Section
+    local stackHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    stackHeader:SetPoint("TOPLEFT", cbHome, "BOTTOMLEFT", 0, -10)
+    stackHeader:SetText("Stacking Mode:")
+    uiWidgets.stackHeader = stackHeader
+
+    local function CreateStackingRadio(modeVal, label, tooltip, anchorPoint, relativeTo, relPoint, x, y)
+        local radio = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
+        radio:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
+        radio.text = radio:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        radio.text:SetPoint("LEFT", radio, "RIGHT", 4, 0)
+        radio.text:SetText(label)
+        radio.tooltipText = tooltip
+        radio:SetScript("OnClick", function()
+            if not PerfBigginsDB then PerfBigginsDB = {} end
+            PerfBigginsDB.stackingMode = modeVal
+            addon:UpdateLayout()
+            addon:UpdateOptionsUI()
+        end)
+        radio:SetScript("OnEnter", function(self)
+            if self.tooltipText then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
+                GameTooltip:Show()
+            end
+        end)
+        radio:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        return radio
+    end
+
+    local rbVertical = CreateStackingRadio("VERTICAL", "Vertical (Default)", "Stacks telemetry bars vertically top-to-bottom like a compact nameplate stack.", "TOPLEFT", stackHeader, "BOTTOMLEFT", 4, -4)
+    uiWidgets.rbVertical = rbVertical
+
+    local rbHorizontal = CreateStackingRadio("HORIZONTAL", "Horizontal", "Stacks telemetry bars horizontally side-by-side in a compact ribbon.", "LEFT", rbVertical.text, "RIGHT", 16, 0)
+    uiWidgets.rbHorizontal = rbHorizontal
+
+    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the telemetry frame with the mouse.", "TOPLEFT", rbVertical, "BOTTOMLEFT", -4, -8, function(val)
         local status = val and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
         PrintMsg("Frame position is now " .. status .. ".")
     end)
@@ -713,7 +765,7 @@ function addon:RegisterOptions()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", 0, -18)
-    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: /perf or /pb (toggle, lock, fps, world, home, combat, reset, status)")
+    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: /perf or /pb (toggle, lock, fps, world, home, stack, combat, reset, status)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
@@ -788,6 +840,19 @@ local function SlashHandler(msg)
         addon:UpdateLayout()
         local status = db.showHome and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
         PrintMsg("Home Latency bar is now " .. status .. ".")
+    elseif cmd == "stack" or cmd == "mode" or cmd:find("^stack ") or cmd:find("^mode ") then
+        local sub = cmd:match("^%S+%s+(.*)$")
+        if sub == "horizontal" or sub == "horiz" or sub == "h" then
+            db.stackingMode = "HORIZONTAL"
+        elseif sub == "vertical" or sub == "vert" or sub == "v" then
+            db.stackingMode = "VERTICAL"
+        else
+            db.stackingMode = (db.stackingMode == "HORIZONTAL") and "VERTICAL" or "HORIZONTAL"
+        end
+        addon:UpdateOptionsUI()
+        addon:UpdateLayout()
+        local modeDesc = (db.stackingMode == "HORIZONTAL") and "Horizontal" or "Vertical"
+        PrintMsg("Stacking mode is now |cFF00FF00" .. modeDesc .. "|r.")
     elseif cmd == "combat" then
         db.hideInCombat = not db.hideInCombat
         addon:UpdateOptionsUI()
@@ -808,13 +873,14 @@ local function SlashHandler(msg)
         print(string.format("  Show FPS Bar:     %s", ColorBool(db.showFps)))
         print(string.format("  Show World Bar:   %s", ColorBool(db.showWorld)))
         print(string.format("  Show Home Bar:    %s", ColorBool(db.showHome)))
+        print(string.format("  Stacking Mode:    |cFF00FF00%s|r", (db.stackingMode == "HORIZONTAL") and "Horizontal" or "Vertical"))
         print(string.format("  Frame Locked:     %s", ColorBool(db.locked)))
         print(string.format("  Hide in Combat:   %s", ColorBool(db.hideInCombat)))
         print(string.format("  Auto-Detect FPS:  %s", ColorBool(db.autoFpsCap ~= false)))
         print(string.format("  Active FPS Scale: %d FPS", math.floor(activeFpsCap)))
         print(string.format("  Bar Dimensions:   %d x %d px", db.barWidth, db.barHeight))
     else
-        PrintMsg("Available commands: /pb [toggle | lock | fps | world | home | combat | reset | status | config]")
+        PrintMsg("Available commands: /pb [toggle | lock | fps | world | home | stack | combat | reset | status | config]")
     end
 end
 

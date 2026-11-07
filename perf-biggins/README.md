@@ -10,6 +10,7 @@
   - **FPS Bar:** Real-time frames per second with dynamic color shifts (Green &ge; 60, Yellow 30-59, Red < 30) and automatic refresh rate detection (scales 100% full capacity dynamically to match 60Hz, 144Hz, 240Hz+, or custom framerate caps).
   - **World Latency Bar:** Latency to the combat/gameplay server (abilities, encounters, player positions). Color coded from optimal green (< 50ms) to lag spike red (> 200ms).
   - **Home Latency Bar:** Latency to the realm server (chat, auction house, guild system). Compare with World latency to isolate local Wi-Fi issues vs. Blizzard server load.
+- **Configurable Stacking Mode:** Switch between classic **Vertical** stacking (nameplate stack) and **Horizontal** stacking (side-by-side ribbon) via settings or `/pb stack`. In both modes, dragging any bar moves the entire cluster as a unified locked frame.
 - **Zero Memory Churn:** Uses pre-cached format pointers with native C++ string formatting (`FontString:SetFormattedText`). Zero runtime string allocations and zero garbage collection spikes.
 - **Dirty Tracking & Throttling:** Runs at 20 FPS (0.05s) and skips redraws whenever values remain unchanged, resulting in virtually 0.00ms idle CPU impact.
 - **Dynamic Layout & Collapse:** Every bar can be independently toggled on or off. Active bars seamlessly snap together, and the container frame dynamically recalculates its height without empty space.
@@ -29,6 +30,7 @@ Commands are available via `/perf` or `/pb`:
 | `/pb fps`    | Toggles the FPS status bar on or off                    |
 | `/pb world`  | Toggles the World Latency status bar on or off          |
 | `/pb home`   | Toggles the Home Latency status bar on or off           |
+| `/pb stack`  | Toggles Stacking Mode between Vertical and Horizontal   |
 | `/pb lock`   | Toggles frame position lock (prevents/enables dragging) |
 | `/pb combat` | Toggles automatically hiding the HUD while in combat    |
 | `/pb reset`  | Resets the frame position to the center of your screen  |

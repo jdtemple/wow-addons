@@ -7,6 +7,7 @@
 - **Isolate Network Issues:** Comparing World latency (combat & mechanics) and Home latency (realm connection) makes diagnosing lag spikes instant.
 - **Dynamic Color Shifts & Auto-Scale:** Clean, color-coded bars for optimal (green), acceptable (yellow), and critical (red) thresholds with auto-detection for 60Hz, 144Hz, 240Hz+ monitors.
 - **Zero Garbage Collection:** Uses pre-cached format pointers and native C++ formatting with zero Lua string allocations.
+- **Configurable Stacking Mode:** Switch effortlessly between classic **Vertical** (nameplate stack) and **Horizontal** (side-by-side ribbon) layouts with unified frame dragging.
 - **Independent Bar Toggles:** Turn off any bar you don't need; visible bars collapse seamlessly and the container resizes automatically.
 - **Draggable & Lockable:** Drag anywhere on screen with Left-Click and lock in place via settings.
 - **Blizzard Gold Styling:** Styled to match the dark slate and metallic gold aesthetic of LazySpeed Biggins.

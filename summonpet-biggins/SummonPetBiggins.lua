@@ -5,12 +5,19 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.2.3"
+addon.version = "1.2.4"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
 _G["BINDING_NAME_SUMMONPETBIGGINS_TOGGLE"] = "Toggle Companion Summoning"
 _G["BINDING_NAME_SUMMONPETBIGGINS_PIN"] = "Pin Currently Summoned Pet"
+
+-- Timing & Debounce Constants (Adjustable Grace Periods)
+local DISMOUNT_DEBOUNCE_DELAY = 2.0   -- Buffer (seconds) after dismounting before companion is summoned
+local TOUCHDOWN_DEBOUNCE_DELAY = 2.0  -- Buffer (seconds) after landing from flight while mounted
+local TICKER_POLL_INTERVAL = 0.25     -- Grounded mount watcher polling frequency (seconds)
+local DISMISS_RETRY_INTERVAL = 0.25   -- Debounced dismiss retry interval (seconds)
+local MAX_DISMISS_ATTEMPTS = 4        -- Maximum retry attempts for companion dismissal
 
 -- Default Settings
 local defaults = {
@@ -95,13 +102,18 @@ local function ShouldDismissInCurrentInstance()
     return false
 end
 
+local function IsInFlightActive()
+    local isGliding = (C_PlayerInfo and C_PlayerInfo.GetGlidingInfo and C_PlayerInfo.GetGlidingInfo())
+    return (IsFlying and IsFlying()) or (isGliding == true) or (IsFalling and IsFalling())
+end
+
 local function IsMountedBlocked()
     if not IsMounted() then
         return false
     end
-    -- If mounted: allow only if summonWhileMounted is enabled AND player is on the ground (not flying/falling)
+    -- If mounted: allow only if summonWhileMounted is enabled AND player is on the ground (not flying/falling/gliding)
     if SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted then
-        return (IsFlying and IsFlying()) or (IsFalling and IsFalling())
+        return IsInFlightActive()
     end
     return true
 end
@@ -110,9 +122,24 @@ local function ShouldDismissMounted()
     return IsMounted() and not (SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted)
 end
 
+-- Consolidated Pre-Condition Guard (Single Source of Truth)
+local function CanSummon()
+    if not (SummonPetBigginsDB and SummonPetBigginsDB.enabled) then
+        return false
+    end
+    if InCombatLockdown() or UnitIsDeadOrGhost("player") then
+        return false
+    end
+    if IsStealthedActive() or IsMountedBlocked() or ShouldDismissInCurrentInstance() then
+        return false
+    end
+    return true
+end
+
 -- Grounded Mount Touchdown Watcher with Landing Debounce
 local mountWatcherTicker = nil
 local touchdownTimer = nil
+local dismountTimer = nil
 local wasInFlight = false
 
 local function CancelTouchdownTimer()
@@ -120,6 +147,18 @@ local function CancelTouchdownTimer()
         touchdownTimer:Cancel()
         touchdownTimer = nil
     end
+end
+
+local function CancelDismountTimer()
+    if dismountTimer then
+        dismountTimer:Cancel()
+        dismountTimer = nil
+    end
+end
+
+local function CancelAllPendingSummons()
+    CancelTouchdownTimer()
+    CancelDismountTimer()
 end
 
 local function StopMountWatcher()
@@ -135,14 +174,15 @@ local function StartMountWatcher()
     if mountWatcherTicker or not SummonPetBigginsDB or not SummonPetBigginsDB.summonWhileMounted then
         return
     end
-    wasInFlight = (IsFlying and IsFlying()) or (IsFalling and IsFalling())
-    mountWatcherTicker = C_Timer.NewTicker(0.25, function()
+
+    wasInFlight = IsInFlightActive()
+    mountWatcherTicker = C_Timer.NewTicker(TICKER_POLL_INTERVAL, function()
         if not IsMounted() or not SummonPetBigginsDB or not SummonPetBigginsDB.summonWhileMounted then
             StopMountWatcher()
             return
         end
 
-        local inFlightNow = (IsFlying and IsFlying()) or (IsFalling and IsFalling())
+        local inFlightNow = IsInFlightActive()
         if inFlightNow then
             wasInFlight = true
             CancelTouchdownTimer()
@@ -154,13 +194,13 @@ local function StartMountWatcher()
         if wasInFlight then
             wasInFlight = false
             CancelTouchdownTimer()
-            touchdownTimer = C_Timer.After(1.0, function()
+            touchdownTimer = C_Timer.After(TOUCHDOWN_DEBOUNCE_DELAY, function()
                 touchdownTimer = nil
-                if IsMounted() and not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
-                    local currentPet = C_PetJournal.GetSummonedPetGUID()
-                    if not currentPet then
-                        addon:Summon()
-                    end
+                if not IsMounted() or not CanSummon() then
+                    return
+                end
+                if not C_PetJournal.GetSummonedPetGUID() then
+                    addon:Summon()
                 end
             end)
             return
@@ -172,11 +212,11 @@ local function StartMountWatcher()
         end
 
         -- Grounded mount steady-state check (only when grounded for > 1.0s)
-        local currentPet = C_PetJournal.GetSummonedPetGUID()
-        if not currentPet then
-            if not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
-                addon:Summon()
-            end
+        if not CanSummon() then
+            return
+        end
+        if not C_PetJournal.GetSummonedPetGUID() then
+            addon:Summon()
         end
     end)
 end
@@ -184,30 +224,30 @@ end
 addon.StartMountWatcher = StartMountWatcher
 addon.StopMountWatcher = StopMountWatcher
 addon.CancelTouchdownTimer = CancelTouchdownTimer
+addon.CancelDismountTimer = CancelDismountTimer
+addon.CancelAllPendingSummons = CancelAllPendingSummons
 
 -- Grounded Mount Movement Hook (backup trigger when starting movement on a mount)
 local function OnMovementStart()
-    if SummonPetBigginsDB and SummonPetBigginsDB.enabled and SummonPetBigginsDB.summonWhileMounted and IsMounted() then
-        local inFlightNow = (IsFlying and IsFlying()) or (IsFalling and IsFalling())
-        if not inFlightNow and not wasInFlight and not touchdownTimer then
-            if not IsMountedBlocked() and not InCombatLockdown() and not IsStealthedActive() then
-                local currentPet = C_PetJournal.GetSummonedPetGUID()
-                if not currentPet then
-                    addon:Summon()
-                end
-            end
-        end
+    if not (SummonPetBigginsDB and SummonPetBigginsDB.enabled and SummonPetBigginsDB.summonWhileMounted) then
+        return
     end
+    if not IsMounted() or IsInFlightActive() or wasInFlight or touchdownTimer then
+        return
+    end
+    if not CanSummon() then
+        return
+    end
+    if C_PetJournal.GetSummonedPetGUID() then
+        return
+    end
+
+    addon:Summon()
 end
 
 -- Core Summon Function (Zero-Garbage)
 function addon:Summon()
-    if not SummonPetBigginsDB or not SummonPetBigginsDB.enabled then
-        return
-    end
-
-    -- Hard stealth guard: summoning a companion pet via API ALWAYS breaks stealth!
-    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMountedBlocked() or IsStealthedActive() or ShouldDismissInCurrentInstance() then
+    if not CanSummon() then
         return
     end
 
@@ -218,21 +258,26 @@ function addon:Summon()
         if currentPet ~= SummonPetBigginsDB.pinnedPetGUID then
             C_PetJournal.SummonPetByGUID(SummonPetBigginsDB.pinnedPetGUID)
         end
-    elseif mode == "RANDOM" then
-        if not currentPet then
-            C_PetJournal.SummonRandomPet(false)
-        end
+        return
+    end
+
+    -- If already holding an active pet in Random or Favorites, do nothing
+    if currentPet then
+        return
+    end
+
+    if mode == "RANDOM" then
+        C_PetJournal.SummonRandomPet(false)
     else
         -- Default: Random Favorite Companion
-        if not currentPet then
-            C_PetJournal.SummonRandomPet(true)
-        end
+        C_PetJournal.SummonRandomPet(true)
     end
 end
 
 -- Core Dismiss Function (Debounced Safe Dismissal)
 function addon:Dismiss(attempt)
     attempt = attempt or 1
+    CancelAllPendingSummons()
 
     if not InCombatLockdown() then
         local currentPet = C_PetJournal.GetSummonedPetGUID()
@@ -242,17 +287,21 @@ function addon:Dismiss(attempt)
     end
 
     -- Retry up to 3 times to catch pets delayed by unmounting or combat sync
-    if attempt < 4 then
-        C_Timer.After(0.25 * attempt, function()
-            local shouldDismiss = ShouldDismissInStealth() or ShouldDismissInCurrentInstance() or ShouldDismissMounted()
-            if shouldDismiss then
-                local pet = C_PetJournal.GetSummonedPetGUID()
-                if pet or InCombatLockdown() then
-                    addon:Dismiss(attempt + 1)
-                end
-            end
-        end)
+    if attempt >= MAX_DISMISS_ATTEMPTS then
+        return
     end
+
+    C_Timer.After(DISMISS_RETRY_INTERVAL * attempt, function()
+        local shouldDismiss = ShouldDismissInStealth() or ShouldDismissInCurrentInstance() or ShouldDismissMounted()
+        if not shouldDismiss then
+            return
+        end
+
+        local pet = C_PetJournal.GetSummonedPetGUID()
+        if pet or InCombatLockdown() then
+            addon:Dismiss(attempt + 1)
+        end
+    end)
 end
 
 -- ==============================================================================
@@ -385,6 +434,156 @@ function addon:SetMode(newMode)
     end
 end
 
+-- ==============================================================================
+-- DEDICATED EVENT HANDLERS (Flat Guard Clauses, Zero-Allocation)
+-- ==============================================================================
+
+local function OnPlayerDismounted()
+    StopMountWatcher()
+    if ShouldDismissInStealth() then
+        addon:Dismiss(1)
+        return
+    end
+
+    -- Debounced dismount summon; tracked and immediately cancellable by UPDATE_STEALTH
+    dismountTimer = C_Timer.After(DISMOUNT_DEBOUNCE_DELAY, function()
+        dismountTimer = nil
+        if IsMounted() or not CanSummon() then
+            return
+        end
+
+        if IsInFlightActive() then
+            dismountTimer = C_Timer.After(DISMOUNT_DEBOUNCE_DELAY, function()
+                dismountTimer = nil
+                if not IsMounted() and CanSummon() then
+                    addon:Summon()
+                end
+            end)
+            return
+        end
+
+        addon:Summon()
+    end)
+end
+
+local function OnPlayerMounted()
+    if not (SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted) then
+        addon:Dismiss(1)
+        return
+    end
+
+    StartMountWatcher()
+    C_Timer.After(0.3, function()
+        if IsMounted() and CanSummon() then
+            addon:Summon()
+        end
+    end)
+end
+
+local function OnMountDisplayChanged()
+    CancelDismountTimer()
+    if not IsMounted() then
+        OnPlayerDismounted()
+    else
+        OnPlayerMounted()
+    end
+end
+
+local function OnUpdateStealth()
+    CancelAllPendingSummons()
+    if IsStealthed() then
+        if SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInStealth then
+            addon:Dismiss(1)
+        end
+        return
+    end
+
+    addon:Summon()
+end
+
+local function OnPlayerLogin(frameRef)
+    -- Register game-state events
+    frameRef:RegisterEvent("PLAYER_REGEN_ENABLED")         -- Left combat
+    frameRef:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED") -- Mounted/Dismounted
+    frameRef:RegisterEvent("UPDATE_STEALTH")               -- Stealthed/Unstealthed
+    frameRef:RegisterEvent("PLAYER_ENTERING_WORLD")        -- Zone load
+    frameRef:RegisterEvent("ZONE_CHANGED_NEW_AREA")        -- Zone/subzone transition
+    frameRef:RegisterEvent("SCENARIO_UPDATE")              -- Scenario/Delve state change
+    frameRef:RegisterEvent("CHALLENGE_MODE_START")         -- Mythic+ key started
+    frameRef:RegisterEvent("CHALLENGE_MODE_COMPLETED")     -- Mythic+ key finished
+
+    -- Hook forward movement and autorun for grounded mount summoning
+    if hooksecurefunc then
+        pcall(hooksecurefunc, "MoveForwardStart", OnMovementStart)
+        pcall(hooksecurefunc, "ToggleAutoRun", OnMovementStart)
+    end
+
+    -- Initial check after game world settles
+    C_Timer.After(2.0, function()
+        if ShouldDismissMounted() then
+            addon:Dismiss(1)
+        else
+            addon:Summon()
+        end
+    end)
+
+    if IsMounted() and SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted then
+        StartMountWatcher()
+    end
+end
+
+local eventHandlers = {
+    PLAYER_REGEN_ENABLED = function()
+        if ShouldDismissInStealth() or ShouldDismissMounted() then
+            addon:Dismiss(1)
+        elseif CanSummon() then
+            addon:Summon()
+        end
+    end,
+
+    PLAYER_MOUNT_DISPLAY_CHANGED = OnMountDisplayChanged,
+
+    UPDATE_STEALTH = OnUpdateStealth,
+
+    CHALLENGE_MODE_START = function()
+        if SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInstances and SummonPetBigginsDB.dismissMPlus then
+            addon:Dismiss(1)
+        end
+    end,
+
+    CHALLENGE_MODE_COMPLETED = function()
+        if CanSummon() then
+            addon:Summon()
+        end
+    end,
+
+    ZONE_CHANGED_NEW_AREA = function()
+        if ShouldDismissInCurrentInstance() then
+            addon:Dismiss(1)
+        end
+    end,
+
+    SCENARIO_UPDATE = function()
+        if ShouldDismissInCurrentInstance() then
+            addon:Dismiss(1)
+        end
+    end,
+
+    PLAYER_ENTERING_WORLD = function()
+        if ShouldDismissInCurrentInstance() or ShouldDismissMounted() then
+            addon:Dismiss(1)
+            return
+        end
+        C_Timer.After(1.5, function()
+            if ShouldDismissInCurrentInstance() or ShouldDismissMounted() then
+                addon:Dismiss(1)
+            else
+                addon:Summon()
+            end
+        end)
+    end,
+}
+
 -- Event Orchestration (Event-Driven: 0 CPU while moving or idle)
 frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
@@ -399,106 +598,17 @@ frame:SetScript("OnEvent", function(self, event, arg1)
             end
         end
         addon:RegisterOptions()
-    elseif event == "PLAYER_LOGIN" then
-        -- Register only meaningful game-state events
-        self:RegisterEvent("PLAYER_REGEN_ENABLED")         -- Left combat
-        self:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED") -- Mounted/Dismounted
-        self:RegisterEvent("UPDATE_STEALTH")               -- Stealthed/Unstealthed
-        self:RegisterEvent("PLAYER_ENTERING_WORLD")        -- Zone load
-        self:RegisterEvent("ZONE_CHANGED_NEW_AREA")        -- Zone/subzone transition
-        self:RegisterEvent("SCENARIO_UPDATE")              -- Scenario/Delve state change
-        self:RegisterEvent("CHALLENGE_MODE_START")         -- Mythic+ key started
-        self:RegisterEvent("CHALLENGE_MODE_COMPLETED")     -- Mythic+ key finished
+        return
+    end
 
-        -- Hook forward movement and autorun for grounded mount summoning
-        if hooksecurefunc then
-            pcall(hooksecurefunc, "MoveForwardStart", OnMovementStart)
-            pcall(hooksecurefunc, "ToggleAutoRun", OnMovementStart)
-        end
+    if event == "PLAYER_LOGIN" then
+        OnPlayerLogin(self)
+        return
+    end
 
-        -- Initial check after game world settles
-        C_Timer.After(2.0, function()
-            if ShouldDismissMounted() then
-                addon:Dismiss(1)
-            else
-                addon:Summon()
-            end
-        end)
-        if IsMounted() and SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted then
-            StartMountWatcher()
-        end
-    elseif event == "PLAYER_REGEN_ENABLED" then
-        if ShouldDismissInStealth() or ShouldDismissMounted() then
-            addon:Dismiss(1)
-        elseif SummonPetBigginsDB and SummonPetBigginsDB.enabled and not IsMountedBlocked() and not IsStealthedActive() then
-            addon:Summon()
-        end
-    elseif event == "PLAYER_MOUNT_DISPLAY_CHANGED" then
-        if not IsMounted() then
-            StopMountWatcher()
-            if ShouldDismissInStealth() then
-                addon:Dismiss(1)
-            else
-                C_Timer.After(0.25, function()
-                    if not IsMounted() and not IsStealthedActive() then
-                        if IsFalling() then
-                            C_Timer.After(0.4, function()
-                                if not IsMounted() and not IsStealthedActive() then
-                                    addon:Summon()
-                                end
-                            end)
-                        else
-                            addon:Summon()
-                        end
-                    end
-                end)
-            end
-        else
-            -- Mounted up
-            if SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted then
-                StartMountWatcher()
-                C_Timer.After(0.3, function()
-                    if IsMounted() and not IsMountedBlocked() and not IsStealthedActive() then
-                        addon:Summon()
-                    end
-                end)
-            else
-                addon:Dismiss(1)
-            end
-        end
-    elseif event == "UPDATE_STEALTH" then
-        CancelTouchdownTimer()
-        if IsStealthed() then
-            if SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInStealth then
-                addon:Dismiss(1)
-            end
-        else
-            addon:Summon()
-        end
-    elseif event == "CHALLENGE_MODE_START" then
-        if SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInstances and SummonPetBigginsDB.dismissMPlus then
-            addon:Dismiss(1)
-        end
-    elseif event == "CHALLENGE_MODE_COMPLETED" then
-        if SummonPetBigginsDB and SummonPetBigginsDB.enabled and not ShouldDismissInCurrentInstance() then
-            addon:Summon()
-        end
-    elseif event == "ZONE_CHANGED_NEW_AREA" or event == "SCENARIO_UPDATE" then
-        if ShouldDismissInCurrentInstance() then
-            addon:Dismiss(1)
-        end
-    elseif event == "PLAYER_ENTERING_WORLD" then
-        if ShouldDismissInCurrentInstance() or ShouldDismissMounted() then
-            addon:Dismiss(1)
-        else
-            C_Timer.After(1.5, function()
-                if ShouldDismissInCurrentInstance() or ShouldDismissMounted() then
-                    addon:Dismiss(1)
-                else
-                    addon:Summon()
-                end
-            end)
-        end
+    local handler = eventHandlers[event]
+    if handler then
+        handler()
     end
 end)
 
