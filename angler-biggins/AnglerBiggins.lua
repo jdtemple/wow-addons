@@ -25,7 +25,7 @@
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "1.1.0"
+addon.version = "1.1.1"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
@@ -39,6 +39,7 @@ local CreateFrame            = CreateFrame
 local GetTime                = GetTime
 local InCombatLockdown       = InCombatLockdown
 local IsInInstance           = IsInInstance
+local IsMounted              = IsMounted
 local IsSubmerged            = IsSubmerged
 local IsSwimming             = IsSwimming
 local UnitIsDeadOrGhost      = UnitIsDeadOrGhost
@@ -108,6 +109,11 @@ end
 
 -- Determine whether the Underlight Angler is currently considered active and awakened
 local function IsUnderlightAwake()
+    -- While mounted, Underlight Angler traits are naturally suppressed by the mount
+    if IsMounted() then
+        return true
+    end
+
     -- Active Underlight Angler traits are evidenced by either:
     -- 1. Fishing for Attention aura (spell 394009) granted upon slot 28 equip/wake
     -- 2. Underlight Blessing (spell 201944) fish form active in water
@@ -254,8 +260,8 @@ local function HandleQueue()
         queueTimeout = queueTimeout - queueElapsed
         queueElapsed = 0
 
-        -- Timeout or combat protection
-        if queueTimeout <= 0 or InCombatLockdown() or UnitIsDeadOrGhost("player") then
+        -- Timeout, combat, or mounted protection
+        if queueTimeout <= 0 or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then
             queue.unequip = false
             queue.equip = nil
             self:SetScript("OnUpdate", nil)
@@ -283,7 +289,7 @@ end
 local function ActivateUnderlightAngler()
     local db = AnglerBigginsDB or defaults
     if not db.enabled then return end
-    if InCombatLockdown() or UnitIsDeadOrGhost("player") then return end
+    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then return end
     if not IsCurrentZoneAllowed() then return end
     if not HasUnderlightAngler() then return end
 
@@ -316,7 +322,7 @@ end
 
 -- Main evaluation entry point
 local function EvaluateWaterState()
-    if InCombatLockdown() or UnitIsDeadOrGhost("player") then return end
+    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then return end
 
     if not IsPlayerInWater() then
         return
@@ -379,7 +385,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         end
     elseif event == "UNIT_AURA" then
         -- Immediately re-awaken if the player is in water and the buff was stripped or clicked off
-        if not InCombatLockdown() and not isActivating and IsPlayerInWater() and not IsUnderlightAwake() then
+        if not InCombatLockdown() and not IsMounted() and not isActivating and IsPlayerInWater() and not IsUnderlightAwake() then
             C_Timer.After(0.2, function()
                 EvaluateWaterState()
             end)

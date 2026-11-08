@@ -1,3 +1,8 @@
+# Angler Biggins v1.1.1
+
+### Fixed
+- **Mounted Water Entry Stutter:** Added mount state suppression guards (`IsMounted()`). Entering water or skimming water surfaces while mounted previously triggered rapid activation queue cycles because mounts naturally suppress the Underlight Angler fish form aura, causing micro-stutters and unnecessary equipment unseating.
+
 # Angler Biggins v1.1.0
 
 ### Breaking Changes
