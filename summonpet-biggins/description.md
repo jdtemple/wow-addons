@@ -28,7 +28,7 @@ While legacy companion summoners rely on continuous movement key hooking (`MoveF
 ## Key Features
 
 * **Native Game Engine Keybinding:** Binds directly in **Game Menu -> Options -> Keybindings -> AddOns -> SummonPetBiggins**. Assign hotkeys to toggle auto-summoning or pin your active pet without consuming action bar slots or writing custom macros.
-* **1-Click Pet Pinning:** Summon whatever companion pet you want in-game, then click **`[ Use Currently Summoned Pet ]`** (or type `/spb pin`) to lock it in. No searching through thousands of journal entries or dragging icons.
+* **1-Click Pet Pinning:** Summon whatever companion pet you want in-game, then click **`[ Use Currently Summoned Pet ]`** (or type `/summonpetb pin`) to lock it in. No searching through thousands of journal entries or dragging icons.
 * **3 Flexible Summon Modes:**
   * **Random Favorites:** Automatically summons a random favorite companion from your Pet Journal stars.
   * **Completely Random:** Summons any pet from your entire collection.
@@ -48,20 +48,22 @@ While legacy companion summoners rely on continuous movement key hooking (`MoveF
 Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> SummonPet**) or by typing:
 
 ```
-/togglepet
+/summonpetb
 ```
-*(or `/spb options`)*
 
 ### Slash Commands:
 
-| Command                | Action                                                             |
-| :--------------------- | :----------------------------------------------------------------- |
-| `/togglepet` or `/spb` | Toggle companion auto-summoning on or off                          |
-| `/spb pin`             | Pin your currently summoned pet as your active companion           |
-| `/spb pin <name>`      | Search by nickname or species name, pin it, and immediately summon |
-| `/spb fav`             | Switch summon mode to Random Favorites                             |
-| `/spb random`          | Switch summon mode to Completely Random                            |
-| `/spb mount`           | Toggle companion summoning while mounted on the ground             |
-| `/spb options`         | Open the native settings panel                                     |
-| `/spb status`          | Display current addon configuration and zone diagnostics           |
-| `/spb help`            | Display list of available commands                                 |
+Commands are available via `/summonpetb`. In-game command help is available at any time by typing `/summonpetb ?` or `/summonpetb help`:
+
+| Command                             | Action                                                             |
+| :---------------------------------- | :----------------------------------------------------------------- |
+| `/summonpetb`                       | Opens the settings panel in the game menu                          |
+| `/summonpetb toggle`                | Toggle companion auto-summoning on or off                          |
+| `/summonpetb pin`                   | Pin your currently summoned pet as your active companion           |
+| `/summonpetb pin <name>`            | Search by nickname or species name, pin it, and immediately summon |
+| `/summonpetb fav`                   | Switch summon mode to Random Favorites                             |
+| `/summonpetb random`                | Switch summon mode to Completely Random                            |
+| `/summonpetb mount`                 | Toggle companion summoning while mounted on the ground             |
+| `/summonpetb status`                | Display current addon configuration and zone diagnostics           |
+| `/summonpetb options`               | Open the native settings panel                                     |
+| `/summonpetb help`, `/summonpetb ?` | Display list of available commands                                 |

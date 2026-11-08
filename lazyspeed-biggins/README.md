@@ -54,7 +54,7 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 * **Bar Height** *(14px - 36px, 1px step, Default: 22px)* - with automatic dynamic font scaling!
 
 ### 4. Reset to Defaults
-* **Reset to Defaults Button:** Native button in the settings panel (or `/lazyspeed defaults`) that restores all triggers, speed measurement units, and bar dimensions back to default.
+* **Reset to Defaults Button:** Native button in the settings panel (or `/lazyspeedb defaults`) that restores all triggers, speed measurement units, and bar dimensions back to default.
 
 ---
 

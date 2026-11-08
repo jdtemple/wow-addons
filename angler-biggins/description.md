@@ -12,7 +12,7 @@
 - **Underwater Delve & Submerged Breath Support:** Detects active breath timers in underwater Delves (such as *The Sinkhole* and *Tak-Rethan Abyss*), maintaining fish form and infinite water breathing even when walking on the sea floor.
 - **Persistent Water Walking & Stand-on-Water Fishing:** Never strips the Underlight Angler upon transitioning from deep water to surface walking or dry land, allowing you to walk across lakes and fish directly on top of deep water pools.
 - **Modern Blizzard Canvas Settings UI:** Integrated into **Game Menu -> Options -> AddOns -> Biggins AddOns -> Angler** with master enable toggle, live telemetry diagnostics, and top-right `[ Defaults ]` button.
-- **Slash Commands:** Quick toggles, configuration, and diagnostics via `/angb`, `/angler`, or `/anglerbiggins`.
+- **Slash Commands:** Quick toggles, configuration, and diagnostics via `/anglerb`.
 
 ---
 
@@ -21,6 +21,5 @@
 Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> Angler**) or by typing:
 
 ```
-/angb
+/anglerb
 ```
-*(or `/anglerbiggins`)*

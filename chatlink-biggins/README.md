@@ -24,9 +24,8 @@
 Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> ChatLink**) or by typing:
 
 ```
-/chatlink
+/chatlinkb
 ```
-*(or `/clb`)*
 
 ---
 

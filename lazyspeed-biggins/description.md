@@ -45,9 +45,8 @@ While traditional speedometers run continuous background timers that churn throu
 Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> LazySpeed**) or by typing:
 
 ```
-/lazyspeed
+/lazyspeedb
 ```
-*(or `/lsb`)*
 
 ### Configurable Options:
 1. **Speed Units:**
@@ -64,4 +63,20 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
    * Toggle Ground movement visibility
    * Toggle In-Combat hide killswitch
 4. **Reset to Defaults:**
-   * In-panel button or `/lazyspeed defaults` to restore all options to defaults.
+   * In-panel button or `/lazyspeedb defaults` to restore all options to defaults.
+
+---
+
+## Slash Commands
+
+Commands are available via `/lazyspeedb`. In-game command help is available at any time by typing `/lazyspeedb ?` or `/lazyspeedb help`:
+
+| Command                             | Action                                                     |
+| :---------------------------------- | :--------------------------------------------------------- |
+| `/lazyspeedb`                       | Opens the settings panel in the game menu                  |
+| `/lazyspeedb toggle`                | Toggles the master speedometer on or off                   |
+| `/lazyspeedb lock`                  | Toggles locking frame position                             |
+| `/lazyspeedb reset`                 | Resets frame position to center                            |
+| `/lazyspeedb status`                | Displays current configuration in chat                     |
+| `/lazyspeedb defaults`              | Resets all settings to defaults                            |
+| `/lazyspeedb help`, `/lazyspeedb ?` | Displays available in-game slash commands and descriptions |
