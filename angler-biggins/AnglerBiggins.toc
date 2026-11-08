@@ -2,7 +2,7 @@
 ## Title: |cFFFFD100Angler Biggins|r
 ## Notes: Automates Underlight Angler water walking, fish form, and underwater breathing with zero bag juggling and seamless instance support.
 ## Author: Biggins
-## Version: 1.0.1
+## Version: 1.1.0
 ## SavedVariables: AnglerBigginsDB
 ## IconTexture: Interface\AddOns\AnglerBiggins\logo.jpg
 

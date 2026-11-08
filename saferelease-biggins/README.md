@@ -30,28 +30,28 @@
 Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> SafeRelease**) or by typing:
 
 ```
-/saferelease
+/safereleaseb
 ```
-*(or `/srb`)*
 
 ---
 
 ## Slash Commands
 
-Commands are available via `/saferelease` or `/srb`:
+Commands are available via `/safereleaseb`. In-game command help is available at any time by typing `/safereleaseb ?` or `/safereleaseb help`:
 
-| Command                     | Action                                                              |
-| :-------------------------- | :------------------------------------------------------------------ |
-| `/srb`                      | Opens the settings panel in the game menu                           |
-| `/srb toggle`               | Toggles the master release guard on or off                          |
-| `/srb countdown`            | Sets guard mechanism to Countdown Timer Delay                       |
-| `/srb modifier`             | Sets guard mechanism to Modifier-Key Hold                           |
-| `/srb hybrid`               | Sets guard mechanism to Hybrid (Countdown with modifier key bypass) |
-| `/srb mod <alt/shift/ctrl>` | Sets the modifier key required to unlock release                    |
-| `/srb delay <1-10>`         | Sets the countdown delay duration in seconds                        |
-| `/srb raids`                | Toggles raid instance protection on or off                          |
-| `/srb status`               | Displays current addon configuration in chat                        |
-| `/srb defaults`             | Restores all settings to default values                             |
+| Command                                 | Action                                                              |
+| :-------------------------------------- | :------------------------------------------------------------------ |
+| `/safereleaseb`                         | Opens the settings panel in the game menu                           |
+| `/safereleaseb toggle`                  | Toggles the master release guard on or off                          |
+| `/safereleaseb countdown`               | Sets guard mechanism to Countdown Timer Delay                       |
+| `/safereleaseb modifier`                | Sets guard mechanism to Modifier-Key Hold                           |
+| `/safereleaseb hybrid`                  | Sets guard mechanism to Hybrid (Countdown with modifier key bypass) |
+| `/safereleaseb mod <alt/shift/ctrl>`    | Sets the modifier key required to unlock release                    |
+| `/safereleaseb delay <1-10>`            | Sets the countdown delay duration in seconds                        |
+| `/safereleaseb raids`                   | Toggles raid instance protection on or off                          |
+| `/safereleaseb status`                  | Displays current addon configuration in chat                        |
+| `/safereleaseb defaults`                | Restores all settings to default values                             |
+| `/safereleaseb help`, `/safereleaseb ?` | Displays available in-game slash commands and descriptions          |
 
 ---
 

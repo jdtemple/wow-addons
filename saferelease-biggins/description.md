@@ -13,7 +13,7 @@
 - **Self-Resurrection Bypass:** Automatically leaves the dialog unblocked if a Shaman Reincarnation, Warlock Soulstone, or other self-rez option is ready.
 - **Modular Content Scoping:** Independent toggles for Raids (Default: ON), Mythic+ Dungeons, Dungeons (Normal, Heroic, Mythic 0), and Delves & Scenarios. Never blocks release in open world or PvP.
 - **Native Settings UI:** Integrates directly into **Game Menu -> Options -> AddOns -> Biggins AddOns -> SafeRelease**.
-- **Slash Commands:** Quick toggles, configuration, and status via `/srb` or `/saferelease`.
+- **Slash Commands:** Quick toggles, configuration, and status via `/safereleaseb`.
 
 ---
 
@@ -22,6 +22,5 @@
 Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> SafeRelease**) or by typing:
 
 ```
-/saferelease
+/safereleaseb
 ```
-*(or `/srb`)*

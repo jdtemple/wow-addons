@@ -35,7 +35,7 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 
 ## Blizzard Settings Integration
 
-LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> Biggins AddOns -> LazySpeed` or `/lazyspeed`):
+LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> Biggins AddOns -> LazySpeed` or `/lazyspeedb`):
 
 ### 1. Modular Visibility Checkboxes
 * **Show While Flying / Skyriding** *(Default: ON)*
@@ -55,6 +55,22 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 
 ### 4. Reset to Defaults
 * **Reset to Defaults Button:** Native button in the settings panel (or `/lazyspeed defaults`) that restores all triggers, speed measurement units, and bar dimensions back to default.
+
+---
+
+## Slash Commands
+
+Commands are available via `/lazyspeedb`. In-game command help is available at any time by typing `/lazyspeedb ?` or `/lazyspeedb help`:
+
+| Command                             | Action                                                     |
+| :---------------------------------- | :--------------------------------------------------------- |
+| `/lazyspeedb`                       | Opens the settings panel in the game menu                  |
+| `/lazyspeedb toggle`                | Toggles the master speedometer on or off                   |
+| `/lazyspeedb lock`                  | Toggles locking frame position                             |
+| `/lazyspeedb reset`                 | Resets frame position to center                            |
+| `/lazyspeedb status`                | Displays current configuration in chat                     |
+| `/lazyspeedb defaults`              | Resets all settings to defaults                            |
+| `/lazyspeedb help`, `/lazyspeedb ?` | Displays available in-game slash commands and descriptions |
 
 ---
 

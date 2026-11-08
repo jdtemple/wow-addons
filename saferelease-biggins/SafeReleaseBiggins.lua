@@ -22,7 +22,7 @@
 
 local addonName, addon = ...
 _G["SafeReleaseBiggins"] = addon
-addon.version = "1.0.1"
+addon.version = "1.1.0"
 
 -- Upvalue caching
 local CreateFrame     = CreateFrame
@@ -476,9 +476,15 @@ function addon:RegisterOptions()
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     desc:SetText("Guards the Release Spirit button during wipes across raids, Mythic+ dungeons, and delves.\nNever blocks release in open world questing or unselected content.")
 
+    -- Suite Logo Texture (Top Right)
+    local logo = panel:CreateTexture(nil, "ARTWORK")
+    logo:SetPoint("TOPRIGHT", -24, -16)
+    logo:SetSize(64, 64)
+    logo:SetTexture("Interface\\AddOns\\SafeReleaseBiggins\\logo.jpg")
+
     -- Top-Right Defaults Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", -24, -20)
+    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
     btnDefaults:SetSize(110, 22)
     btnDefaults:SetText("Defaults")
     btnDefaults:SetScript("OnClick", function()
@@ -678,7 +684,7 @@ function addon:RegisterOptions()
     -- Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", cbAnnounce, "BOTTOMLEFT", 0, -16)
-    helpNote:SetText("Slash commands: /saferelease or /srb (toggle, countdown, modifier, hybrid, mod <alt|shift|ctrl>, delay <1-10>, raids, status, defaults)")
+    helpNote:SetText("Slash commands: /safereleaseb (Type /safereleaseb ? for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
@@ -738,7 +744,7 @@ local function SlashHandler(msg)
         else
             db.mode = "MODIFIER"
             addon:UpdateOptionsUI()
-            PrintMsg(string.format("Guard mode set to |cFF00FF00Modifier Hold (%s)|r. (Use |cFFFFD100/srb mod alt|shift|ctrl|r to change key)", GetModifierDisplayName(db.modifierKey)))
+            PrintMsg(string.format("Guard mode set to |cFF00FF00Modifier Hold (%s)|r. (Use |cFFFFD100/safereleaseb mod alt|shift|ctrl|r to change key)", GetModifierDisplayName(db.modifierKey)))
         end
     elseif cmd == "hybrid" then
         db.mode = "HYBRID"
@@ -752,7 +758,7 @@ local function SlashHandler(msg)
             addon:UpdateOptionsUI()
             PrintMsg(string.format("Countdown delay set to |cFF00FF00%d seconds|r.", sec))
         else
-            PrintMsg(string.format("Current countdown delay is |cFFFFD100%d seconds|r. Usage: |cFFFFD100/srb delay <1-10>|r", db.delaySeconds or 5))
+            PrintMsg(string.format("Current countdown delay is |cFFFFD100%d seconds|r. Usage: |cFFFFD100/safereleaseb delay <1-10>|r", db.delaySeconds or 5))
         end
     elseif cmd == "raids" then
         db.raids = not db.raids
@@ -774,11 +780,23 @@ local function SlashHandler(msg)
         print(string.format("  Delves/Scenarios:%s", ColorBool(db.delves)))
         print(string.format("  Full Wipe Bypass:%s", ColorBool(db.bypassFullWipe)))
         print(string.format("  Chat Feedback:   %s", ColorBool(db.announce)))
+    elseif cmd == "help" or cmd == "?" then
+        PrintMsg("Commands:")
+        print("  |cFFFFD100/safereleaseb|r - Open settings panel")
+        print("  |cFFFFD100/safereleaseb toggle|r - Toggle release guard on/off")
+        print("  |cFFFFD100/safereleaseb countdown|r - Set guard mode to Countdown Timer")
+        print("  |cFFFFD100/safereleaseb modifier|r - Set guard mode to Modifier Key hold")
+        print("  |cFFFFD100/safereleaseb hybrid|r - Set guard mode to Hybrid (countdown + key bypass)")
+        print("  |cFFFFD100/safereleaseb mod <alt|shift|ctrl>|r - Set modifier bypass key")
+        print("  |cFFFFD100/safereleaseb delay <1-10>|r - Set countdown delay in seconds")
+        print("  |cFFFFD100/safereleaseb raids|r - Toggle raid protection")
+        print("  |cFFFFD100/safereleaseb status|r - Display current configuration")
+        print("  |cFFFFD100/safereleaseb defaults|r - Reset all settings to defaults")
+        print("  |cFFFFD100/safereleaseb help|r or |cFFFFD100/safereleaseb ?|r - Show this list of commands")
     else
-        PrintMsg("Available commands: /srb [toggle | countdown | modifier | hybrid | mod <alt|shift|ctrl> | delay <1-10> | raids | status | defaults]")
+        PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/safereleaseb help|r for available commands.")
     end
 end
 
-SLASH_SAFERELEASEBIGGINS1 = "/saferelease"
-SLASH_SAFERELEASEBIGGINS2 = "/srb"
+SLASH_SAFERELEASEBIGGINS1 = "/safereleaseb"
 SlashCmdList["SAFERELEASEBIGGINS"] = SlashHandler

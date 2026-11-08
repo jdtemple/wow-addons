@@ -32,17 +32,17 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 
 ## Slash Commands
 
-Commands are available via `/angb`, `/angler`, or `/anglerbiggins`:
+Commands are available via `/anglerb`. In-game command help is available at any time by typing `/anglerb ?` or `/anglerb help`:
 
-| Command           | Action                                                                    |
-| :---------------- | :------------------------------------------------------------------------ |
-| `/angb`           | Opens the settings panel in the Blizzard Game Menu                        |
-| `/angb toggle`    | Toggles the master addon automation on or off                             |
-| `/angb wake`      | Re-engages Underlight Angler traits (Fish Form / Water Walking) on demand |
-| `/angb instances` | Toggles activation inside Dungeons and Raids                              |
-| `/angb delves`    | Toggles underwater Delve & breath meter detection                         |
-| `/angb status`    | Displays current rod location, environment, and buff state                |
-| `/angb help`      | Displays available in-game slash commands and descriptions                |
+| Command                       | Action                                                                    |
+| :---------------------------- | :------------------------------------------------------------------------ |
+| `/anglerb`                    | Opens the settings panel in the Blizzard Game Menu                        |
+| `/anglerb toggle`             | Toggles the master addon automation on or off                             |
+| `/anglerb wake`               | Re-engages Underlight Angler traits (Fish Form / Water Walking) on demand |
+| `/anglerb instances`          | Toggles activation inside Dungeons and Raids                              |
+| `/anglerb delves`             | Toggles underwater Delve & breath meter detection                         |
+| `/anglerb status`             | Displays current rod location, environment, and buff state                |
+| `/anglerb help`, `/anglerb ?` | Displays available in-game slash commands and descriptions                |
 
 ---
 

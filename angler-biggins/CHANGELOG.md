@@ -1,3 +1,11 @@
+# Angler Biggins v1.1.0
+
+### Breaking Changes
+- **Standardized Slash Commands:** Replaced `/angb`, `/angler`, `/anglerbiggins`, and `/ab` with `/anglerb` across the addon to establish a collision-free suite namespace and prevent conflicts with other addons. Please update any macros to `/anglerb`.
+
+### Added
+- **Help Command & Alias:** Added `/anglerb help` and `/anglerb ?` slash commands with formatted in-game command documentation in chat.
+
 # Angler Biggins v1.0.1
 
 ### Changed

@@ -26,7 +26,7 @@
 
 local addonName, addon = ...
 _G["ChatLinkBiggins"] = addon
-addon.version = "1.1.1"
+addon.version = "1.2.0"
 
 -- Upvalue caching
 local CreateFrame              = CreateFrame
@@ -652,9 +652,20 @@ local function CreateSettingsUI()
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("|cFFFFD100ChatLink Biggins|r")
 
+    -- Subtitle
+    local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    subtitle:SetText("Converts web URLs in chat into clickable links and adds player name hover tooltips.")
+
+    -- Suite Logo Texture (Top Right)
+    local logo = panel:CreateTexture(nil, "ARTWORK")
+    logo:SetPoint("TOPRIGHT", -24, -16)
+    logo:SetSize(64, 64)
+    logo:SetTexture("Interface\\AddOns\\ChatLinkBiggins\\logo.jpg")
+
     -- Top-Right Defaults Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", -24, -16)
+    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
     btnDefaults:SetSize(90, 22)
     btnDefaults:SetText("Defaults")
     btnDefaults:SetScript("OnClick", function()
@@ -670,11 +681,6 @@ local function CreateSettingsUI()
             PrintMsg("Settings reset to defaults.")
         end
     end)
-
-    -- Subtitle
-    local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    subtitle:SetText("Converts web URLs in chat into clickable links and adds player name hover tooltips.")
 
     -- Master Enable Checkbox
     local cbEnable = CreateFrame("CheckButton", "ChatLinkBiggins_EnableCB", panel, "UICheckButtonTemplate")
@@ -772,6 +778,11 @@ local function CreateSettingsUI()
     noteText:SetJustifyV("TOP")
     noteText:SetText("|cFFFFD100How it works:|r\n- |cFFFFD100URLs:|r Click any link starting with |cFF00CCFFhttps://|r to open the copy dialog, press |cFFFFD100Ctrl+C|r, and tap |cFFFFD100Enter|r to close.\n- |cFFFFD100Player Names:|r Hover over any player name in chat. Party and raid members show the full unit tooltip (integrating with MouseOverTooltip), while distant players show a clean identity card.")
 
+    -- Slash Command Help Note
+    local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    helpNote:SetPoint("TOPLEFT", noteBox, "BOTTOMLEFT", 0, -14)
+    helpNote:SetText("Slash commands: /chatlinkb (Type /chatlinkb ? for available commands)")
+
     -- Refresh UI Controls from SavedVariables
     panel.RefreshControls = function()
         cbEnable:SetChecked(db.enabled)
@@ -799,11 +810,10 @@ local function CreateSettingsUI()
 end
 
 -- ==============================================================================
--- 7. SLASH COMMANDS (/clb and /chatlink)
+-- 7. SLASH COMMANDS (/chatlinkb)
 -- ==============================================================================
 
-SLASH_CHATLINKBIGGINS1 = "/clb"
-SLASH_CHATLINKBIGGINS2 = "/chatlink"
+SLASH_CHATLINKBIGGINS1 = "/chatlinkb"
 
 SlashCmdList["CHATLINKBIGGINS"] = function(msg)
     msg = string.lower(strtrim(msg or ""))
@@ -850,8 +860,18 @@ SlashCmdList["CHATLINKBIGGINS"] = function(msg)
             addon.settingsPanel.RefreshControls()
         end
         PrintMsg("Settings reset to defaults.")
+    elseif msg == "help" or msg == "?" then
+        PrintMsg("Commands:")
+        print("  |cFFFFD100/chatlinkb|r - Open settings panel")
+        print("  |cFFFFD100/chatlinkb toggle|r - Toggle URL detection on/off")
+        print("  |cFFFFD100/chatlinkb tooltips|r - Toggle player hover tooltips")
+        print("  |cFFFFD100/chatlinkb brackets|r - Toggle visual [brackets] around links")
+        print("  |cFFFFD100/chatlinkb reset|r - Reset copy dialog position to center")
+        print("  |cFFFFD100/chatlinkb status|r - Display current configuration")
+        print("  |cFFFFD100/chatlinkb defaults|r - Reset all settings to defaults")
+        print("  |cFFFFD100/chatlinkb help|r or |cFFFFD100/chatlinkb ?|r - Show this list of commands")
     else
-        PrintMsg("Commands: |cFFFFD100/clb|r (options), |cFFFFD100/clb toggle|r, |cFFFFD100/clb tooltips|r, |cFFFFD100/clb brackets|r, |cFFFFD100/clb reset|r, |cFFFFD100/clb status|r, |cFFFFD100/clb defaults|r.")
+        PrintMsg("Unknown command '|cFFFFD100" .. msg .. "|r'. Type |cFFFFD100/chatlinkb help|r for available commands.")
     end
 end
 

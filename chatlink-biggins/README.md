@@ -32,17 +32,18 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 
 ## Slash Commands
 
-Commands are available via `/chatlink` or `/clb`:
+Commands are available via `/chatlinkb`. In-game command help is available at any time by typing `/chatlinkb ?` or `/chatlinkb help`:
 
-| Command         | Action                                        |
-| :-------------- | :-------------------------------------------- |
-| `/clb`          | Opens the settings panel in the game menu     |
-| `/clb toggle`   | Toggles ChatLink Biggins master enable state  |
-| `/clb tooltips` | Toggles player tooltips on name hover         |
-| `/clb brackets` | Toggles `[ ]` brackets around chat links      |
-| `/clb reset`    | Resets popup dialog position to screen center |
-| `/clb status`   | Displays current addon configuration in chat  |
-| `/clb defaults` | Restores all settings to default values       |
+| Command                           | Action                                                     |
+| :-------------------------------- | :--------------------------------------------------------- |
+| `/chatlinkb`                      | Opens the settings panel in the game menu                  |
+| `/chatlinkb toggle`               | Toggles ChatLink Biggins master enable state               |
+| `/chatlinkb tooltips`             | Toggles player tooltips on name hover                      |
+| `/chatlinkb brackets`             | Toggles `[ ]` brackets around chat links                   |
+| `/chatlinkb reset`                | Resets popup dialog position to screen center              |
+| `/chatlinkb status`               | Displays current addon configuration in chat               |
+| `/chatlinkb defaults`             | Restores all settings to default values                    |
+| `/chatlinkb help`, `/chatlinkb ?` | Displays available in-game slash commands and descriptions |
 
 ---
 

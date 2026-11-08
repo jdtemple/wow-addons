@@ -4,7 +4,7 @@
 
 local addonName, addon = ...
 _G["AutoJoinBiggins"] = addon
-addon.version = "1.3.1"
+addon.version = "1.4.0"
 
 -- Default Settings
 local defaults = {
@@ -355,9 +355,15 @@ function addon:RegisterOptions()
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     desc:SetText("Configurable auto-accept for party invitations from Guildmates, Friends, and BNet.")
 
+    -- Suite Logo Texture (Top Right)
+    local logo = panel:CreateTexture(nil, "ARTWORK")
+    logo:SetPoint("TOPRIGHT", -24, -16)
+    logo:SetSize(64, 64)
+    logo:SetTexture("Interface\\AddOns\\AutoJoinBiggins\\logo.jpg")
+
     -- Top-Right "Defaults" Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", -24, -20)
+    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
     btnDefaults:SetSize(110, 22)
     btnDefaults:SetText("Defaults")
     btnDefaults:SetScript("OnClick", function()
@@ -443,7 +449,7 @@ function addon:RegisterOptions()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", cbAnnounce, "BOTTOMLEFT", -20, -24)
-    helpNote:SetText("Slash commands: /autojoin or /aj (toggle, guild, friends, bnet, all, afk, chat, announce, status)")
+    helpNote:SetText("Slash commands: /autojoinb (Type /autojoinb ? for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
@@ -490,7 +496,7 @@ function addon:PrintStatus()
     print(string.format("  Announcements:    %s", ColorBool(db.announce)))
 end
 
--- Slash Command Handler (/autojoin, /aj)
+-- Slash Command Handler (/autojoinb)
 local function SlashHandler(msg)
     local cmd = string.lower(strtrim(msg or ""))
     local db = AutoJoinBigginsDB or defaults
@@ -539,11 +545,23 @@ local function SlashHandler(msg)
         addon:UpdateOptionsUI()
     elseif cmd == "status" then
         addon:PrintStatus()
+    elseif cmd == "help" or cmd == "?" then
+        PrintMsg("Commands:")
+        print("  |cFFFFD100/autojoinb|r - Open settings panel")
+        print("  |cFFFFD100/autojoinb toggle|r - Toggle master auto-join on/off")
+        print("  |cFFFFD100/autojoinb guild|r - Toggle Guild auto-join")
+        print("  |cFFFFD100/autojoinb friends|r - Toggle Character Friends auto-join")
+        print("  |cFFFFD100/autojoinb bnet|r - Toggle Battle.net Friends auto-join")
+        print("  |cFFFFD100/autojoinb all|r - Toggle All Players auto-join")
+        print("  |cFFFFD100/autojoinb afk|r - Toggle pause while AFK")
+        print("  |cFFFFD100/autojoinb chat|r - Toggle auto-switching chat to group")
+        print("  |cFFFFD100/autojoinb announce|r - Toggle chat announcements")
+        print("  |cFFFFD100/autojoinb status|r - Display current configuration")
+        print("  |cFFFFD100/autojoinb help|r or |cFFFFD100/autojoinb ?|r - Show this list of commands")
     else
-        PrintMsg("Available commands: /aj [toggle | guild | friends | bnet | all | afk | chat | announce | status | config]")
+        PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/autojoinb help|r for available commands.")
     end
 end
 
-SLASH_AUTOJOINBIGGINS1 = "/autojoin"
-SLASH_AUTOJOINBIGGINS2 = "/aj"
+SLASH_AUTOJOINBIGGINS1 = "/autojoinb"
 SlashCmdList["AUTOJOINBIGGINS"] = SlashHandler

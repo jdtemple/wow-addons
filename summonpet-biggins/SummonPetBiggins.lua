@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.3.0"
+addon.version = "1.4.0"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -377,7 +377,7 @@ function addon:UpdateOptionsUI()
     end
 end
 
--- Toggle Function (Triggered via Native Keybind or /togglepet)
+-- Toggle Function (Triggered via Native Keybind or /summonpetb toggle)
 function addon:Toggle()
     if not SummonPetBigginsDB then
         SummonPetBigginsDB = CopyTable(defaults)
@@ -733,9 +733,15 @@ function addon:RegisterOptions()
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     desc:SetText("Ultra-lightweight, event-driven companion pet summoner.\nInspired by Callie's classic BartrubySummonPet.")
 
+    -- Suite Logo Texture (Top Right)
+    local logo = panel:CreateTexture(nil, "ARTWORK")
+    logo:SetPoint("TOPRIGHT", -24, -16)
+    logo:SetSize(64, 64)
+    logo:SetTexture("Interface\\AddOns\\SummonPetBiggins\\logo.jpg")
+
     -- Top-Right "Defaults" Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", -24, -20)
+    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
     btnDefaults:SetSize(110, 22)
     btnDefaults:SetText("Defaults")
     btnDefaults:SetScript("OnClick", function()
@@ -889,7 +895,7 @@ function addon:RegisterOptions()
     -- Keybinding Hint
     local keybindNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     keybindNote:SetPoint("TOPLEFT", btnPin, "BOTTOMLEFT", -26, -18)
-    keybindNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> SummonPet Biggins\nSlash commands: /togglepet or /spb (fav, random, pin, mount, status)")
+    keybindNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> SummonPet Biggins\nSlash commands: /summonpetb (Type /summonpetb ? for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
@@ -919,16 +925,19 @@ function addon:OpenSettings()
     end
 end
 
--- Slash Commands (/togglepet, /spb)
-SLASH_SUMMONPETBIGGINS1 = "/togglepet"
-SLASH_SUMMONPETBIGGINS2 = "/spb"
+-- Slash Commands (/summonpetb)
+SLASH_SUMMONPETBIGGINS1 = "/summonpetb"
 SlashCmdList["SUMMONPETBIGGINS"] = function(msg)
     local raw = msg and msg:trim() or ""
     local cmd, arg = raw:match("^(%S+)%s*(.*)$")
     cmd = cmd and cmd:lower() or ""
     arg = arg and arg:trim() or ""
 
-    if cmd == "pin" then
+    if cmd == "" or cmd == "options" or cmd == "config" or cmd == "menu" then
+        addon:OpenSettings()
+    elseif cmd == "toggle" then
+        addon:Toggle()
+    elseif cmd == "pin" then
         if arg ~= "" then
             addon:PinPetByName(arg)
         else
@@ -952,8 +961,6 @@ SlashCmdList["SUMMONPETBIGGINS"] = function(msg)
             StopMountWatcher()
             if IsMounted() then addon:Dismiss(1) end
         end
-    elseif cmd == "config" or cmd == "options" or cmd == "menu" then
-        addon:OpenSettings()
     elseif cmd == "status" then
         local st = SummonPetBigginsDB.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
         local mt = SummonPetBigginsDB.summonWhileMounted and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"
@@ -970,16 +977,18 @@ SlashCmdList["SUMMONPETBIGGINS"] = function(msg)
             tostring(SummonPetBigginsDB.dismissMPlus),
             tostring(SummonPetBigginsDB.dismissDungeons),
             tostring(SummonPetBigginsDB.dismissDelves)))
-    elseif cmd == "help" then
+    elseif cmd == "help" or cmd == "?" then
         PrintMsg("Commands:")
-        print("  |cFFFFD100/togglepet|r or |cFFFFD100/spb|r - Toggle pet summoning on/off")
-        print("  |cFFFFD100/spb pin [name]|r - Pin current pet, or search and summon by name")
-        print("  |cFFFFD100/spb fav|r - Set mode to random favorites")
-        print("  |cFFFFD100/spb random|r - Set mode to completely random")
-        print("  |cFFFFD100/spb mount|r - Toggle companion summoning while mounted on ground")
-        print("  |cFFFFD100/spb options|r - Open settings panel")
-        print("  |cFFFFD100/spb status|r - Display current configuration")
+        print("  |cFFFFD100/summonpetb|r - Open settings panel")
+        print("  |cFFFFD100/summonpetb toggle|r - Toggle companion auto-summoning on/off")
+        print("  |cFFFFD100/summonpetb pin [name]|r - Pin current pet, or search and summon by name")
+        print("  |cFFFFD100/summonpetb fav|r - Set mode to random favorites")
+        print("  |cFFFFD100/summonpetb random|r - Set mode to completely random")
+        print("  |cFFFFD100/summonpetb mount|r - Toggle companion summoning while mounted on ground")
+        print("  |cFFFFD100/summonpetb options|r - Open settings panel")
+        print("  |cFFFFD100/summonpetb status|r - Display current configuration")
+        print("  |cFFFFD100/summonpetb help|r or |cFFFFD100/summonpetb ?|r - Show this list of commands")
     else
-        addon:Toggle()
+        PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/summonpetb help|r for available commands.")
     end
 end

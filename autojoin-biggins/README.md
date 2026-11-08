@@ -17,25 +17,27 @@
 - **Clean Popup Suppression:** Automatically dismisses the standard `PARTY_INVITE` and `PARTY_INVITE_XREALM` confirmation popups on accepted invitations, preventing screen clutter.
 - **Untouched Non-Whitelisted Invites:** If a direct invite arrives from someone outside your active filters, the normal Blizzard invitation popup remains completely intact for manual review.
 - **Zero Overhead & Zero Dependencies:** Pure standalone Lua (< 15 KB). No Ace3, no bloated libraries, and zero impact on frame rates.
-- **Blizzard Settings UI Integration:** Full configuration panel built into the native modern WoW Settings panel under **Options -> AddOns -> Biggins AddOns -> AutoJoin** (or type `/aj`).
+- **Blizzard Settings UI Integration:** Full configuration panel built into the native modern WoW Settings panel under **Options -> AddOns -> Biggins AddOns -> AutoJoin** (or type `/autojoinb`).
 
 ---
 
 ## Slash Commands
 
-Commands are available via `/autojoin` or `/aj`:
+Commands are available via `/autojoinb`. In-game command help is available at any time by typing `/autojoinb ?` or `/autojoinb help`:
 
-| Command        | Action                                                             |
-| :------------- | :----------------------------------------------------------------- |
-| `/aj`          | Opens the settings panel in the game menu                          |
-| `/aj toggle`   | Toggles the master auto-join system on or off                      |
-| `/aj guild`    | Toggles auto-accepting invites from Guild members                  |
-| `/aj friends`  | Toggles auto-accepting invites from Character Friends              |
-| `/aj bnet`     | Toggles auto-accepting invites from Battle.net Friends             |
-| `/aj all`      | Toggles auto-accepting invites from All Players (Use with caution) |
-| `/aj chat`     | Toggles automatically switching active chat to group on join       |
-| `/aj announce` | Toggles chat notifications when an invite is auto-accepted         |
-| `/aj status`   | Displays your current configuration and filter states in chat      |
+| Command                           | Action                                                             |
+| :-------------------------------- | :----------------------------------------------------------------- |
+| `/autojoinb`                      | Opens the settings panel in the game menu                          |
+| `/autojoinb toggle`               | Toggles the master auto-join system on or off                      |
+| `/autojoinb guild`                | Toggles auto-accepting invites from Guild members                  |
+| `/autojoinb friends`              | Toggles auto-accepting invites from Character Friends              |
+| `/autojoinb bnet`                 | Toggles auto-accepting invites from Battle.net Friends             |
+| `/autojoinb all`                  | Toggles auto-accepting invites from All Players (Use with caution) |
+| `/autojoinb afk`                  | Toggles pausing auto-accept while flagged Away (AFK)               |
+| `/autojoinb chat`                 | Toggles automatically switching active chat to group on join       |
+| `/autojoinb announce`             | Toggles chat notifications when an invite is auto-accepted         |
+| `/autojoinb status`               | Displays your current configuration and filter states in chat      |
+| `/autojoinb help`, `/autojoinb ?` | Displays available in-game slash commands and descriptions         |
 
 ---
 
@@ -51,7 +53,7 @@ Run the included build and install script:
 1. Copy the `AutoJoinBiggins` folder into your World of Warcraft directory:
    `World of Warcraft\_retail_\Interface\AddOns\AutoJoinBiggins`
 2. Restart World of Warcraft or run `/reload`.
-3. Type `/aj` or open **Game Menu -> Options -> AddOns -> Biggins AddOns -> AutoJoin** to customize your settings.
+3. Type `/autojoinb` or open **Game Menu -> Options -> AddOns -> Biggins AddOns -> AutoJoin** to customize your settings.
 
 ---
 

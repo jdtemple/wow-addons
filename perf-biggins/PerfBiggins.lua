@@ -23,12 +23,12 @@
     6. Blizzard Gold Aesthetic: Matching LazySpeed styling with dark slate tooltip
        backdrop and Blizzard metallic gold border.
     7. Modern Settings UI: Integrated into Options -> AddOns -> Biggins AddOns -> Perf
-       with sliders, checkboxes, lock toggle, and slash commands (/perf, /pb).
+       with sliders, checkboxes, lock toggle, and slash commands (/perfb).
 ============================================================================== ]]--
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.4.0"
+addon.version = "1.5.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
@@ -570,9 +570,15 @@ function addon:RegisterOptions()
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     desc:SetText("High-performance FPS and dual-latency telemetry HUD with zero Lua garbage generation.")
 
+    -- Suite Logo Texture (Top Right)
+    local logo = panel:CreateTexture(nil, "ARTWORK")
+    logo:SetPoint("TOPRIGHT", -24, -16)
+    logo:SetSize(64, 64)
+    logo:SetTexture("Interface\\AddOns\\PerfBiggins\\logo.jpg")
+
     -- Top-Right "Defaults" Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", -24, -20)
+    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
     btnDefaults:SetSize(110, 22)
     btnDefaults:SetText("Defaults")
     btnDefaults:SetScript("OnClick", function()
@@ -765,7 +771,7 @@ function addon:RegisterOptions()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", 0, -18)
-    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: /perf or /pb (toggle, lock, fps, world, home, stack, combat, reset, status)")
+    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: /perfb (Type /perfb ? for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
@@ -806,7 +812,7 @@ function addon:OpenSettings()
 end
 
 -- ==============================================================================
--- 9. SLASH COMMAND HANDLER (/perf, /pb)
+-- 9. SLASH COMMAND HANDLER (/perfb)
 -- ==============================================================================
 local function SlashHandler(msg)
     local cmd = string.lower(strtrim(msg or ""))
@@ -818,8 +824,8 @@ local function SlashHandler(msg)
         addon:Toggle()
     elseif cmd == "lock" then
         db.locked = not db.locked
+        addon:UpdateInteractivity()
         addon:UpdateOptionsUI()
-        addon:UpdateLayout()
         local status = db.locked and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
         PrintMsg("Frame position is now " .. status .. ".")
     elseif cmd == "fps" then
@@ -879,11 +885,23 @@ local function SlashHandler(msg)
         print(string.format("  Auto-Detect FPS:  %s", ColorBool(db.autoFpsCap ~= false)))
         print(string.format("  Active FPS Scale: %d FPS", math.floor(activeFpsCap)))
         print(string.format("  Bar Dimensions:   %d x %d px", db.barWidth, db.barHeight))
+    elseif cmd == "help" or cmd == "?" then
+        PrintMsg("Commands:")
+        print("  |cFFFFD100/perfb|r - Open settings panel")
+        print("  |cFFFFD100/perfb toggle|r - Toggle performance HUD on/off")
+        print("  |cFFFFD100/perfb lock|r - Toggle frame position lock")
+        print("  |cFFFFD100/perfb fps|r - Toggle FPS bar visibility")
+        print("  |cFFFFD100/perfb world|r - Toggle World latency bar visibility")
+        print("  |cFFFFD100/perfb home|r - Toggle Home latency bar visibility")
+        print("  |cFFFFD100/perfb stack [horiz|vert]|r - Switch horizontal or vertical layout")
+        print("  |cFFFFD100/perfb combat|r - Toggle auto-hiding during combat")
+        print("  |cFFFFD100/perfb reset|r - Reset frame position to center")
+        print("  |cFFFFD100/perfb status|r - Display current configuration")
+        print("  |cFFFFD100/perfb help|r or |cFFFFD100/perfb ?|r - Show this list of commands")
     else
-        PrintMsg("Available commands: /pb [toggle | lock | fps | world | home | stack | combat | reset | status | config]")
+        PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/perfb help|r for available commands.")
     end
 end
 
-SLASH_PERFBIGGINS1 = "/perf"
-SLASH_PERFBIGGINS2 = "/pb"
+SLASH_PERFBIGGINS1 = "/perfb"
 SlashCmdList["PERFBIGGINS"] = SlashHandler

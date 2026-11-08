@@ -537,7 +537,7 @@ local function ResetAllToDefaults()
     DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: All options have been reset to default.")
 end
 
-_G["LazySpeedBiggins_Version"] = "3.8.1"
+_G["LazySpeedBiggins_Version"] = "3.9.0"
 
 local function InitializeBlizzardSettings()
     local panel = CreateFrame("Frame", "LazySpeedBigginsOptionsPanel", UIParent)
@@ -554,9 +554,15 @@ local function InitializeBlizzardSettings()
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     desc:SetText("High-precision dynamic speedometer with contextual color theming.")
 
+    -- Suite Logo Texture (Top Right)
+    local logo = panel:CreateTexture(nil, "ARTWORK")
+    logo:SetPoint("TOPRIGHT", -24, -16)
+    logo:SetSize(64, 64)
+    logo:SetTexture("Interface\\AddOns\\LazySpeedBiggins\\logo.jpg")
+
     -- Top-Right "Defaults" Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", -24, -20)
+    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
     btnDefaults:SetSize(110, 22)
     btnDefaults:SetText("Defaults")
     btnDefaults:SetScript("OnClick", function()
@@ -734,7 +740,7 @@ local function InitializeBlizzardSettings()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", 0, -18)
-    helpNote:SetText("Slash commands: /lazyspeed or /lsb (settings, toggle, lock, reset, defaults, status)")
+    helpNote:SetText("Slash commands: /lazyspeedb (Type /lazyspeedb ? for available commands)")
 
     panel:SetScript("OnShow", function()
         UpdateOptionsUI()
@@ -868,15 +874,14 @@ EventWatcherFrame:SetScript("OnUpdate", function(self, elapsed)
 end)
 
 -- ==============================================================================
--- 9. SLASH COMMANDS (/lazyspeed, /lsb)
+-- 9. SLASH COMMANDS (/lazyspeedb)
 -- ==============================================================================
-SLASH_LAZYSPEED1 = "/lazyspeed"
-SLASH_LAZYSPEED2 = "/lsb"
+SLASH_LAZYSPEED1 = "/lazyspeedb"
 SlashCmdList["LAZYSPEED"] = function(msg)
     local command = msg:lower():trim()
     local db = LazySpeedBigginsDB or DB_DEFAULTS
 
-    if command == "options" or command == "config" or command == "settings" then
+    if command == "" or command == "options" or command == "config" or command == "settings" then
         if categoryID and Settings and Settings.OpenToCategory then
             Settings.OpenToCategory(categoryID)
         elseif Settings and Settings.OpenToCategory then
@@ -919,13 +924,16 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Hide in Combat:   %s", ColorBool(db.hideInCombat)))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Measurement Unit: %s", modeLabels[db.unitMode or 4] or "%"))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Dimensions:   %d x %d px", db.barWidth or 180, db.barHeight or 22))
+    elseif command == "help" or command == "?" then
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins:|r Commands:")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb|r - Open options menu")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb toggle|r - Toggle master speedometer on/off")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb lock|r - Toggle locking frame position")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb reset|r - Reset frame position to center")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb defaults|r - Reset all options to default")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb status|r - Display current configuration")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb help|r or |cFFFFD100/lazyspeedb ?|r - Show this list of commands")
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins v3.8.1|r:")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed settings|r - Open options menu.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed toggle|r - Toggle master speedometer on/off.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed lock|r - Toggle locking frame position.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed reset|r - Reset frame position to center.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed defaults|r - Reset all options to default.")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFFFF/lazyspeed status|r - Display current configuration.")
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins:|r Unknown command '|cFFFFD100" .. command .. "|r'. Type |cFFFFD100/lazyspeedb help|r for available commands.")
     end
 end

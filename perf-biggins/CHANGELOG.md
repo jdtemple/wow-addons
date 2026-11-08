@@ -1,3 +1,11 @@
+# Perf Biggins v1.5.0
+
+### Breaking Changes
+- **Standardized Slash Commands:** Replaced `/perf` and `/pb` with `/perfb` across the addon to establish a collision-free suite namespace and prevent conflicts with other addons. Please update any macros to `/perfb`.
+
+### Added
+- **Help Command & Alias:** Added `/perfb help` and `/perfb ?` slash commands with formatted in-game command documentation in chat.
+
 # Perf Biggins v1.4.0
 
 ### Added

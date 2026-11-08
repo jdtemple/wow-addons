@@ -12,7 +12,7 @@
 - **Draggable & Lockable:** Drag anywhere on screen with Left-Click and lock in place via settings.
 - **Blizzard Gold Styling:** Styled to match the dark slate and metallic gold aesthetic of LazySpeed Biggins.
 - **Native Settings UI:** Full configuration panel under **Game Menu -> Options -> AddOns -> Biggins AddOns -> Perf**.
-- **Slash Commands:** Quick toggles and status checks via `/pb` or `/perf`.
+- **Slash Commands:** Quick toggles and status checks via `/perfb`.
 
 ---
 
@@ -21,6 +21,5 @@
 Configure your preferences via the native Blizzard Settings panel (**Game Menu -> Options -> AddOns -> Biggins AddOns -> Perf**) or by typing:
 
 ```
-/perf
+/perfb
 ```
-*(or `/pb`)*
