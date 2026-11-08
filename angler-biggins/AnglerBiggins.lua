@@ -1,32 +1,31 @@
 --[[ ==============================================================================
-    Angler Biggins v1.0.0 - Underlight Angler Water Walking & Fish Form Automation
+    Angler Biggins v1.0.1 - Underlight Angler Water Walking & Fish Form Automation
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
-    Credits: LegolandoBloom (Creator of Angleur & Angleur_Underlight)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 
     ARCHITECTURAL OVERVIEW:
     1. Zero-Taint Event-Driven Lifecycle: Operates purely on native WoW events
-       (MOUNT_JOURNAL_USABILITY_CHANGED, MIRROR_TIMER_START, PLAYER_REGEN_ENABLED)
-       with zero OnUpdate script polling or frame churn.
+       (MOUNT_JOURNAL_USABILITY_CHANGED, MIRROR_TIMER_START, PLAYER_REGEN_ENABLED, UNIT_AURA)
+       with zero background OnUpdate script polling or frame churn.
     2. Zero Bag Juggling / Dedicated Slot 28 Integration: Interacts directly with
        the player's dedicated Fishing Profession Tool slot (slot 28) and weapon slot (slot 16),
        eliminating item shuffling across random backpack slots.
-    3. Dragonflight/TWW Passive-Slot Wakeup: Resolves Blizzard's dormant profession
-       equipment bug by cleanly triggering the Underlight Angler traits upon water entry.
+    3. Modern Passive-Slot Wakeup: Resolves Blizzard's dormant profession equipment
+       bug by cleanly triggering the Underlight Angler traits upon water entry.
     4. Instance & Combat Resilience: Fully supported in Dungeons, Raids, and Delves.
-       Does not depend on outdoor-only cosmetic profession auras (spell 394009),
-       permanently preventing the gear-swapping loop bug. Safely respects combat lockdown.
+       Preserves permanent traits without fragile gear-swapping loops. Safely respects
+       combat lockdown.
     5. Persistent Water Walking & Stand-on-Water Fishing: Never unequips on dry land
        or water surface, preserving permanent water walking and allowing seamless
        fishing from the surface of deep water.
     6. Modern Blizzard Canvas Settings: Fully integrated into Options -> AddOns ->
-       Biggins AddOns -> Angler with master enable toggle and [ Defaults ] button.
+       Biggins AddOns -> Angler with master enable toggle, diagnostics, and [ Defaults ].
 ============================================================================== ]]--
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "1.0.0"
+addon.version = "1.0.1"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
@@ -169,70 +168,66 @@ end
 -- 2. ASYNC EQUIPMENT QUEUE ENGINE
 -- ==============================================================================
 
-local function CheckCursorHoldingRod()
-    local infoType, itemID = GetCursorInfo()
-    if infoType and infoType == "item" then
-        if itemID == UNDERLIGHT_ANGLER_ID then
-            return 3 -- Holding Underlight Angler
-        end
-        return 1 -- Holding something else
+local function IsCursorHoldingItem(targetItemID)
+    local cursorType, itemID = GetCursorInfo()
+    if cursorType == "item" then
+        return itemID == targetItemID, true
     end
-    return 2 -- Holding nothing
+    return false, cursorType ~= nil
 end
 
-local function PutCursorInBag()
-    local targetBag = nil
-    for i = 4, 0, -1 do
-        local freeSlots = C_Container.GetContainerNumFreeSlots(i)
+local function DepositCursorIntoFirstFreeBag()
+    for bag = 0, 4 do
+        local freeSlots = C_Container.GetContainerNumFreeSlots(bag)
         if freeSlots and freeSlots > 0 then
-            targetBag = i
-            break
+            if bag == 0 then
+                PutItemInBackpack()
+            else
+                PutItemInBag(CONTAINER_BAG_OFFSET + bag)
+            end
+            return true
         end
     end
-
-    if not targetBag then
-        ClearCursor()
-        queue.unequip = false
-        return false
-    elseif targetBag == 0 then
-        PutItemInBackpack()
-    else
-        PutItemInBag(CONTAINER_BAG_OFFSET + targetBag)
-    end
-    return true
+    ClearCursor()
+    return false
 end
 
-local function ProcessUnequipStep()
-    local currentItem = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
-    if not currentItem then
-        -- Slot 28 is confirmed empty and unlocked by server
+local function StepUnequipSlot()
+    local equippedItem = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
+    if not equippedItem then
+        -- Slot 28 is unseated and clear
         queue.unequip = false
         return
     end
 
-    local cursorState = CheckCursorHoldingRod()
-    if cursorState == 1 then
-        -- Cursor holding another item, wait for player release
+    local isHoldingTarget, isHoldingAnything = IsCursorHoldingItem(UNDERLIGHT_ANGLER_ID)
+    if isHoldingAnything and not isHoldingTarget then
+        -- Player is actively dragging another item; wait for cursor to clear
         return
-    elseif cursorState == 2 then
+    elseif not isHoldingAnything then
         PickupInventoryItem(INVSLOT_FISHING_TOOL)
-        if CheckCursorHoldingRod() == 3 then
-            PutCursorInBag()
+        local holdingNow = IsCursorHoldingItem(UNDERLIGHT_ANGLER_ID)
+        if holdingNow then
+            if not DepositCursorIntoFirstFreeBag() then
+                queue.unequip = false
+            end
         end
-    elseif cursorState == 3 then
-        PutCursorInBag()
+    elseif isHoldingTarget then
+        if not DepositCursorIntoFirstFreeBag() then
+            queue.unequip = false
+        end
     end
 end
 
-local function ProcessEquipStep()
-    local currentItem = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
-    if currentItem == queue.equip then
-        -- Equip confirmed by server
+local function StepEquipSlot()
+    local equippedItem = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
+    if equippedItem == queue.equip then
+        -- Desired item is confirmed equipped by server
         queue.equip = nil
         return
     end
 
-    if not C_Item.IsEquippableItem(queue.equip) or C_Item.GetItemCount(queue.equip) < 1 then
+    if not queue.equip or not C_Item.IsEquippableItem(queue.equip) or C_Item.GetItemCount(queue.equip) < 1 then
         queue.equip = nil
         return
     end
@@ -269,9 +264,9 @@ local function HandleQueue()
         end
 
         if queue.unequip then
-            ProcessUnequipStep()
+            StepUnequipSlot()
         elseif queue.equip then
-            ProcessEquipStep()
+            StepEquipSlot()
         else
             -- Queue finished successfully: rod is officially awake in slot 28
             self:SetScript("OnUpdate", nil)

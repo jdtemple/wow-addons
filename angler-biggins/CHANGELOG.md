@@ -1,3 +1,10 @@
+# Angler Biggins v1.0.1
+
+### Changed
+- **Aura Synchronization:** Refined dual-buff state detection (`394009` and `201944`) with instant `UNIT_AURA` player event reactivity for seamless re-activation if buffs are canceled.
+- **Manual Control:** Added `/angb wake` and `/angb reset` slash commands to force manual wake cycles on demand.
+- **Standalone Release:** Streamlined project metadata and package documentation for standalone release.
+
 # Angler Biggins v1.0.0
 
 ### Added

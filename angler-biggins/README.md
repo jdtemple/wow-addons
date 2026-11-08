@@ -40,13 +40,8 @@ Commands are available via `/angb`, `/angler`, or `/anglerbiggins`:
 | `/angb toggle`    | Toggles the master addon automation on or off              |
 | `/angb instances` | Toggles activation inside Dungeons and Raids               |
 | `/angb delves`    | Toggles underwater Delve & breath meter detection          |
+| `/angb wake`      | Forces an immediate Underlight Angler wake cycle           |
 | `/angb status`    | Displays current rod location, environment, and buff state |
-
----
-
-## Credits & Acknowledgments
-
-Heartfelt props and appreciation to **LegolandoBloom**, the talented creator of *Angleur* and *Angleur_Underlight*. Their creative passion, roleplay trailer videos, custom hand-drawn artwork, and dedication to the World of Warcraft fishing community inspired the core quality-of-life concepts behind this automated Underlight Angler utility.
 
 ---
 

@@ -24,9 +24,3 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 /angb
 ```
 *(or `/anglerbiggins`)*
-
----
-
-## Credits & Acknowledgments
-
-Heartfelt props and appreciation to **LegolandoBloom**, the talented creator of *Angleur* and *Angleur_Underlight*. Their creative passion, roleplay trailer videos, custom hand-drawn artwork, and dedication to the World of Warcraft fishing community inspired the core quality-of-life concepts behind this automated Underlight Angler utility.
