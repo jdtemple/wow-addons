@@ -641,11 +641,11 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         db.enableDelves = not db.enableDelves
         PrintMsg("Underwater Delves: " .. (db.enableDelves and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
         addon:UpdateOptionsUI()
-    elseif cmd == "wake" or cmd == "reset" then
+    elseif cmd == "wake" then
         isAwake = false
         lastActivationTime = 0
         ActivateUnderlightAngler()
-        PrintMsg("Forced Underlight Angler wake cycle initiated.")
+        PrintMsg("Underlight Angler activation triggered.")
     elseif cmd == "status" then
         local isSlotted = IsUnderlightSlotted()
         local locStr = isSlotted and "Equipped in Fishing Tool Slot (28)" or "Not in Fishing Tool Slot"
@@ -662,12 +662,25 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         print("  - Fish Form Buff: |cFFFFD100" .. fishForm .. "|r")
         print("  - Dungeons & Raids: " .. (db.enableInstances and "|cFF00FF00On|r" or "|cFFFF0000Off|r"))
         print("  - Underwater Delves: " .. (db.enableDelves and "|cFF00FF00On|r" or "|cFFFF0000Off|r"))
+    elseif cmd == "help" then
+        PrintMsg("Commands:")
+        print("  |cFFFFD100/angb|r - Open settings panel")
+        print("  |cFFFFD100/angb toggle|r - Toggle master automation on/off")
+        print("  |cFFFFD100/angb wake|r - Re-engage Underlight Angler traits (Fish Form / Water Walking) on demand")
+        print("  |cFFFFD100/angb instances|r - Toggle activation in Dungeons & Raids")
+        print("  |cFFFFD100/angb delves|r - Toggle underwater Delve & breath meter detection")
+        print("  |cFFFFD100/angb status|r - Display current equipment, environment, and buff state")
+        print("  |cFFFFD100/angb help|r - Show this list of commands")
     else
-        -- Open Settings Panel
-        if addon.categoryID and Settings and Settings.OpenToCategory then
-            Settings.OpenToCategory(addon.categoryID)
+        -- Open Settings Panel if empty or 'options'/'config', otherwise display help hint
+        if cmd == "" or cmd == "options" or cmd == "config" then
+            if addon.categoryID and Settings and Settings.OpenToCategory then
+                Settings.OpenToCategory(addon.categoryID)
+            else
+                PrintMsg("Type |cFFFFD100/angb help|r to view available commands.")
+            end
         else
-            PrintMsg("Type |cFFFFD100/angb status|r or |cFFFFD100/angb toggle|r.")
+            PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/angb help|r for available commands.")
         end
     end
 end

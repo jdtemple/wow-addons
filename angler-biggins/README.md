@@ -34,14 +34,15 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 
 Commands are available via `/angb`, `/angler`, or `/anglerbiggins`:
 
-| Command           | Action                                                     |
-| :---------------- | :--------------------------------------------------------- |
-| `/angb`           | Opens the settings panel in the Blizzard Game Menu         |
-| `/angb toggle`    | Toggles the master addon automation on or off              |
-| `/angb instances` | Toggles activation inside Dungeons and Raids               |
-| `/angb delves`    | Toggles underwater Delve & breath meter detection          |
-| `/angb wake`      | Forces an immediate Underlight Angler wake cycle           |
-| `/angb status`    | Displays current rod location, environment, and buff state |
+| Command           | Action                                                                    |
+| :---------------- | :------------------------------------------------------------------------ |
+| `/angb`           | Opens the settings panel in the Blizzard Game Menu                        |
+| `/angb toggle`    | Toggles the master addon automation on or off                             |
+| `/angb wake`      | Re-engages Underlight Angler traits (Fish Form / Water Walking) on demand |
+| `/angb instances` | Toggles activation inside Dungeons and Raids                              |
+| `/angb delves`    | Toggles underwater Delve & breath meter detection                         |
+| `/angb status`    | Displays current rod location, environment, and buff state                |
+| `/angb help`      | Displays available in-game slash commands and descriptions                |
 
 ---
 
