@@ -129,7 +129,11 @@ if ($suiteChanged -or $ManualTarget -eq "all") {
     }
 }
 
-$jsonMatrix = @($selected) | ConvertTo-Json -Compress
+$jsonMatrix = if ($selected.Count -gt 0) {
+    ConvertTo-Json -InputObject @($selected) -Compress
+} else {
+    "[]"
+}
 
 if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT) -and -not $Local) {
     "matrix=$jsonMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
