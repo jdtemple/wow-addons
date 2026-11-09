@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.4.0"
+addon.version = "1.4.1"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -15,6 +15,7 @@ _G["BINDING_NAME_SUMMONPETBIGGINS_PIN"] = "Pin Currently Summoned Pet"
 -- Timing & Debounce Constants (Adjustable Grace Periods)
 local DISMOUNT_DEBOUNCE_DELAY = 2.0   -- Buffer (seconds) after dismounting before companion is summoned
 local TOUCHDOWN_DEBOUNCE_DELAY = 2.0  -- Buffer (seconds) after landing from flight while mounted
+local UNSTEALTH_DEBOUNCE_DELAY = 1.0  -- Buffer (seconds) after exiting stealth before companion is summoned
 local TICKER_POLL_INTERVAL = 0.25     -- Grounded mount watcher polling frequency (seconds)
 local DISMISS_RETRY_INTERVAL = 0.25   -- Debounced dismiss retry interval (seconds)
 local MAX_DISMISS_ATTEMPTS = 4        -- Maximum retry attempts for companion dismissal
@@ -122,6 +123,10 @@ local function ShouldDismissMounted()
     return IsMounted() and not (SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted)
 end
 
+local function IsPlayerCastingOrChanneling()
+    return (UnitCastingInfo and UnitCastingInfo("player") ~= nil) or (UnitChannelInfo and UnitChannelInfo("player") ~= nil)
+end
+
 -- Consolidated Pre-Condition Guard (Single Source of Truth)
 local function CanSummon()
     if not (SummonPetBigginsDB and SummonPetBigginsDB.enabled) then
@@ -133,6 +138,9 @@ local function CanSummon()
     if IsStealthedActive() or IsMountedBlocked() or ShouldDismissInCurrentInstance() then
         return false
     end
+    if IsPlayerCastingOrChanneling() then
+        return false
+    end
     return true
 end
 
@@ -140,6 +148,7 @@ end
 local mountWatcherTicker = nil
 local touchdownTimer = nil
 local dismountTimer = nil
+local unstealthTimer = nil
 local wasInFlight = false
 
 local function CancelTouchdownTimer()
@@ -156,9 +165,17 @@ local function CancelDismountTimer()
     end
 end
 
+local function CancelUnstealthTimer()
+    if unstealthTimer then
+        unstealthTimer:Cancel()
+        unstealthTimer = nil
+    end
+end
+
 local function CancelAllPendingSummons()
     CancelTouchdownTimer()
     CancelDismountTimer()
+    CancelUnstealthTimer()
 end
 
 local function StopMountWatcher()
@@ -225,6 +242,7 @@ addon.StartMountWatcher = StartMountWatcher
 addon.StopMountWatcher = StopMountWatcher
 addon.CancelTouchdownTimer = CancelTouchdownTimer
 addon.CancelDismountTimer = CancelDismountTimer
+addon.CancelUnstealthTimer = CancelUnstealthTimer
 addon.CancelAllPendingSummons = CancelAllPendingSummons
 
 -- Grounded Mount Movement Hook (backup trigger when starting movement on a mount)
@@ -576,6 +594,26 @@ local function OnMountDisplayChanged()
     end
 end
 
+local function OnPlayerUnstealthed()
+    CancelUnstealthTimer()
+    unstealthTimer = C_Timer.After(UNSTEALTH_DEBOUNCE_DELAY, function()
+        unstealthTimer = nil
+        if IsStealthedActive() or InCombatLockdown() or UnitIsDeadOrGhost("player") then
+            return
+        end
+
+        if IsPlayerCastingOrChanneling() then
+            -- Re-check once active cast or channel completes (e.g. fishing, crafting, hearthstone)
+            OnPlayerUnstealthed()
+            return
+        end
+
+        if CanSummon() then
+            addon:Summon()
+        end
+    end)
+end
+
 local function OnUpdateStealth()
     CancelAllPendingSummons()
     if IsStealthed() then
@@ -585,7 +623,7 @@ local function OnUpdateStealth()
         return
     end
 
-    addon:Summon()
+    OnPlayerUnstealthed()
 end
 
 local function OnPlayerLogin(frameRef)

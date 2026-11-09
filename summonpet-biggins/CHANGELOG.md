@@ -1,3 +1,8 @@
+# SummonPet Biggins v1.4.1
+
+### Fixed
+- **Unstealth Cast Interruption:** Added a snappy 1.0s debounced grace period (`UNSTEALTH_DEBOUNCE_DELAY = 1.0s`) and active cast/channel guards when breaking stealth. Companion pet auto-summoning will no longer interrupt active channels (such as Fishing) or spellcasts initiated from stealth.
+
 # SummonPet Biggins v1.4.0
 
 ### Breaking Changes
