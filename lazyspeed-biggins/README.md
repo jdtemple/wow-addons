@@ -1,4 +1,4 @@
-# LazySpeed Biggins (v3.7.0)
+# LazySpeed Biggins (v4.0.0)
 
 A high-performance speedometer, flight, and swim gauge for *World of Warcraft: Midnight* (Patch 12.1+).
 
@@ -17,6 +17,12 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 ## Key Features
 
 * **Nameplate-Style Integrated HUD:** A sleek 180px x 20px status bar with centered numeric and unit telemetry (`12pt OUTLINE` text overlaying the dynamic fill bar) for a clean, modern castbar / cooldown bar aesthetic.
+* **Skyriding Vigor Telemetry & Turbo Glow:** A dedicated secondary bar tracking 1-6 Surge Forward / Skyward Ascent charges with continuous fractional fill and cooldown timer. Features color-coded aura glows for accelerated recharge states:
+  * **Blue Glow:** *Thrill of the Skies* (high-speed flight recharge).
+  * **Red Glow:** *Ground Skimming* (low-altitude terrain recharge; danger of collision!).
+  * **Violet Glow:** Both buffs active (*Blue + Red = Purple* max turbo recharge).
+  * **No Glow:** Normal gliding with classic Blizzard metallic gold border.
+* **Dynamic Multi-Bar Stacking Engine:** Choose between Vertical (Speedometer above Vigor bar) and Horizontal stacking modes. Automatically collapses to a clean single bar when swimming, grounded, or in steady flight. Unified dragging moves both bars together.
 * **Modular Checkbox Triggers:** Pick and choose exactly when your speedometer wakes up:
   * **Show While Flying / Skyriding:** Automatically activates during Skyriding, Dragonriding, and Steady Flight.
   * **Show While Swimming:** Automatically activates when submerged in water, tracking swim speed and aquatic mounts (Seahorses, Turtles, Otters).
@@ -37,23 +43,29 @@ Originally based on `LazySpeed` by Darthterac, this fork has been completely re-
 
 LazySpeed Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> Biggins AddOns -> LazySpeed` or `/lazyspeedb`):
 
-### 1. Modular Visibility Checkboxes
+### 1. Modular Visibility & Telemetry Checkboxes
 * **Show While Flying / Skyriding** *(Default: ON)*
 * **Show While Swimming** *(Default: ON)*
 * **Show While on Ground** *(Default: OFF)*
+* **Show Skyriding Vigor Bar** *(Default: ON)*
+* **Glow on Accelerated Recharge Buffs** *(Default: ON)*
 * **Hide During Combat** *(Default: ON)*
 
-### 2. Speed Measurement Unit
+### 2. Stacking Mode
+* **Vertical Stack** *(Default: Speedometer on top, Vigor bar below)*
+* **Horizontal Stack** *(Side-by-side)*
+
+### 3. Speed Measurement Unit
 * **Miles per Hour (mph)** *(Default)*
 * **Yards per Second (y/s)**
 * **Kilometers per Hour (km/h)**
 * **Percentage (%)**
 
-### 3. Custom Sizing Sliders
+### 4. Custom Sizing Sliders
 * **Bar Width** *(100px - 300px, 1px step, Default: 180px)*
 * **Bar Height** *(14px - 36px, 1px step, Default: 22px)* - with automatic dynamic font scaling!
 
-### 4. Reset to Defaults
+### 5. Reset to Defaults
 * **Reset to Defaults Button:** Native button in the settings panel (or `/lazyspeedb defaults`) that restores all triggers, speed measurement units, and bar dimensions back to default.
 
 ---
@@ -65,7 +77,10 @@ Commands are available via `/lazyspeedb`. In-game command help is available at a
 | Command                             | Action                                                     |
 | :---------------------------------- | :--------------------------------------------------------- |
 | `/lazyspeedb`                       | Opens the settings panel in the game menu                  |
-| `/lazyspeedb toggle`                | Toggles the master speedometer on or off                   |
+| `/lazyspeedb toggle`                | Toggles the master speedometer and Vigor HUD on or off     |
+| `/lazyspeedb vigor`                 | Toggles the Skyriding Vigor bar on or off                  |
+| `/lazyspeedb glow` (or `/aura`)     | Toggles recharge buff glow on or off                       |
+| `/lazyspeedb stack [horiz/vert]`    | Switches between vertical and horizontal stacking modes    |
 | `/lazyspeedb lock`                  | Toggles locking frame position                             |
 | `/lazyspeedb reset`                 | Resets frame position to center                            |
 | `/lazyspeedb status`                | Displays current configuration in chat                     |

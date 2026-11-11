@@ -28,6 +28,12 @@ While traditional speedometers run continuous background timers that churn throu
 ## Key Features
 
 * **Sleek Nameplate HUD:** A compact 180px x 20px status bar featuring centered high-contrast typography (`12pt OUTLINE`) overlaid directly on the dynamic fill bar for a clean, modern aesthetic.
+* **Skyriding Vigor Telemetry & Turbo Glow:** A dedicated secondary bar tracking 1-6 Surge Forward / Skyward Ascent charges with continuous fractional fill and cooldown timer. Features color-coded aura glows for accelerated recharge states:
+  * **Blue Glow:** *Thrill of the Skies* (high-speed flight recharge).
+  * **Red Glow:** *Ground Skimming* (low-altitude terrain recharge; danger of collision!).
+  * **Violet Glow:** Both buffs active (*Blue + Red = Purple* max turbo recharge).
+  * **No Glow:** Normal gliding with classic Blizzard metallic gold border.
+* **Dynamic Multi-Bar Stacking Engine:** Choose between Vertical (Speedometer above Vigor bar) and Horizontal stacking modes. Automatically collapses to a clean single bar when swimming, grounded, or in steady flight. Unified dragging moves both bars together.
 * **Modular Visibility Triggers:** Choose exactly when your speedometer wakes up:
   * **Show While Flying / Skyriding:** Automatically appears during Skyriding, Dragonriding, and Steady Flight.
   * **Show While Swimming:** Automatically tracks swim speed and aquatic mount velocity (Seahorses, Turtles, Otters).
@@ -57,12 +63,17 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 2. **Custom Sizing Sliders:**
    * **Bar Width:** 100px - 300px (1px step)
    * **Bar Height:** 14px - 36px (1px step) with dynamic proportional font scaling
-3. **Behavioral Triggers:**
+3. **Behavioral Triggers & Telemetry:**
    * Toggle Skyriding / Flight visibility
    * Toggle Swimming visibility
    * Toggle Ground movement visibility
+   * Toggle Skyriding Vigor bar
+   * Toggle Accelerated Recharge Aura Glow
    * Toggle In-Combat hide killswitch
-4. **Reset to Defaults:**
+4. **Stacking Mode:**
+   * Vertical Stack (Speedometer on top, Vigor bar below)
+   * Horizontal Stack (Side-by-side)
+5. **Reset to Defaults:**
    * In-panel button or `/lazyspeedb defaults` to restore all options to defaults.
 
 ---
@@ -74,7 +85,10 @@ Commands are available via `/lazyspeedb`. In-game command help is available at a
 | Command                             | Action                                                     |
 | :---------------------------------- | :--------------------------------------------------------- |
 | `/lazyspeedb`                       | Opens the settings panel in the game menu                  |
-| `/lazyspeedb toggle`                | Toggles the master speedometer on or off                   |
+| `/lazyspeedb toggle`                | Toggles the master speedometer and Vigor HUD on or off     |
+| `/lazyspeedb vigor`                 | Toggles the Skyriding Vigor bar on or off                  |
+| `/lazyspeedb glow` (or `/aura`)     | Toggles recharge buff glow on or off                       |
+| `/lazyspeedb stack [horiz/vert]`    | Switches between vertical and horizontal stacking modes    |
 | `/lazyspeedb lock`                  | Toggles locking frame position                             |
 | `/lazyspeedb reset`                 | Resets frame position to center                            |
 | `/lazyspeedb status`                | Displays current configuration in chat                     |

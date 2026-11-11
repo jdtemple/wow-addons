@@ -1,8 +1,8 @@
 ## Interface: 120107, 120105
 ## Title: |cFFFFD100LazySpeed Biggins|r
-## Notes: High-performance flight, swim & movement speedometer with nameplate-style HUD and Blizzard Gold UI.
+## Notes: High-performance flight, swim & movement speedometer with Skyriding Vigor HUD, nameplate-style layout, and Blizzard Gold UI.
 ## Author: Biggins (Original logic by Darthterac)
-## Version: 3.9.0
+## Version: 4.0.0
 ## SavedVariables: LazySpeedBigginsDB
 ## IconTexture: Interface\AddOns\LazySpeedBiggins\logo.jpg
 
