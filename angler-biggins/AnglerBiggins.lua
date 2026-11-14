@@ -35,7 +35,9 @@ local SPELL_FISH_FORM              = 201944 -- Underlight Blessing (Fish Form & 
 local SPELL_FISHING_FOR_ATTENTION  = 394009 -- Cosmetic Fishing Visual Aura (Outdoor only)
 
 -- Upvalue caching
+local C_ChallengeMode        = C_ChallengeMode
 local CreateFrame            = CreateFrame
+local GetInstanceInfo        = GetInstanceInfo
 local GetTime                = GetTime
 local InCombatLockdown       = InCombatLockdown
 local IsInInstance           = IsInInstance
@@ -159,6 +161,12 @@ local function IsCurrentZoneAllowed()
 
     local inInstance, instanceType = IsInInstance()
     if inInstance then
+        -- Suppress in Mythic+ / Challenge Mode runs to avoid equipment lockdown chatter
+        if (C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive and C_ChallengeMode.IsChallengeModeActive())
+            or (select(3, GetInstanceInfo()) == 8) then
+            return false
+        end
+
         if instanceType == "party" or instanceType == "raid" then
             return db.enableInstances == true
         elseif instanceType == "pvp" or instanceType == "arena" then

@@ -1,3 +1,8 @@
+# Angler Biggins v1.1.2
+
+### Fixed
+- **Mythic+ Challenge Mode Suppression:** Added challenge mode and difficulty guards (`C_ChallengeMode.IsChallengeModeActive()` and difficulty ID 8) to suppress automatic fishing tool unseating and reseating during timed Mythic+ runs. This prevents equipment lockdown chatter and gear swap sounds caused by Blizzard blocking item modifications during active keys, while preserving automatic fish form and water walking in raids and open-world water.
+
 # Angler Biggins v1.1.1
 
 ### Fixed
