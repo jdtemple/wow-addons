@@ -1,3 +1,8 @@
+# Angler Biggins v2.0.1
+
+### Fixed
+- **Settings Panel Subtitle Layout:** Added explicit width bounding and word wrapping to the options panel subtitle to prevent long descriptive text from overflowing into the suite logo icon in the top right.
+
 # Angler Biggins v2.0.0
 
 ### Major Release Overview

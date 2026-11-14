@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Angler Biggins v2.0.0 - Dual-Rod Fishing Suite & Underlight Angler Automation
+    Angler Biggins v2.0.1 - Dual-Rod Fishing Suite & Underlight Angler Automation
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
@@ -22,7 +22,7 @@
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "2.0.0"
+addon.version = "2.0.1"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
@@ -767,6 +767,9 @@ function addon:CreateSettingsUI()
     -- Subtitle
     local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    subtitle:SetWidth(480)
+    subtitle:SetJustifyH("LEFT")
+    subtitle:SetWordWrap(true)
     subtitle:SetText("Dual-rod fishing suite with one-click action bar swapping, Underlight Angler water walking, and lifejacket water rescue.")
 
     -- Suite Logo Texture (Top Right)
