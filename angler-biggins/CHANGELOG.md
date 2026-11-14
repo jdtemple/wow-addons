@@ -1,3 +1,22 @@
+# Angler Biggins v2.0.0
+
+### Major Release Overview
+- **Dual-Rod Fishing Suite:** Upgraded Angler Biggins from a standalone Underlight Angler utility into a complete dual-rod fishing suite. Pin any high-stat primary fishing rod (such as an engineered or expansion-specific rod) and seamlessly toggle between it and the Underlight Angler.
+
+### Added
+- **Dual-Pole Pinning & Action Bar Swapping:** Added support for pinning a secondary high-stat fishing pole and toggling between it and the Underlight Angler using a dynamic action bar button.
+- **Dedicated Pin Command & Settings:** Equip your desired secondary rod and use `/anglerb pin` or click [ Pin Currently Equipped Pole ] in Options -> AddOns -> Biggins AddOns -> Angler.
+- **Action Bar Toggle Macro:** Added [ Put Swap Button on Cursor ] in options (and `/anglerb button`) to place a one-click toggle macro directly onto your action bars. The macro dynamically flips its icon and tooltip to show whichever pole will be equipped on the next click.
+- **Manual Swap Command:** Added `/anglerb swap` to toggle between Underlight Angler and your pinned pole via slash command or keybinding.
+- **Lifejacket Mode Option:** Added an explicit toggle in settings (and `/anglerb lifejacket`) to control whether the addon automatically equips the Underlight Angler when entering water while holding a secondary rod (enabled by default).
+- **Native Slot 28 Container Swapping:** Replaced fragile Blizzard API calls with native 1-to-1 container-to-inventory equipment swapping (`EquipItemToFishingSlot`) to ensure fishing tools are never abandoned in bags during unseat/reseat handshakes.
+- **Dungeon & Raid Setting Clarification:** Updated the in-game settings checkbox to "Enable in Dungeons & Raids (Mythic+ Excluded)" with an expanded tooltip clarifying Blizzard's equipment lockdown during timed keystones.
+
+### Fixed
+- **Cosmetic Fishing Aura False-Positive:** Resolved a bug where casting with any third-party or vendor fishing pole applied the "Fishing for Attention" cosmetic buff (Spell ID 394009), causing `IsUnderlightAwake()` to falsely flag the Underlight Angler as active while sitting unequipped in bags. Underlight Angler slot verification is now strictly enforced before aura evaluation.
+- **Action Bar Macro Execution:** Updated the action bar macro to execute `/anglerb swap` directly rather than through insecure `/click` frames, ensuring reliable cross-client execution in Dragonflight and The War Within.
+- **Header Font Glyph Display:** Replaced non-ASCII arrow characters in options headers with standard ASCII to prevent missing-glyph boxes (`[]`) in the game client font.
+
 # Angler Biggins v1.1.2
 
 ### Fixed

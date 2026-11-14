@@ -1,8 +1,8 @@
 ## Interface: 120107, 120105
 ## Title: |cFFFFD100Angler Biggins|r
-## Notes: Automates Underlight Angler water walking, fish form, and underwater breathing with zero bag juggling and seamless instance support.
+## Notes: Complete dual-rod fishing suite with dynamic action bar swapping, Underlight Angler water walking & fish form automation, and lifejacket water rescue.
 ## Author: Biggins
-## Version: 1.1.2
+## Version: 2.0.0
 ## SavedVariables: AnglerBigginsDB
 ## IconTexture: Interface\AddOns\AnglerBiggins\logo.jpg
 

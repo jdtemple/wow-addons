@@ -1,18 +1,24 @@
 # Angler Biggins
 
-**Angler Biggins** is an ultra-lightweight, dedicated World of Warcraft addon that automates the Underlight Angler artifact fishing pole's water walking, fish form, swim speed, and underwater breathing without bag clutter, item juggling, or gear-swapping loops.
+**Angler Biggins 2.0** is an ultra-lightweight dual-rod fishing manager and automation suite for World of Warcraft. It allows you to pin your favorite high-stat primary fishing rod (such as an engineered or expansion-specific rod) alongside the Legion artifact **Underlight Angler**, seamlessly toggling between them via a dynamic action bar button while automating water walking, instant fish form, and emergency lifejacket water rescue.
 
-> **Prerequisite:** Requires the Legion artifact **Underlight Angler** to be socketed directly in your character's **Fishing Profession Equipment slot (Slot 28)**. Angler Biggins operates purely on your slotted fishing equipment without touching your bags.
+> **Requirements:** The Legion artifact **Underlight Angler** (equipped or in your bags). *(Optional: A secondary fishing rod if using dual-pole swapping).*
+
+---
 
 ### Features
-- **Zero-Taint Event-Driven Architecture:** Operates purely on native WoW events (`MOUNT_JOURNAL_USABILITY_CHANGED`, `MIRROR_TIMER_START`, `PLAYER_REGEN_ENABLED`) with zero background frame polling or memory churn.
+
+- **Dual-Pole Pinning & Action Bar Swapping:** Pin your preferred high-stat fishing rod (such as an engineered Khaz Algar or Midnight rod) and toggle between it and the Underlight Angler using a dynamic action bar button.
+- **One-Click Action Bar Toggle Macro:** Place a macro directly onto your action bars via `[ Put Swap Button on Cursor ]` or `/anglerb button`. The macro dynamically flips its icon, name, and tooltip to show whichever pole will be equipped on next click.
+- **Emergency Water Lifejacket:** Automatically equips the Underlight Angler from your backpack whenever you enter water with your primary rod equipped, granting instant fish form, swim speed, and permanent water walking (customizable in settings).
+- **Native Slot 28 Container Swapping:** Leverages direct 1-to-1 container-to-inventory equipment swapping to ensure fishing tools are never abandoned in bags during unseat/reseat handshakes.
+- **Zero-Taint Event-Driven Architecture:** Purely event-driven (`MOUNT_JOURNAL_USABILITY_CHANGED`, `MIRROR_TIMER_START`, `PLAYER_REGEN_ENABLED`) with zero background frame polling or memory churn.
 - **Dedicated Slot 28 Integration:** Operates directly on your character's dedicated Fishing Profession Tool slot (slot 28), eliminating bag shuffling.
 - **Dragonflight & The War Within Trait Wakeup:** Resolves Blizzard's dormant profession equipment trait bug cleanly when entering water, activating Underlight Angler traits without breaking your UI.
-- **Instance & Dungeon Resilience:** Fully functional across Dungeons, Raids, and Delves without getting caught in gear-swapping loops.
+- **Instance & Dungeon Resilience:** Fully functional across standard Dungeons, Raids, and Delves (Mythic+ keystones are safely suppressed due to Blizzard's active equipment lockdown). Eliminates the infinite gear-swapping loop bug found in legacy addons by completely avoiding fragile outdoor cosmetic aura dependencies (`394009`).
 - **Underwater Delve & Submerged Breath Support:** Detects active breath timers in underwater Delves (such as *The Sinkhole* and *Tak-Rethan Abyss*), maintaining fish form and infinite water breathing even when walking on the sea floor.
 - **Persistent Water Walking & Stand-on-Water Fishing:** Never strips the Underlight Angler upon transitioning from deep water to surface walking or dry land, allowing you to walk across lakes and fish directly on top of deep water pools.
-- **Modern Blizzard Canvas Settings UI:** Integrated into **Game Menu -> Options -> AddOns -> Biggins AddOns -> Angler** with master enable toggle, live telemetry diagnostics, and top-right `[ Defaults ]` button.
-- **Slash Commands:** Quick toggles, configuration, and diagnostics via `/anglerb`.
+- **Modern Blizzard Canvas Settings UI:** Integrated into **Game Menu -> Options -> AddOns -> Biggins AddOns -> Angler** with master enable toggle, dual-pole pinning controls, live telemetry diagnostics, and top-right `[ Defaults ]` button.
 
 ---
 
@@ -23,3 +29,23 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 ```
 /anglerb
 ```
+
+---
+
+## Slash Commands
+
+Commands are available via `/anglerb`. In-game command help is available at any time by typing `/anglerb ?` or `/anglerb help`:
+
+| Command                       | Action                                                                    |
+| :---------------------------- | :------------------------------------------------------------------------ |
+| `/anglerb`                    | Opens the settings panel in the Blizzard Game Menu                        |
+| `/anglerb pin`                | Pins currently equipped fishing pole as secondary rod                     |
+| `/anglerb button`             | Puts one-click rod swap button onto cursor to drop onto any action bar    |
+| `/anglerb swap`               | Manually swaps between Underlight Angler and pinned pole                  |
+| `/anglerb lifejacket`         | Toggles auto-equipping Underlight Angler when entering water              |
+| `/anglerb toggle`             | Toggles the master addon automation on or off                             |
+| `/anglerb wake`               | Re-engages Underlight Angler traits (Fish Form / Water Walking) on demand |
+| `/anglerb instances`          | Toggles activation inside Dungeons and Raids                              |
+| `/anglerb delves`             | Toggles underwater Delve & breath meter detection                         |
+| `/anglerb status`             | Displays current rod location, pinned pole, environment, and buff state   |
+| `/anglerb help`, `/anglerb ?` | Displays available in-game slash commands and descriptions                |
