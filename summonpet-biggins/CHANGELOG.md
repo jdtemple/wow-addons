@@ -1,3 +1,18 @@
+# SummonPet Biggins v1.4.4
+
+### Changed
+- **Tuned Debounce Timers:** Reduced `DISMOUNT_DEBOUNCE_DELAY` and `TOUCHDOWN_DEBOUNCE_DELAY` from 2.0s down to a responsive, uniform 1.0s. This cuts pet summon delay in half upon dismounting or touching down on foot, while preserving a safe 1.0s buffer to protect concurrent casts, gathering channels (mining/herbalism), and defensive buffs without risking race conditions.
+
+# SummonPet Biggins v1.4.3
+
+### Fixed
+- **Grounded Mount Jump Flickering:** Removed `IsFalling()` from the active flight detection check (`IsInFlightActive()`). Jumping on flat ground with a Skyriding or ground mount previously triggered the flight dismissal cycle because WoW's physics engine temporarily flags jump arcs as falling, causing companion pets to despawn mid-jump and reappear seconds later. The addon now exclusively relies on genuine flight state (`isGliding == true` or `IsFlying() == true`).
+
+# SummonPet Biggins v1.4.2
+
+### Fixed
+- **In-Flight Pet Dismissal & Stealth Protection:** Companions are now actively dismissed upon taking flight in Skyriding or steady flight (`IsInFlightActive()`). Previously, pets remained registered as active in the journal while airborne, causing `autoDismissInStealth` to fire a pet dismissal action (`C_PetJournal.SummonPetByGUID`) upon landing and stealthing simultaneously, which Blizzard's spellcast engine treated as an active player action that broke Stealth. Dismissing upon takeoff ensures 0 active pets exist when touching down, allowing seamless landing-stealth dismounts with zero stealth interruption.
+
 # SummonPet Biggins v1.4.1
 
 ### Fixed

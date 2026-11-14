@@ -13,8 +13,8 @@ _G["BINDING_NAME_SUMMONPETBIGGINS_TOGGLE"] = "Toggle Companion Summoning"
 _G["BINDING_NAME_SUMMONPETBIGGINS_PIN"] = "Pin Currently Summoned Pet"
 
 -- Timing & Debounce Constants (Adjustable Grace Periods)
-local DISMOUNT_DEBOUNCE_DELAY = 2.0   -- Buffer (seconds) after dismounting before companion is summoned
-local TOUCHDOWN_DEBOUNCE_DELAY = 2.0  -- Buffer (seconds) after landing from flight while mounted
+local DISMOUNT_DEBOUNCE_DELAY = 1.0   -- Buffer (seconds) after dismounting before companion is summoned
+local TOUCHDOWN_DEBOUNCE_DELAY = 1.0  -- Buffer (seconds) after landing from flight while mounted
 local UNSTEALTH_DEBOUNCE_DELAY = 1.0  -- Buffer (seconds) after exiting stealth before companion is summoned
 local TICKER_POLL_INTERVAL = 0.25     -- Grounded mount watcher polling frequency (seconds)
 local DISMISS_RETRY_INTERVAL = 0.25   -- Debounced dismiss retry interval (seconds)
@@ -105,7 +105,7 @@ end
 
 local function IsInFlightActive()
     local isGliding = (C_PlayerInfo and C_PlayerInfo.GetGlidingInfo and C_PlayerInfo.GetGlidingInfo())
-    return (IsFlying and IsFlying()) or (isGliding == true) or (IsFalling and IsFalling())
+    return (IsFlying and IsFlying()) or (isGliding == true)
 end
 
 local function IsMountedBlocked()
@@ -120,7 +120,13 @@ local function IsMountedBlocked()
 end
 
 local function ShouldDismissMounted()
-    return IsMounted() and not (SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted)
+    if not IsMounted() then
+        return false
+    end
+    if not (SummonPetBigginsDB and SummonPetBigginsDB.summonWhileMounted) then
+        return true
+    end
+    return IsInFlightActive()
 end
 
 local function IsPlayerCastingOrChanneling()
@@ -193,6 +199,10 @@ local function StartMountWatcher()
     end
 
     wasInFlight = IsInFlightActive()
+    if wasInFlight and C_PetJournal.GetSummonedPetGUID() then
+        addon:Dismiss(1)
+    end
+
     mountWatcherTicker = C_Timer.NewTicker(TICKER_POLL_INTERVAL, function()
         if not IsMounted() or not SummonPetBigginsDB or not SummonPetBigginsDB.summonWhileMounted then
             StopMountWatcher()
@@ -203,6 +213,9 @@ local function StartMountWatcher()
         if inFlightNow then
             wasInFlight = true
             CancelTouchdownTimer()
+            if C_PetJournal.GetSummonedPetGUID() then
+                addon:Dismiss(1)
+            end
             return
         end
 
