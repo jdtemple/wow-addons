@@ -1,3 +1,16 @@
+# Angler Biggins v2.1.0
+
+### Architectural Streamline & Polish
+- **Deterministic Manual Rod Swapping:** Transitioned rod swapping to a 100% manual, deterministic model via the dynamic action bar button and `/anglerb swap`. The addon will now never unexpectedly swap fishing tools out of your bags while swimming, walking on beaches, or fighting mobs. Equipment swap hitches now occur strictly and exclusively when you intentionally click your swap button.
+- **Removed Lifejacket Mode:** Completely eliminated background "Lifejacket" bag-pulling automation and all associated override flags and timers (`manualPinnedActive`, `landGraceTimer`, etc.). 
+- **Underlight Angler Trait Management:** When the Underlight Angler is equipped in slot 28, Angler Biggins continues to manage its traits automatically: waking up dormant traits in water and seamlessly restoring fish form and `Surface Tension` whenever underwater mining or gathering temporarily overrides them.
+- **Hands-Off Secondary Pole Operation:** When your pinned primary rod (or any other pole) is equipped, the addon operates in a completely passive, hands-off state, never interfering with your fishing or movement.
+
+# Angler Biggins v2.0.6
+
+### Fixed
+- **Shoreline Surf Manual Override Preservation:** Resolved an issue where walking out of water onto a sloped beach while holding a manually equipped pinned pole triggered an unintended swap to the Underlight Angler. Previously, the momentary instant feet touched sand cleared the manual override flag (`manualPinnedActive = false`), causing subsequent water state flickers in the shoreline surf to be treated as a brand new water entry. Added a 5-second sustained dry land grace period so emerging from the water preserves your equipped pinned rod without gear swap stutter.
+
 # Angler Biggins v2.0.5
 
 ### Fixed

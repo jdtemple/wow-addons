@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Angler Biggins v2.0.2 - Dual-Rod Fishing Suite & Underlight Angler Automation
+    Angler Biggins v2.1.0 - Dual-Rod Fishing Suite & Underlight Angler Automation
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
@@ -12,17 +12,17 @@
        (such as engineered or expansion-specific rods) and toggling with the Underlight Angler.
     3. Dynamic Action Bar Button: Generates and auto-maintains an action bar macro that
        dynamically flips its icon, name, and tooltip to show the rod to equip next.
-    4. Emergency Water Lifejacket: Automatically equips the Underlight Angler when entering
-       water with your primary rod equipped, granting instant fish form and water walking.
-    5. Native Profession-Slot Swapping: Resolves Blizzard slot-28 limitations through atomic
-       container-to-inventory swaps without item shuffling or abandoned gear.
+    4. Deterministic Manual Rod Swapping: Rod changes only occur when explicitly clicked
+       via the action bar button or /anglerb swap, avoiding unexpected hitches or freezes.
+    5. Automatic Trait Recovery: When Underlight Angler is equipped in water, automatically
+       recovers fish form and water walking whenever mining or gathering temporarily overrides it.
     6. Modern Blizzard Canvas Settings: Fully integrated into Options -> AddOns ->
        Biggins AddOns -> Angler with master enable toggle, live diagnostics, and [ Defaults ].
 ============================================================================== ]]--
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "2.0.2"
+addon.version = "2.1.0"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
@@ -53,7 +53,6 @@ local CONTAINER_BAG_OFFSET   = CONTAINER_BAG_OFFSET or 19
 -- Configuration Defaults
 local defaults = {
     enabled          = true,  -- Master addon toggle
-    enableLifejacket = true,  -- Auto-equip Underlight Angler when entering water (Lifejacket Mode)
     enableInstances  = true,  -- Activate in Dungeons & Raids
     enableDelves     = true,  -- Underwater Delves & Breath Meter detection
     enablePvP        = false, -- Battlegrounds & Arenas (Default: OFF)
@@ -73,7 +72,6 @@ local isActivating = false
 local lastActivationTime = 0
 local ACTIVATION_COOLDOWN = 3.0 -- Cooldown between activations to prevent any rapid loop
 local isAwake = false           -- Tracks whether the Underlight Angler traits are currently awake
-local manualPinnedActive = false -- Tracks if the player manually equipped their pinned pole
 
 local queue = {
     unequip = false,
@@ -405,7 +403,7 @@ local function ActivateUnderlightAngler()
     if not db.enabled then return end
     if IsPlayerBusy() then return end
     if not IsCurrentZoneAllowed() then return end
-    if not HasUnderlightAngler() then return end
+    if not IsUnderlightSlotted() then return end
 
     if IsUnderlightAwake() then
         return
@@ -419,21 +417,10 @@ local function ActivateUnderlightAngler()
     lastActivationTime = now
     isActivating = true
 
-    if IsUnderlightSlotted() then
-        -- Rod is in slot 28, but dormant/suppressed. Unseat to bag and re-equip to wake up:
-        queue.unequip = true
-        queue.equip = UNDERLIGHT_ANGLER_ID
-    else
-        -- Rod is in bag: auto-equip into slot 28 (Lifejacket Mode)
-        if not db.enableLifejacket or manualPinnedActive then
-            isActivating = false
-            return
-        end
-        local currentEquipped = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
-        queue.unequip = (currentEquipped ~= nil)
-        queue.equip = UNDERLIGHT_ANGLER_ID
-    end
-
+    -- Rod is already in slot 28, but dormant or suppressed (e.g. by gathering).
+    -- Unseat to bag and re-equip to wake up:
+    queue.unequip = true
+    queue.equip = UNDERLIGHT_ANGLER_ID
     HandleQueue()
 end
 
@@ -442,8 +429,12 @@ local function EvaluateWaterState()
     if IsPlayerBusy() then return end
 
     if not IsPlayerInWater() then
-        manualPinnedActive = false
         isAwake = false
+        return
+    end
+
+    -- If Underlight Angler is not equipped in slot 28, do nothing (manual swapping only)
+    if not IsUnderlightSlotted() then
         return
     end
 
@@ -633,7 +624,6 @@ function addon:TogglePoles()
 
         isAwake = false
         isActivating = true
-        manualPinnedActive = true
         queue.unequip = true
         queue.equip = pinnedID
         HandleQueue()
@@ -644,7 +634,6 @@ function addon:TogglePoles()
             return
         end
 
-        manualPinnedActive = false
         isActivating = true
         queue.unequip = true
         queue.equip = UNDERLIGHT_ANGLER_ID
@@ -692,8 +681,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         queue.equip = nil
         queueFrame:SetScript("OnUpdate", nil)
     elseif event == "PLAYER_REGEN_ENABLED" then
-        -- Dropped combat: reset manual pinned override so Lifejacket Mode can protect the player
-        manualPinnedActive = false
+        -- Dropped combat: sync macro and evaluate water state
         isAwake = false
         addon:UpdateMacro()
         C_Timer.After(0.4, function()
@@ -736,15 +724,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
                 EvaluateWaterState()
             end)
         end
-    elseif event == "MIRROR_TIMER_START" then
-        -- If breath meter starts, clear manual override so Lifejacket Mode saves the player immediately
-        if arg1 == "BREATH" then
-            manualPinnedActive = false
-        end
-        C_Timer.After(0.2, function()
-            EvaluateWaterState()
-        end)
-    elseif event == "MOUNT_JOURNAL_USABILITY_CHANGED" or event == "MIRROR_TIMER_STOP" then
+    elseif event == "MIRROR_TIMER_START" or event == "MIRROR_TIMER_STOP" or event == "MOUNT_JOURNAL_USABILITY_CHANGED" then
         -- Debounce rapid swimming state transitions
         C_Timer.After(0.2, function()
             EvaluateWaterState()
@@ -782,7 +762,6 @@ function addon:UpdateOptionsUI()
         end
     end
 
-    if uiWidgets.cbLifejacket then uiWidgets.cbLifejacket:SetChecked(db.enableLifejacket) end
     if uiWidgets.cbInstances  then uiWidgets.cbInstances:SetChecked(db.enableInstances) end
     if uiWidgets.cbDelves     then uiWidgets.cbDelves:SetChecked(db.enableDelves) end
     if uiWidgets.cbPvP        then uiWidgets.cbPvP:SetChecked(db.enablePvP) end
@@ -849,7 +828,7 @@ function addon:CreateSettingsUI()
     subtitle:SetWidth(480)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetWordWrap(true)
-    subtitle:SetText("Dual-rod fishing suite with one-click action bar swapping, Underlight Angler water walking, and lifejacket water rescue.")
+    subtitle:SetText("Dual-rod fishing suite with one-click action bar swapping, Underlight Angler water walking, and fish form automation.")
 
     -- Suite Logo Texture (Top Right)
     local logo = panel:CreateTexture(nil, "ARTWORK")
@@ -892,32 +871,9 @@ function addon:CreateSettingsUI()
         PrintMsg("Configuration reset to defaults.")
     end)
 
-    -- Child Checkboxes (Indented 20px under master)
-    local cbLifejacket = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    cbLifejacket:SetPoint("TOPLEFT", cbMaster, "BOTTOMLEFT", 20, -6)
-    cbLifejacket.Text:SetText("Auto-Equip Underlight in Water (Lifejacket Mode)")
-    cbLifejacket.Text:SetFontObject("GameFontHighlight")
-    cbLifejacket.tooltipText = "Automatically equips the Underlight Angler from your bags when entering water with your pinned pole equipped, granting instant fish form, swim speed, and water walking."
-    cbLifejacket:SetScript("OnClick", function(btn)
-        AnglerBigginsDB.enableLifejacket = btn:GetChecked()
-        if AnglerBigginsDB.enableLifejacket then
-            EvaluateWaterState()
-        end
-    end)
-    cbLifejacket:SetScript("OnEnter", function(self)
-        if self.tooltipText then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
-            GameTooltip:Show()
-        end
-    end)
-    cbLifejacket:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    table.insert(uiWidgets.subControls, cbLifejacket)
-    uiWidgets.cbLifejacket = cbLifejacket
-
-    -- Checkbox: Instances
+    -- Checkbox: Instances (Indented 20px under master)
     local cbInstances = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    cbInstances:SetPoint("TOPLEFT", cbLifejacket, "BOTTOMLEFT", 0, -6)
+    cbInstances:SetPoint("TOPLEFT", cbMaster, "BOTTOMLEFT", 20, -6)
     cbInstances.Text:SetText("Enable in Dungeons & Raids (Mythic+ Excluded)")
     cbInstances.Text:SetFontObject("GameFontHighlight")
     cbInstances.tooltipText = "Activates Underlight Angler water buffs during standard dungeon and raid instances.\n\n|cFFFF5555Note:|r Active Mythic+ keystones enforce Blizzard equipment lockdown, so automation is permanently suppressed during timed Challenge Mode runs to prevent gear errors."
@@ -1102,11 +1058,6 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         addon:ClearPinnedPole()
     elseif cmd == "swap" then
         addon:TogglePoles()
-    elseif cmd == "lifejacket" then
-        db.enableLifejacket = not db.enableLifejacket
-        PrintMsg("Lifejacket Mode: " .. (db.enableLifejacket and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
-        addon:UpdateOptionsUI()
-        if db.enableLifejacket then EvaluateWaterState() end
     elseif cmd == "toggle" then
         db.enabled = not db.enabled
         PrintMsg("Master toggle: " .. (db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
@@ -1144,13 +1095,12 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         end
 
         local inWater = IsPlayerInWater() and "Submerged / Swimming" or "Dry Land"
-        local awakeStr = IsUnderlightAwake() and "Awake" or "Dormant"
+        local awakeStr = IsUnderlightSlotted() and (IsUnderlightAwake() and "Awake" or "Dormant") or "N/A (Secondary Pole Active)"
         local tensionStr = HasSurfaceTensionBuff() and "Active" or "Inactive"
         local auraStr = HasFishingAura() and "Active" or "Inactive (or suppressed)"
         local pinnedStr = db.pinnedPoleName or "None"
         PrintMsg("Status:")
         print("  - Addon State: " .. (db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
-        print("  - Lifejacket Mode: " .. (db.enableLifejacket and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
         print("  - Equipped Pole: |cFFFFD100" .. equippedStr .. "|r")
         print("  - Pinned Main Pole: |cFFFFD100" .. pinnedStr .. "|r")
         print("  - Trait State: |cFFFFD100" .. awakeStr .. "|r")
@@ -1165,7 +1115,6 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         print("  |cFFFFD100/anglerb pin|r - Pin currently equipped fishing pole as secondary rod")
         print("  |cFFFFD100/anglerb button|r - Put rod swap button onto cursor to place on action bar")
         print("  |cFFFFD100/anglerb swap|r - Manually swap between Underlight Angler and pinned pole")
-        print("  |cFFFFD100/anglerb lifejacket|r - Toggle auto-equipping Underlight Angler when entering water")
         print("  |cFFFFD100/anglerb toggle|r - Toggle master automation on/off")
         print("  |cFFFFD100/anglerb wake|r - Re-engage Underlight Angler traits on demand")
         print("  |cFFFFD100/anglerb instances|r - Toggle activation in Dungeons & Raids")
