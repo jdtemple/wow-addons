@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.4.1"
+addon.version = "1.5.0"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -16,6 +16,7 @@ _G["BINDING_NAME_SUMMONPETBIGGINS_PIN"] = "Pin Currently Summoned Pet"
 local DISMOUNT_DEBOUNCE_DELAY = 1.0   -- Buffer (seconds) after dismounting before companion is summoned
 local TOUCHDOWN_DEBOUNCE_DELAY = 1.0  -- Buffer (seconds) after landing from flight while mounted
 local UNSTEALTH_DEBOUNCE_DELAY = 1.0  -- Buffer (seconds) after exiting stealth before companion is summoned
+local CAST_IDLE_DEBOUNCE_DELAY = 1.5  -- Buffer (seconds) after spellcast/channel finishes before companion is summoned
 local TICKER_POLL_INTERVAL = 0.25     -- Grounded mount watcher polling frequency (seconds)
 local DISMISS_RETRY_INTERVAL = 0.25   -- Debounced dismiss retry interval (seconds)
 local MAX_DISMISS_ATTEMPTS = 4        -- Maximum retry attempts for companion dismissal
@@ -155,6 +156,7 @@ local mountWatcherTicker = nil
 local touchdownTimer = nil
 local dismountTimer = nil
 local unstealthTimer = nil
+local castIdleTimer = nil
 local wasInFlight = false
 
 local function CancelTouchdownTimer()
@@ -178,10 +180,18 @@ local function CancelUnstealthTimer()
     end
 end
 
+local function CancelCastIdleTimer()
+    if castIdleTimer then
+        castIdleTimer:Cancel()
+        castIdleTimer = nil
+    end
+end
+
 local function CancelAllPendingSummons()
     CancelTouchdownTimer()
     CancelDismountTimer()
     CancelUnstealthTimer()
+    CancelCastIdleTimer()
 end
 
 local function StopMountWatcher()
@@ -256,6 +266,7 @@ addon.StopMountWatcher = StopMountWatcher
 addon.CancelTouchdownTimer = CancelTouchdownTimer
 addon.CancelDismountTimer = CancelDismountTimer
 addon.CancelUnstealthTimer = CancelUnstealthTimer
+addon.CancelCastIdleTimer = CancelCastIdleTimer
 addon.CancelAllPendingSummons = CancelAllPendingSummons
 
 -- Grounded Mount Movement Hook (backup trigger when starting movement on a mount)
@@ -616,8 +627,7 @@ local function OnPlayerUnstealthed()
         end
 
         if IsPlayerCastingOrChanneling() then
-            -- Re-check once active cast or channel completes (e.g. fishing, crafting, hearthstone)
-            OnPlayerUnstealthed()
+            -- While actively casting or channeling, defer summoning to the post-cast/channel idle handler
             return
         end
 
@@ -639,6 +649,40 @@ local function OnUpdateStealth()
     OnPlayerUnstealthed()
 end
 
+local function OnSpellcastStarted(unit)
+    if unit ~= "player" then return end
+    CancelCastIdleTimer()
+    CancelUnstealthTimer()
+    CancelDismountTimer()
+end
+
+local function OnSpellcastStopped(unit)
+    if unit ~= "player" then return end
+    CancelCastIdleTimer()
+
+    if IsStealthedActive() or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMountedBlocked() or ShouldDismissInCurrentInstance() then
+        return
+    end
+
+    if IsPlayerCastingOrChanneling() then
+        return
+    end
+
+    if C_PetJournal.GetSummonedPetGUID() then
+        return
+    end
+
+    castIdleTimer = C_Timer.After(CAST_IDLE_DEBOUNCE_DELAY, function()
+        castIdleTimer = nil
+        if not CanSummon() then
+            return
+        end
+        if not C_PetJournal.GetSummonedPetGUID() then
+            addon:Summon()
+        end
+    end)
+end
+
 local function OnPlayerLogin(frameRef)
     -- Register game-state events
     frameRef:RegisterEvent("PLAYER_REGEN_ENABLED")         -- Left combat
@@ -649,6 +693,14 @@ local function OnPlayerLogin(frameRef)
     frameRef:RegisterEvent("SCENARIO_UPDATE")              -- Scenario/Delve state change
     frameRef:RegisterEvent("CHALLENGE_MODE_START")         -- Mythic+ key started
     frameRef:RegisterEvent("CHALLENGE_MODE_COMPLETED")     -- Mythic+ key finished
+
+    -- Register spellcast events for cast/channel idle debounce (player-filtered)
+    frameRef:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
+    frameRef:RegisterUnitEvent("UNIT_SPELLCAST_STOP", "player")
+    frameRef:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", "player")
+    frameRef:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", "player")
+    frameRef:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
+    frameRef:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 
     -- Hook forward movement and autorun for grounded mount summoning
     if hooksecurefunc then
@@ -682,6 +734,30 @@ local eventHandlers = {
     PLAYER_MOUNT_DISPLAY_CHANGED = OnMountDisplayChanged,
 
     UPDATE_STEALTH = OnUpdateStealth,
+
+    UNIT_SPELLCAST_START = function(unit)
+        OnSpellcastStarted(unit)
+    end,
+
+    UNIT_SPELLCAST_CHANNEL_START = function(unit)
+        OnSpellcastStarted(unit)
+    end,
+
+    UNIT_SPELLCAST_STOP = function(unit)
+        OnSpellcastStopped(unit)
+    end,
+
+    UNIT_SPELLCAST_CHANNEL_STOP = function(unit)
+        OnSpellcastStopped(unit)
+    end,
+
+    UNIT_SPELLCAST_FAILED = function(unit)
+        OnSpellcastStopped(unit)
+    end,
+
+    UNIT_SPELLCAST_INTERRUPTED = function(unit)
+        OnSpellcastStopped(unit)
+    end,
 
     CHALLENGE_MODE_START = function()
         if SummonPetBigginsDB and SummonPetBigginsDB.autoDismissInstances and SummonPetBigginsDB.dismissMPlus then
@@ -723,19 +799,22 @@ local eventHandlers = {
 }
 
 -- Event Orchestration (Event-Driven: 0 CPU while moving or idle)
-frame:SetScript("OnEvent", function(self, event, arg1)
-    if event == "ADDON_LOADED" and arg1 == addonName then
-        if not SummonPetBigginsDB then
-            SummonPetBigginsDB = CopyTable(defaults)
-        else
-            -- Ensure any newly added default keys exist
-            for k, v in pairs(defaults) do
-                if SummonPetBigginsDB[k] == nil then
-                    SummonPetBigginsDB[k] = v
+frame:SetScript("OnEvent", function(self, event, ...)
+    if event == "ADDON_LOADED" then
+        local loadedAddon = ...
+        if loadedAddon == addonName then
+            if not SummonPetBigginsDB then
+                SummonPetBigginsDB = CopyTable(defaults)
+            else
+                -- Ensure any newly added default keys exist
+                for k, v in pairs(defaults) do
+                    if SummonPetBigginsDB[k] == nil then
+                        SummonPetBigginsDB[k] = v
+                    end
                 end
             end
+            addon:RegisterOptions()
         end
-        addon:RegisterOptions()
         return
     end
 
@@ -746,7 +825,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
 
     local handler = eventHandlers[event]
     if handler then
-        handler()
+        handler(...)
     end
 end)
 

@@ -1,3 +1,8 @@
+# SummonPet Biggins v1.5.0
+
+### Fixed
+- **Chained Spellcast and Channeling Race Conditions:** Eliminated pet summoning interruptions during rapid chained casts (e.g. repeated Fishing casts after breaking stealth). Replaced the periodic 1.0s unstealth polling loop with native, player-filtered spellcast events (`UNIT_SPELLCAST_START`, `UNIT_SPELLCAST_STOP`, `UNIT_SPELLCAST_CHANNEL_START`, `UNIT_SPELLCAST_CHANNEL_STOP`). Any active cast or channel immediately suppresses summoning, and completing a cast or channel engages an event-driven 1.5s idle debounce (`CAST_IDLE_DEBOUNCE_DELAY`). Chained casts seamlessly reset the timer before a pet can be summoned, ensuring subsequent casts are never clipped.
+
 # SummonPet Biggins v1.4.4
 
 ### Changed
