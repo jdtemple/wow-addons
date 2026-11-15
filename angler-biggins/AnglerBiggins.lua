@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Angler Biggins v2.1.0 - Dual-Rod Fishing Suite & Underlight Angler Automation
+    Angler Biggins v2.1.2 - Dual-Rod Fishing Suite & Underlight Angler Automation
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
@@ -22,14 +22,12 @@
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "2.1.0"
+addon.version = "2.1.2"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
 local INVSLOT_FISHING_TOOL         = 28
 local INVSLOT_MAIN_HAND            = 16
-local SPELL_FISH_FORM              = 201944 -- Underlight Blessing (Fish Form & Swim Speed)
-local SPELL_FISHING_FOR_ATTENTION  = 394009 -- Cosmetic Fishing Visual Aura (Outdoor only)
 
 -- Upvalue caching
 local C_ChallengeMode        = C_ChallengeMode
@@ -92,14 +90,6 @@ end
 -- 1. CONTEXT & STATE EVALUATION
 -- ==============================================================================
 
--- Check if the player currently has the Fishing for Attention aura (spell 394009)
-local function HasFishingAura()
-    if C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
-        return C_UnitAuras.GetPlayerAuraBySpellID(SPELL_FISHING_FOR_ATTENTION) ~= nil
-    end
-    return false
-end
-
 -- Check if the player currently has the Surface Tension buff (Underlight Angler water walking & trait active)
 local function HasSurfaceTensionBuff()
     if AuraUtil and AuraUtil.FindAuraByName then
@@ -116,11 +106,6 @@ local function HasSurfaceTensionBuff()
         end
     end
     return false
-end
-
--- Backward compatibility alias
-local function HasFishFormBuff()
-    return HasSurfaceTensionBuff()
 end
 
 -- Check if the Underlight Angler is equipped in the Fishing Profession Tool slot (Slot 28)
@@ -146,20 +131,13 @@ local function IsUnderlightAwake()
         return true
     end
 
-    -- Once awakened in slot 28 for this water session, maintain awake state
-    -- to prevent loop-thrashing while submerged underwater
-    if isAwake then
-        return true
-    end
-
-    -- Active Underlight Angler traits are evidenced by:
-    -- 1. Surface Tension buff (on surface)
-    -- 2. Fishing for Attention aura (spell 394009)
-    if HasSurfaceTensionBuff() or HasFishingAura() then
+    -- Active Underlight Angler traits are evidenced strictly by the Surface Tension buff
+    if HasSurfaceTensionBuff() then
         isAwake = true
         return true
     end
 
+    isAwake = false
     return false
 end
 
@@ -711,18 +689,23 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
             addon:UpdateOptionsUI()
         end
     elseif event == "UNIT_AURA" then
-        -- Re-evaluate if the player is in water with Underlight slotted, not busy, and Underlight Angler is not awake
-        if not IsPlayerBusy() and not isActivating and IsPlayerInWater() and IsUnderlightSlotted() and not IsUnderlightAwake() then
-            C_Timer.After(0.2, function()
-                EvaluateWaterState()
-            end)
+        if arg1 == "player" then
+            -- Re-evaluate if the player is in water with Underlight slotted, not busy, and Underlight Angler is not awake
+            if not IsPlayerBusy() and not isActivating and IsPlayerInWater() and IsUnderlightSlotted() and not IsUnderlightAwake() then
+                C_Timer.After(0.2, function()
+                    EvaluateWaterState()
+                end)
+            end
         end
     elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-        -- Completed casting/gathering (e.g. mining or herbing): evaluate water state if in water
-        if not isActivating and IsPlayerInWater() and IsUnderlightSlotted() and not IsUnderlightAwake() then
-            C_Timer.After(0.2, function()
-                EvaluateWaterState()
-            end)
+        if arg1 == "player" then
+            -- Completed casting/gathering (e.g. mining or herbing): evaluate water state if in water
+            if not isActivating and IsPlayerInWater() and IsUnderlightSlotted() then
+                isAwake = false
+                C_Timer.After(0.3, function()
+                    EvaluateWaterState()
+                end)
+            end
         end
     elseif event == "MIRROR_TIMER_START" or event == "MIRROR_TIMER_STOP" or event == "MOUNT_JOURNAL_USABILITY_CHANGED" then
         -- Debounce rapid swimming state transitions
@@ -1097,7 +1080,6 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         local inWater = IsPlayerInWater() and "Submerged / Swimming" or "Dry Land"
         local awakeStr = IsUnderlightSlotted() and (IsUnderlightAwake() and "Awake" or "Dormant") or "N/A (Secondary Pole Active)"
         local tensionStr = HasSurfaceTensionBuff() and "Active" or "Inactive"
-        local auraStr = HasFishingAura() and "Active" or "Inactive (or suppressed)"
         local pinnedStr = db.pinnedPoleName or "None"
         PrintMsg("Status:")
         print("  - Addon State: " .. (db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
@@ -1105,7 +1087,6 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         print("  - Pinned Main Pole: |cFFFFD100" .. pinnedStr .. "|r")
         print("  - Trait State: |cFFFFD100" .. awakeStr .. "|r")
         print("  - Surface Tension Buff: |cFFFFD100" .. tensionStr .. "|r")
-        print("  - Fishing Aura (394009): |cFFFFD100" .. auraStr .. "|r")
         print("  - Environment: |cFFFFD100" .. inWater .. "|r")
         print("  - Dungeons & Raids: " .. (db.enableInstances and "|cFF00FF00On|r" or "|cFFFF0000Off|r"))
         print("  - Underwater Delves: " .. (db.enableDelves and "|cFF00FF00On|r" or "|cFFFF0000Off|r"))

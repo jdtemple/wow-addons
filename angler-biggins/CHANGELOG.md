@@ -1,3 +1,14 @@
+# Angler Biggins v2.1.2
+
+### Architectural Streamline & Polish
+- **Exclusive Surface Tension Trait Tracking:** Trait state detection (`IsUnderlightAwake`) now relies exclusively on the **`Surface Tension`** buff, the unique and sole buff responsible for water walking, fish form, swim speed, and underwater breathing. Completely removed all dependencies on the cosmetic `Fishing for Attention` (spell 394009) aura, eliminating false positives where lingering cosmetic visuals prevented dormant traits from waking up, and guaranteeing reliable trait recovery in Delves and indoor instances where cosmetic visuals are suppressed by Blizzard.
+
+# Angler Biggins v2.1.1
+
+### Fixed
+- **Underwater Mining & Gathering Trait Recovery:** Fixed an issue where mining or gathering nodes while submerged stripped Underlight Angler traits (`Surface Tension` and `Fishing for Attention`) without the addon waking them back up. Completion of spellcasting or gathering in water (`UNIT_SPELLCAST_STOP` / `UNIT_SPELLCAST_CHANNEL_STOP`) now re-evaluates active traits immediately and clears any stale cached awake flags, cleanly re-seating the Underlight Angler to restore water walking and fish form without requiring players to exit and re-enter the water.
+- **Aura & Trait Tracking Streamlining:** Removed obsolete legacy artifact trait references (`Underlight Blessing`), aligning trait tracking strictly with the two active auras present in modern WoW: `Surface Tension` and `Fishing for Attention` (spell 394009).
+
 # Angler Biggins v2.1.0
 
 ### Architectural Streamline & Polish
