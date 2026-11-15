@@ -1,3 +1,34 @@
+# Angler Biggins v2.0.5
+
+### Fixed
+- **Post-Combat Lifejacket Swapping & Unseat Order:** Resolved an issue where auto-equipping the Underlight Angler after combat while holding a secondary rod (such as Sin'dorei Reeler's Rod) attempted to swap the rod directly without unseating first. Because container slots are locked during single-frame cursor swaps, the secondary rod was colliding and causing activation retries. Lifejacket Mode now explicitly unseats any existing rod to bags before seating the Underlight Angler into slot 28.
+- **Removed Self-Sustaining Retry Timer:** Removed a recursive deferred timer in `ActivateUnderlightAngler()` that caused repeating activation loops. Cooldown enforcement is now strictly passive.
+- **Strict Server Confirmation on Equip Queue:** Updated `StepEquipSlot()` to only mark equipment swaps as complete once `GetInventoryItemID("player", 28)` is confirmed by the server, eliminating transient "Equipped Pole: None" states.
+
+# Angler Biggins v2.0.4
+
+### Fixed
+- **Post-Combat Underwater Lifejacket Recovery:** Resolved an issue where engaging in combat in the water while holding a pinned pole prevented Lifejacket Mode from auto-equipping the Underlight Angler after combat ended. Dropping combat (`PLAYER_REGEN_ENABLED`) while in water now automatically clears the manual pinned override and safely waits for combat lockdown to clear before activating the Underlight Angler.
+- **Breath Meter Lifejacket Override:** Added an emergency guard on `MIRROR_TIMER_START` ("BREATH") so that if your breath meter begins ticking down while in water, any manual pole override is immediately cleared to auto-equip the Underlight Angler and prevent drowning.
+- **Water Exit Transition Listener:** Explicitly registered and handled `MIRROR_TIMER_STOP` alongside `MOUNT_JOURNAL_USABILITY_CHANGED` to ensure responsive state evaluations when leaving the water.
+
+# Angler Biggins v2.0.3
+
+### Fixed
+- **Action Bar Rod Toggle Failure:** Resolved an issue where using `/anglerb swap` or the action bar toggle button failed with "Failed to equip pinned pole into fishing slot." The cursor swap logic was executing synchronously without waiting for server acknowledgment, and unseating logic previously hardcoded the Underlight Angler item ID when checking cursor contents. Both manual toggling and automatic activations now route through the unified asynchronous queue engine (`HandleQueue`), ensuring clean, collision-free slot-28 swaps.
+- **Surface Tension Aura Detection:** Updated Underlight Angler trait detection to look for the real, definitive "Surface Tension" buff rather than generic cosmetic auras. In modern WoW, ordinary fishing rods grant "Fishing for Attention" (Spell 394009) while the Underlight Angler uniquely grants "Surface Tension".
+- **Mining & Profession Gear Auto-Recovery:** When mining or gathering underwater, Blizzard's profession gear temporarily overrides the character model and suppresses fishing auras. Angler Biggins now automatically detects the loss of "Surface Tension" when swimming in water and triggers an instant wake cycle to dismiss mining gear and restore fish form without requiring manual slash commands or leaving the water.
+- **Activation Cooldown & Retry Queue:** Added a deferred retry timer to `ActivateUnderlightAngler()` so that gathering channels finishing during the activation cooldown window are never dropped, ensuring 100% reliable wakeups upon gathering completion.
+- **Telemetry & Status Display:** Updated the settings panel and `/anglerb status` command to display real-time "Surface Tension Buff" status alongside environment and equipped tool info.
+
+# Angler Biggins v2.0.2
+
+### Fixed
+- **Submerged Gathering & Lakebed Unseating:** Resolved an issue where gathering nodes (mining or herbing) while underwater caused fish form to temporarily pause, falsely flagging the Underlight Angler as dormant. This previously triggered an unwanted unseat cycle that failed while channeling, leaving the rod in bags.
+- **Casting & Channeling Protection (`IsPlayerBusy`):** Added strict state guards preventing automatic equipment unseating and swaps while the player is actively casting or channeling (e.g. mining, herbing, or crafting).
+- **Session Awakening Persistence:** Once the Underlight Angler is awakened in slot 28, it remains marked awake for the session while slotted, eliminating needless unseat/reseat loops when feet touch lakebeds.
+- **Spellcast Completion Reactivity:** Added listeners for `UNIT_SPELLCAST_STOP` and `UNIT_SPELLCAST_CHANNEL_STOP` to cleanly evaluate water state and re-equip fishing gear immediately upon finishing a gather.
+
 # Angler Biggins v2.0.1
 
 ### Fixed

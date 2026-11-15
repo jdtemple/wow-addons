@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Angler Biggins v2.0.1 - Dual-Rod Fishing Suite & Underlight Angler Automation
+    Angler Biggins v2.0.2 - Dual-Rod Fishing Suite & Underlight Angler Automation
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
@@ -22,7 +22,7 @@
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "2.0.1"
+addon.version = "2.0.2"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
@@ -71,8 +71,9 @@ local uiWidgets = {
 -- State Tracking & Queue Management
 local isActivating = false
 local lastActivationTime = 0
-local ACTIVATION_COOLDOWN = 3.0 -- Cooldown between activations to prevent any loop
+local ACTIVATION_COOLDOWN = 3.0 -- Cooldown between activations to prevent any rapid loop
 local isAwake = false           -- Tracks whether the Underlight Angler traits are currently awake
+local manualPinnedActive = false -- Tracks if the player manually equipped their pinned pole
 
 local queue = {
     unequip = false,
@@ -101,13 +102,27 @@ local function HasFishingAura()
     return false
 end
 
--- Check if the player currently has the Underlight Blessing (Fish Form) buff
-local function HasFishFormBuff()
-    if C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
-        local aura = C_UnitAuras.GetPlayerAuraBySpellID(SPELL_FISH_FORM)
-        return aura ~= nil
+-- Check if the player currently has the Surface Tension buff (Underlight Angler water walking & trait active)
+local function HasSurfaceTensionBuff()
+    if AuraUtil and AuraUtil.FindAuraByName then
+        local aura = AuraUtil.FindAuraByName("Surface Tension", "player")
+        if aura then return true end
+    end
+    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+        for i = 1, 40 do
+            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+            if not aura then break end
+            if aura.name == "Surface Tension" then
+                return true
+            end
+        end
     end
     return false
+end
+
+-- Backward compatibility alias
+local function HasFishFormBuff()
+    return HasSurfaceTensionBuff()
 end
 
 -- Check if the Underlight Angler is equipped in the Fishing Profession Tool slot (Slot 28)
@@ -128,16 +143,25 @@ local function IsUnderlightAwake()
         return true
     end
 
-    -- Active Underlight Angler traits are evidenced by either:
-    -- 1. Fishing for Attention aura (spell 394009) granted upon slot 28 equip/wake
-    -- 2. Underlight Blessing (spell 201944) fish form active in water
-    if HasFishingAura() or HasFishFormBuff() then
+    -- In combat, gear swapping is locked out by Blizzard
+    if InCombatLockdown() then
+        return true
+    end
+
+    -- Once awakened in slot 28 for this water session, maintain awake state
+    -- to prevent loop-thrashing while submerged underwater
+    if isAwake then
+        return true
+    end
+
+    -- Active Underlight Angler traits are evidenced by:
+    -- 1. Surface Tension buff (on surface)
+    -- 2. Fishing for Attention aura (spell 394009)
+    if HasSurfaceTensionBuff() or HasFishingAura() then
         isAwake = true
         return true
     end
 
-    -- If neither aura exists (e.g. clicked off, combat dropped, or dormant after login), mark dormant:
-    isAwake = false
     return false
 end
 
@@ -183,6 +207,18 @@ local function IsCurrentZoneAllowed()
         end
     end
     return true
+end
+
+-- Check if the player is currently locked in an un-swappable state (combat, casting, channeling, or mounted)
+local function IsPlayerBusy()
+    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then
+        return true
+    end
+    if (UnitCastingInfo and UnitCastingInfo("player") ~= nil)
+        or (UnitChannelInfo and UnitChannelInfo("player") ~= nil) then
+        return true
+    end
+    return false
 end
 
 -- ==============================================================================
@@ -231,7 +267,7 @@ end
 
 local function EquipItemToFishingSlot(targetItemID)
     if not targetItemID then return false end
-    if InCombatLockdown() then return false end
+    if IsPlayerBusy() then return false end
 
     -- Already equipped in slot 28?
     if GetInventoryItemID("player", INVSLOT_FISHING_TOOL) == targetItemID then
@@ -258,6 +294,8 @@ local function EquipItemToFishingSlot(targetItemID)
 end
 
 local function StepUnequipSlot()
+    if IsPlayerBusy() then return end
+
     local equippedItem = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
     if not equippedItem then
         -- Slot 28 is unseated and clear
@@ -265,19 +303,19 @@ local function StepUnequipSlot()
         return
     end
 
-    local isHoldingTarget, isHoldingAnything = IsCursorHoldingItem(UNDERLIGHT_ANGLER_ID)
-    if isHoldingAnything and not isHoldingTarget then
-        -- Player is actively dragging another item; wait for cursor to clear
+    local isHoldingEquipped, isHoldingAnything = IsCursorHoldingItem(equippedItem)
+    if isHoldingAnything and not isHoldingEquipped then
+        -- Player is actively dragging an unrelated item; wait for cursor to clear
         return
     elseif not isHoldingAnything then
         PickupInventoryItem(INVSLOT_FISHING_TOOL)
-        local holdingNow = IsCursorHoldingItem(UNDERLIGHT_ANGLER_ID)
+        local holdingNow = IsCursorHoldingItem(equippedItem)
         if holdingNow then
             if not DepositCursorIntoFirstFreeBag() then
                 queue.unequip = false
             end
         end
-    elseif isHoldingTarget then
+    elseif isHoldingEquipped then
         if not DepositCursorIntoFirstFreeBag() then
             queue.unequip = false
         end
@@ -293,13 +331,15 @@ local function StepEquipSlot()
     end
 
     if not queue.equip then
-        queue.equip = nil
         return
     end
 
-    if EquipItemToFishingSlot(queue.equip) then
-        queue.equip = nil
+    if IsPlayerBusy() then
+        -- Player is busy (e.g. casting or channeling); wait for cast to finish
+        return
     end
+
+    EquipItemToFishingSlot(queue.equip)
 end
 
 local function HandleQueue()
@@ -335,13 +375,22 @@ local function HandleQueue()
         elseif queue.equip then
             StepEquipSlot()
         else
-            -- Queue finished successfully: rod is officially awake in slot 28
+            -- Queue finished successfully: rod is officially equipped in slot 28
             self:SetScript("OnUpdate", nil)
             isActivating = false
-            isAwake = true
             local db = AnglerBigginsDB or defaults
-            if not db.quiet then
-                PrintMsg("Underlight Angler activated.")
+            local currentSlotItem = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
+            if currentSlotItem == UNDERLIGHT_ANGLER_ID then
+                isAwake = true
+                if not db.quiet then
+                    PrintMsg("Underlight Angler activated.")
+                end
+            else
+                isAwake = false
+                if not db.quiet then
+                    local name = db.pinnedPoleName or "Pinned Pole"
+                    PrintMsg("Equipped |cFF00FF00" .. name .. "|r.")
+                end
             end
             addon:UpdateMacro()
             if addon.optionsPanel and addon.optionsPanel:IsShown() then
@@ -354,12 +403,10 @@ end
 local function ActivateUnderlightAngler()
     local db = AnglerBigginsDB or defaults
     if not db.enabled then return end
-    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then return end
+    if IsPlayerBusy() then return end
     if not IsCurrentZoneAllowed() then return end
     if not HasUnderlightAngler() then return end
 
-    -- Once awake for the current session, NEVER unseat the rod again!
-    -- This prevents periodic flickering, stealth breaks, and dropping on lakebeds.
     if IsUnderlightAwake() then
         return
     end
@@ -373,16 +420,17 @@ local function ActivateUnderlightAngler()
     isActivating = true
 
     if IsUnderlightSlotted() then
-        -- Rod is in slot 28, but dormant. Unseat to bag and re-equip ONCE to wake up:
+        -- Rod is in slot 28, but dormant/suppressed. Unseat to bag and re-equip to wake up:
         queue.unequip = true
         queue.equip = UNDERLIGHT_ANGLER_ID
     else
         -- Rod is in bag: auto-equip into slot 28 (Lifejacket Mode)
-        if not db.enableLifejacket then
+        if not db.enableLifejacket or manualPinnedActive then
             isActivating = false
             return
         end
-        queue.unequip = false
+        local currentEquipped = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
+        queue.unequip = (currentEquipped ~= nil)
         queue.equip = UNDERLIGHT_ANGLER_ID
     end
 
@@ -391,9 +439,11 @@ end
 
 -- Main evaluation entry point
 local function EvaluateWaterState()
-    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then return end
+    if IsPlayerBusy() then return end
 
     if not IsPlayerInWater() then
+        manualPinnedActive = false
+        isAwake = false
         return
     end
 
@@ -555,6 +605,13 @@ function addon:TogglePoles()
         PrintMsg("|cFFFF5555Cannot swap fishing poles during combat lockdown.|r")
         return
     end
+    if IsPlayerBusy() then
+        PrintMsg("|cFFFF5555Cannot swap fishing poles while busy or casting.|r")
+        return
+    end
+    if isActivating then
+        return
+    end
 
     local db = AnglerBigginsDB or defaults
     local isUnderlight = IsUnderlightSlotted()
@@ -575,13 +632,11 @@ function addon:TogglePoles()
         end
 
         isAwake = false
-        if EquipItemToFishingSlot(pinnedID) then
-            if not db.quiet then
-                PrintMsg("Equipped |cFF00FF00" .. (db.pinnedPoleName or "Pinned Pole") .. "|r.")
-            end
-        else
-            PrintMsg("|cFFFF5555Failed to equip pinned pole into fishing slot.|r")
-        end
+        isActivating = true
+        manualPinnedActive = true
+        queue.unequip = true
+        queue.equip = pinnedID
+        HandleQueue()
     else
         -- Currently holding Pinned Pole (or another rod): swap to Underlight Angler
         if not HasUnderlightAngler() then
@@ -589,18 +644,12 @@ function addon:TogglePoles()
             return
         end
 
-        if EquipItemToFishingSlot(UNDERLIGHT_ANGLER_ID) then
-            if not db.quiet then
-                PrintMsg("Equipped |cFF00FF00Underlight Angler|r.")
-            end
-            isAwake = true
-        else
-            ActivateUnderlightAngler()
-        end
+        manualPinnedActive = false
+        isActivating = true
+        queue.unequip = true
+        queue.equip = UNDERLIGHT_ANGLER_ID
+        HandleQueue()
     end
-
-    addon:UpdateMacro()
-    addon:UpdateOptionsUI()
 end
 
 -- ==============================================================================
@@ -618,6 +667,8 @@ eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
+eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_STOP", "player")
+eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 
 eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
     if event == "ADDON_LOADED" and arg1 == addonName then
@@ -641,31 +692,59 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         queue.equip = nil
         queueFrame:SetScript("OnUpdate", nil)
     elseif event == "PLAYER_REGEN_ENABLED" then
-        -- Dropped combat: sync macro and evaluate water state
+        -- Dropped combat: reset manual pinned override so Lifejacket Mode can protect the player
+        manualPinnedActive = false
+        isAwake = false
         addon:UpdateMacro()
-        C_Timer.After(0.3, function()
-            EvaluateWaterState()
+        C_Timer.After(0.4, function()
+            if not InCombatLockdown() then
+                EvaluateWaterState()
+            else
+                C_Timer.After(0.4, function()
+                    if not InCombatLockdown() then
+                        EvaluateWaterState()
+                    end
+                end)
+            end
         end)
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
-        if arg1 == INVSLOT_FISHING_TOOL or arg1 == INVSLOT_MAIN_HAND then
-            if not isActivating then
-                if not IsUnderlightSlotted() then
-                    isAwake = false
-                end
+        if not isActivating then
+            if not IsUnderlightSlotted() then
+                isAwake = false
             end
-            addon:UpdateMacro()
-            if addon.optionsPanel and addon.optionsPanel:IsShown() then
-                addon:UpdateOptionsUI()
+            if IsUnderlightSlotted() and IsPlayerInWater() and not IsUnderlightAwake() then
+                C_Timer.After(0.2, function()
+                    EvaluateWaterState()
+                end)
             end
         end
+        addon:UpdateMacro()
+        if addon.optionsPanel and addon.optionsPanel:IsShown() then
+            addon:UpdateOptionsUI()
+        end
     elseif event == "UNIT_AURA" then
-        -- Immediately re-awaken if the player is in water and the buff was stripped or clicked off
-        if not InCombatLockdown() and not IsMounted() and not isActivating and IsPlayerInWater() and not IsUnderlightAwake() then
+        -- Re-evaluate if the player is in water with Underlight slotted, not busy, and Underlight Angler is not awake
+        if not IsPlayerBusy() and not isActivating and IsPlayerInWater() and IsUnderlightSlotted() and not IsUnderlightAwake() then
             C_Timer.After(0.2, function()
                 EvaluateWaterState()
             end)
         end
-    elseif event == "MOUNT_JOURNAL_USABILITY_CHANGED" or event == "MIRROR_TIMER_START" then
+    elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+        -- Completed casting/gathering (e.g. mining or herbing): evaluate water state if in water
+        if not isActivating and IsPlayerInWater() and IsUnderlightSlotted() and not IsUnderlightAwake() then
+            C_Timer.After(0.2, function()
+                EvaluateWaterState()
+            end)
+        end
+    elseif event == "MIRROR_TIMER_START" then
+        -- If breath meter starts, clear manual override so Lifejacket Mode saves the player immediately
+        if arg1 == "BREATH" then
+            manualPinnedActive = false
+        end
+        C_Timer.After(0.2, function()
+            EvaluateWaterState()
+        end)
+    elseif event == "MOUNT_JOURNAL_USABILITY_CHANGED" or event == "MIRROR_TIMER_STOP" then
         -- Debounce rapid swimming state transitions
         C_Timer.After(0.2, function()
             EvaluateWaterState()
@@ -730,14 +809,14 @@ function addon:UpdateOptionsUI()
         end
 
         local inWaterStr = IsPlayerInWater() and "|cFF00FF00Submerged / In Water|r" or "|cFF888888On Dry Land|r"
-        local buffStr = HasFishFormBuff() and "|cFF00FF00Active (Underlight Blessing)|r" or "|cFF888888Inactive|r"
+        local tensionStr = HasSurfaceTensionBuff() and "|cFF00FF00Active|r" or "|cFF888888Inactive|r"
         local pinnedStr = db.pinnedPoleName and ("|cFF00FF00" .. db.pinnedPoleName .. "|r") or "|cFFFF5555None|r"
 
         uiWidgets.statusText:SetText(
             "|cFFFFD100Equipped Fishing Pole:|r " .. equippedStr .. "\n" ..
             "|cFFFFD100Pinned Main Pole:|r " .. pinnedStr .. "\n" ..
             "|cFFFFD100Current Environment:|r " .. inWaterStr .. "\n" ..
-            "|cFFFFD100Fish Form Buff:|r " .. buffStr
+            "|cFFFFD100Surface Tension Buff:|r " .. tensionStr
         )
     end
 
@@ -1066,8 +1145,8 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
 
         local inWater = IsPlayerInWater() and "Submerged / Swimming" or "Dry Land"
         local awakeStr = IsUnderlightAwake() and "Awake" or "Dormant"
+        local tensionStr = HasSurfaceTensionBuff() and "Active" or "Inactive"
         local auraStr = HasFishingAura() and "Active" or "Inactive (or suppressed)"
-        local fishForm = HasFishFormBuff() and "Active" or "Inactive"
         local pinnedStr = db.pinnedPoleName or "None"
         PrintMsg("Status:")
         print("  - Addon State: " .. (db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
@@ -1075,9 +1154,9 @@ SlashCmdList["ANGLERBIGGINS"] = function(msg)
         print("  - Equipped Pole: |cFFFFD100" .. equippedStr .. "|r")
         print("  - Pinned Main Pole: |cFFFFD100" .. pinnedStr .. "|r")
         print("  - Trait State: |cFFFFD100" .. awakeStr .. "|r")
+        print("  - Surface Tension Buff: |cFFFFD100" .. tensionStr .. "|r")
         print("  - Fishing Aura (394009): |cFFFFD100" .. auraStr .. "|r")
         print("  - Environment: |cFFFFD100" .. inWater .. "|r")
-        print("  - Fish Form Buff: |cFFFFD100" .. fishForm .. "|r")
         print("  - Dungeons & Raids: " .. (db.enableInstances and "|cFF00FF00On|r" or "|cFFFF0000Off|r"))
         print("  - Underwater Delves: " .. (db.enableDelves and "|cFF00FF00On|r" or "|cFFFF0000Off|r"))
     elseif cmd == "help" or cmd == "?" then
