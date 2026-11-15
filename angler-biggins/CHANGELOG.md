@@ -1,3 +1,16 @@
+# Angler Biggins v2.2.0
+
+### Added & Polish
+- **Mounted Rod Swapping Allowed:** Enabled manual rod swapping via the action bar button or `/anglerb swap` while mounted. Players can now freely toggle between their fishing rods while riding or flying without encountering "Cannot swap fishing poles while busy" restrictions, while automated trait activation remains cleanly suppressed until dismounted.
+- **In-Tooltip "Equipped" Indicator & Action Hint:** When hovering over the Angler Biggins swap macro on any action bar, the tooltip now includes a native green `Equipped` line confirming the displayed rod is currently in use, followed by a `Click to swap to: [Other Pole]` hint showing exactly which rod will be equipped upon clicking.
+- **Consistent Chat Equipment Feedback:** Updated the chat output when equipping the Underlight Angler to print `Equipped [Underlight Angler].` with a full, clickable item link, matching the format of pinned pole equipment messages.
+
+# Angler Biggins v2.1.3
+
+### Polish & Bug Fixes
+- **Action Bar Macro as Current Gear Indicator:** The swap macro button now displays the icon and tooltip of the rod you **currently have equipped** (e.g. Sin'dorei Reeler's Rod icon when holding your pinned rod, Underlight Angler icon when holding the Underlight Angler). Clicking the button executes the swap, immediately flipping the button icon to show your newly equipped rod.
+- **Fixed Zone Transition & Teleporter Macro Reset:** Resolved an issue where loading screens, zone changes, or teleporters reset the macro button to the Underlight Angler icon regardless of what was equipped. The immediate synchronous macro query on `PLAYER_ENTERING_WORLD` (which ran before WoW initialized character inventory) has been replaced with a 0.5s settle timer, and uninitialized inventory queries now safely fall back to your pinned rod instead of defaulting to the Underlight Angler.
+
 # Angler Biggins v2.1.2
 
 ### Architectural Streamline & Polish

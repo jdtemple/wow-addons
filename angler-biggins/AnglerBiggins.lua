@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Angler Biggins v2.1.2 - Dual-Rod Fishing Suite & Underlight Angler Automation
+    Angler Biggins v2.2.0 - Dual-Rod Fishing Suite & Underlight Angler Automation
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
@@ -11,18 +11,18 @@
     2. Dual-Rod Pinning & Management: Allows pinning a primary high-stat fishing pole
        (such as engineered or expansion-specific rods) and toggling with the Underlight Angler.
     3. Dynamic Action Bar Button: Generates and auto-maintains an action bar macro that
-       dynamically flips its icon, name, and tooltip to show the rod to equip next.
+       dynamically displays the currently equipped fishing pole and swaps on click.
     4. Deterministic Manual Rod Swapping: Rod changes only occur when explicitly clicked
        via the action bar button or /anglerb swap, avoiding unexpected hitches or freezes.
     5. Automatic Trait Recovery: When Underlight Angler is equipped in water, automatically
        recovers fish form and water walking whenever mining or gathering temporarily overrides it.
     6. Modern Blizzard Canvas Settings: Fully integrated into Options -> AddOns ->
        Biggins AddOns -> Angler with master enable toggle, live diagnostics, and [ Defaults ].
-============================================================================== ]]--
+============================================================================= ]]--
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "2.1.2"
+addon.version = "2.2.0"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
@@ -185,9 +185,9 @@ local function IsCurrentZoneAllowed()
     return true
 end
 
--- Check if the player is currently locked in an un-swappable state (combat, casting, channeling, or mounted)
+-- Check if the player is currently locked in an un-swappable state (combat, dead/ghost, casting, or channeling)
 local function IsPlayerBusy()
-    if InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then
+    if InCombatLockdown() or UnitIsDeadOrGhost("player") then
         return true
     end
     if (UnitCastingInfo and UnitCastingInfo("player") ~= nil)
@@ -337,8 +337,8 @@ local function HandleQueue()
         queueTimeout = queueTimeout - queueElapsed
         queueElapsed = 0
 
-        -- Timeout, combat, or mounted protection
-        if queueTimeout <= 0 or InCombatLockdown() or UnitIsDeadOrGhost("player") or IsMounted() then
+        -- Timeout, combat, or death protection
+        if queueTimeout <= 0 or InCombatLockdown() or UnitIsDeadOrGhost("player") then
             queue.unequip = false
             queue.equip = nil
             self:SetScript("OnUpdate", nil)
@@ -359,13 +359,15 @@ local function HandleQueue()
             if currentSlotItem == UNDERLIGHT_ANGLER_ID then
                 isAwake = true
                 if not db.quiet then
-                    PrintMsg("Underlight Angler activated.")
+                    local _, link = C_Item.GetItemInfo(UNDERLIGHT_ANGLER_ID)
+                    local displayLink = link or "|cFFE6CC80[Underlight Angler]|r"
+                    PrintMsg("Equipped " .. displayLink .. ".")
                 end
             else
                 isAwake = false
                 if not db.quiet then
-                    local name = db.pinnedPoleName or "Pinned Pole"
-                    PrintMsg("Equipped |cFF00FF00" .. name .. "|r.")
+                    local name = db.pinnedPoleName or "|cFF00FF00Pinned Pole|r"
+                    PrintMsg("Equipped " .. name .. ".")
                 end
             end
             addon:UpdateMacro()
@@ -379,7 +381,7 @@ end
 local function ActivateUnderlightAngler()
     local db = AnglerBigginsDB or defaults
     if not db.enabled then return end
-    if IsPlayerBusy() then return end
+    if IsPlayerBusy() or IsMounted() then return end
     if not IsCurrentZoneAllowed() then return end
     if not IsUnderlightSlotted() then return end
 
@@ -404,7 +406,7 @@ end
 
 -- Main evaluation entry point
 local function EvaluateWaterState()
-    if IsPlayerBusy() then return end
+    if IsPlayerBusy() or IsMounted() then return end
 
     if not IsPlayerInWater() then
         isAwake = false
@@ -429,27 +431,49 @@ end
 
 local MACRO_NAME = "AnglerBiggins"
 
--- Generate the appropriate macro icon and tooltip text based on current gear state
+-- Generate the appropriate macro icon and tooltip text based on current gear state (Current Gear Indicator)
 function addon:GetMacroContent()
     local db = AnglerBigginsDB or defaults
-    local isSlotted = IsUnderlightSlotted()
 
-    if isSlotted then
-        -- Currently holding Underlight Angler: next click equips Pinned Pole
+    -- Determine currently equipped fishing pole
+    local equippedItem = GetInventoryItemID("player", INVSLOT_FISHING_TOOL)
+    if not equippedItem then
+        local weaponID = GetInventoryItemID("player", INVSLOT_MAIN_HAND)
+        if weaponID then
+            local _, _, _, _, _, itemClassID, itemSubClassID = C_Item.GetItemInfoInstant(weaponID)
+            if itemClassID == 2 and itemSubClassID == 20 then
+                equippedItem = weaponID
+            end
+        end
+    end
+
+    if equippedItem == UNDERLIGHT_ANGLER_ID then
+        -- Currently holding Underlight Angler: display Underlight Angler icon & tooltip
+        local icon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(UNDERLIGHT_ANGLER_ID)) or 133755
+        local body = "#showtooltip item:" .. UNDERLIGHT_ANGLER_ID .. "\n/anglerb swap"
+        return icon, body
+    elseif equippedItem and (equippedItem == db.pinnedPoleID or db.pinnedPoleID == nil) then
+        -- Currently holding Pinned Pole: display Pinned Pole icon & tooltip
+        local icon = db.pinnedPoleIcon or (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(equippedItem)) or 136240
+        local body = "#showtooltip item:" .. equippedItem .. "\n/anglerb swap"
+        return icon, body
+    elseif equippedItem then
+        -- Another rod is equipped: display its icon & tooltip
+        local icon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(equippedItem)) or 136240
+        local body = "#showtooltip item:" .. equippedItem .. "\n/anglerb swap"
+        return icon, body
+    else
+        -- Inventory is still synchronizing or slot 28 is empty:
+        -- Default gracefully to pinned pole if known, otherwise default fishing icon
         if db.pinnedPoleID then
             local icon = db.pinnedPoleIcon or (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(db.pinnedPoleID)) or 136240
             local body = "#showtooltip item:" .. db.pinnedPoleID .. "\n/anglerb swap"
             return icon, body
         else
-            local icon = 136240 -- default fishing icon
+            local icon = 136240
             local body = "#showtooltip\n/anglerb swap"
             return icon, body
         end
-    else
-        -- Currently holding Pinned Pole (or another rod): next click equips Underlight Angler
-        local icon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(UNDERLIGHT_ANGLER_ID)) or 133755
-        local body = "#showtooltip item:" .. UNDERLIGHT_ANGLER_ID .. "\n/anglerb swap"
-        return icon, body
     end
 end
 
@@ -620,7 +644,172 @@ function addon:TogglePoles()
 end
 
 -- ==============================================================================
--- 4. EVENT DISPATCHER
+-- 4. ACTION BAR TOOLTIP "EQUIPPED" INDICATOR
+-- ==============================================================================
+
+local function GetActionSlotFromButton(btn)
+    if not btn then return nil end
+    if btn.action then
+        local act = tonumber(btn.action)
+        if act then return act end
+    end
+    if _G.ActionButton_GetPagedID then
+        local ok, act = pcall(_G.ActionButton_GetPagedID, btn)
+        if ok and act and tonumber(act) then return tonumber(act) end
+    end
+    if _G.ActionButton_CalculateAction then
+        local ok, act = pcall(_G.ActionButton_CalculateAction, btn, "LeftButton")
+        if ok and act and tonumber(act) then return tonumber(act) end
+    end
+    if btn.GetAttribute then
+        local act = tonumber(btn:GetAttribute("action"))
+        if act then return act end
+    end
+    if btn._state_action then
+        local act = tonumber(btn._state_action)
+        if act then return act end
+    end
+    if btn.GetActionID then
+        local ok, act = pcall(btn.GetActionID, btn)
+        if ok and act and tonumber(act) then return tonumber(act) end
+    end
+    if btn.GetAction then
+        local ok, act = pcall(btn.GetAction, btn)
+        if ok and act and tonumber(act) then return tonumber(act) end
+    end
+    return nil
+end
+
+local function IsAnglerBigginsButton(btn)
+    if not btn then return false end
+
+    -- Check displayed Name fontstring (Blizzard ActionButton.Name)
+    if btn.Name and btn.Name.GetText then
+        local text = btn.Name:GetText()
+        if text and (text == MACRO_NAME or text == "AnglerBiggins" or text:find("^Angl")) then
+            return true
+        end
+    end
+
+    -- Check button action slot
+    local slot = GetActionSlotFromButton(btn)
+    if slot then
+        local actionText = GetActionText(slot)
+        if actionText and (actionText == MACRO_NAME or actionText:find("^AnglerBiggins")) then
+            return true
+        end
+        local actionType, id = GetActionInfo(slot)
+        if actionType == "macro" then
+            if id and id == GetMacroIndexByName(MACRO_NAME) then
+                return true
+            end
+            local mName, _, mBody = GetMacroInfo(id)
+            if mName == MACRO_NAME or (mBody and mBody:find("/anglerb swap", 1, true)) then
+                return true
+            end
+        end
+    end
+
+    -- Check button attributes directly
+    if btn.GetAttribute then
+        local mAttr = btn:GetAttribute("macro") or btn:GetAttribute("macrotext")
+        if mAttr and (mAttr == MACRO_NAME or (type(mAttr) == "string" and mAttr:find("/anglerb", 1, true))) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function IsAnglerBigginsTooltip(tooltip, data)
+    if tooltip ~= GameTooltip then return false end
+
+    -- 1. Check tooltip owner
+    local owner = tooltip:GetOwner()
+    if IsAnglerBigginsButton(owner) then
+        return true
+    end
+
+    -- 2. Check mouse focus frame (fallback if tooltip owner is UIParent or anchor frame)
+    if GetMouseFoci then
+        local foci = GetMouseFoci()
+        if foci and foci[1] and IsAnglerBigginsButton(foci[1]) then
+            return true
+        end
+    elseif GetMouseFocus then
+        local focus = GetMouseFocus()
+        if IsAnglerBigginsButton(focus) then
+            return true
+        end
+    end
+
+    -- 3. Check macro data id if data was resolved as a macro
+    if data and data.type == Enum.TooltipDataType.Macro and data.id then
+        local macroName, _, macroBody = GetMacroInfo(data.id)
+        if macroName == MACRO_NAME or (macroBody and macroBody:find("/anglerb swap", 1, true)) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function OnTooltipUpdate(tooltip, data)
+    if not IsAnglerBigginsTooltip(tooltip, data) then
+        return
+    end
+
+    if tooltip.anglerBigginsTagged then
+        return
+    end
+    tooltip.anglerBigginsTagged = true
+
+    local db = AnglerBigginsDB or defaults
+    local isSlotted = IsUnderlightSlotted()
+    local nextRodName
+
+    if isSlotted then
+        nextRodName = db.pinnedPoleName or "|cFF00FF00Pinned Pole|r"
+    else
+        local _, link = C_Item.GetItemInfo(UNDERLIGHT_ANGLER_ID)
+        nextRodName = link or "|cFFE6CC80[Underlight Angler]|r"
+    end
+
+    tooltip:AddLine(" ")
+    tooltip:AddLine("|cFF00FF00Currently Equipped|r")
+    tooltip:AddLine("|cFF888888Click to swap to:|r " .. nextRodName)
+end
+
+local tooltipHooked = false
+local function SetupTooltipHook()
+    if tooltipHooked then return end
+    tooltipHooked = true
+
+    if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
+        local allTypes = TooltipDataProcessor.AllTypes or "ALL"
+        local ok = pcall(TooltipDataProcessor.AddTooltipPostCall, allTypes, OnTooltipUpdate)
+        if not ok then
+            if Enum.TooltipDataType.Item then
+                pcall(TooltipDataProcessor.AddTooltipPostCall, Enum.TooltipDataType.Item, OnTooltipUpdate)
+            end
+            if Enum.TooltipDataType.Macro then
+                pcall(TooltipDataProcessor.AddTooltipPostCall, Enum.TooltipDataType.Macro, OnTooltipUpdate)
+            end
+        end
+    end
+
+    if GameTooltip and GameTooltip.HookScript then
+        GameTooltip:HookScript("OnTooltipCleared", function(tooltip)
+            tooltip.anglerBigginsTagged = nil
+        end)
+        GameTooltip:HookScript("OnHide", function(tooltip)
+            tooltip.anglerBigginsTagged = nil
+        end)
+    end
+end
+
+-- ==============================================================================
+-- 5. EVENT DISPATCHER
 -- ==============================================================================
 
 local eventFrame = CreateFrame("Frame", "AnglerBigginsEventFrame")
@@ -648,9 +837,14 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
                 end
             end
         end
+        SetupTooltipHook()
     elseif event == "PLAYER_LOGIN" then
         addon:CreateSettingsUI()
+        SetupTooltipHook()
         addon:UpdateMacro()
+        C_Timer.After(0.5, function()
+            addon:UpdateMacro()
+        end)
     elseif event == "PLAYER_REGEN_DISABLED" then
         -- Combat drops Underlight Angler traits: reset awake state and abort any active queue
         isAwake = false
@@ -714,8 +908,12 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         end)
     elseif event == "PLAYER_ENTERING_WORLD" then
         isAwake = false
-        addon:UpdateMacro()
+        -- Defer macro update until inventory settles from zone loading / teleporters
+        C_Timer.After(0.5, function()
+            addon:UpdateMacro()
+        end)
         C_Timer.After(1.0, function()
+            addon:UpdateMacro()
             EvaluateWaterState()
         end)
     end
