@@ -51,7 +51,7 @@ if (Test-Path $stagingDir) {
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 
 # Copy release files
-$releaseFiles = @('KnowledgeBiggins.lua', 'KnowledgeBiggins.toc', 'logo.jpg', 'README.md', 'CHANGELOG.md', 'description.md')
+$releaseFiles = @('KnowledgeBiggins.lua', 'KnowledgeBiggins.toc', 'Bindings.xml', 'logo.jpg', 'README.md', 'CHANGELOG.md', 'description.md')
 foreach ($file in $releaseFiles) {
     $sourcePath = Join-Path $addonDir $file
     if (Test-Path $sourcePath) {

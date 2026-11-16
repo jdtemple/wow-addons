@@ -1,3 +1,8 @@
+# SummonPet Biggins v1.5.1
+
+### Fixed
+- **Settings Keybinding Category Label:** Standardized the Blizzard keybindings category and header label to "SummonPet Biggins" with proper word spacing.
+
 # SummonPet Biggins v1.5.0
 
 ### Fixed

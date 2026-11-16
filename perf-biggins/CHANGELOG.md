@@ -1,3 +1,8 @@
+# Perf Biggins v1.5.1
+
+### Fixed
+- **Settings Keybinding Category Label:** Standardized the Blizzard keybindings category and header label to "Perf Biggins" with proper word spacing.
+
 # Perf Biggins v1.5.0
 
 ### Breaking Changes

@@ -1,0 +1,4 @@
+<Bindings>
+    <Binding name="CLICK KnowledgeBigginsButton:LeftButton" category="Knowledge Biggins" header="KNOWLEDGEBIGGINS_HEADER">
+    </Binding>
+</Bindings>

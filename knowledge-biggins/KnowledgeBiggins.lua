@@ -32,15 +32,24 @@ local defaults = {
     scale = 1.0,
     locked = false,
     alwaysShow = false,
+    whitelist = {},
+    blacklist = {},
 }
 
 local KnowledgeBiggins = {}
 _G["KnowledgeBiggins"] = KnowledgeBiggins
-KnowledgeBiggins.version = "1.0.0"
+KnowledgeBiggins.version = "1.1.0"
+
+-- Native Blizzard Keybinding strings
+_G["BINDING_HEADER_KNOWLEDGEBIGGINS_HEADER"] = "Knowledge Biggins"
+_G["BINDING_CATEGORY_KNOWLEDGEBIGGINS"] = "Knowledge Biggins"
+_G["BINDING_NAME_CLICK KnowledgeBigginsButton:LeftButton"] = "Study Knowledge"
 
 local isUpdatePending = false
 local knowledgeItemCache = {}
 local currentLootedItem = nil
+local optionsPanel = nil
+local UpdateKnowledgeButton = nil
 
 local function PrintMsg(msg)
     print("|cFFFFD100Knowledge Biggins:|r " .. msg)
@@ -50,50 +59,144 @@ end
 -- 1. UNIVERSAL KNOWLEDGE DETECTION ENGINE
 -- ==============================================================================
 
-local function IsKnowledgeItem(bag, slot, itemID)
+local function HasItemUseEffect(itemID, itemLink)
     if not itemID then return false end
-
-    -- Check cache first
-    if knowledgeItemCache[itemID] ~= nil then
-        return knowledgeItemCache[itemID]
+    if C_Item and C_Item.GetItemSpell and C_Item.GetItemSpell(itemID) then
+        return true
     end
-
-    if not C_TooltipInfo then
-        return false
-    end
-
-    local data = nil
-    if bag and slot and C_TooltipInfo.GetBagItem then
-        data = C_TooltipInfo.GetBagItem(bag, slot)
-    elseif C_TooltipInfo.GetItemByID then
-        data = C_TooltipInfo.GetItemByID(itemID)
-    end
-
-    if data and data.lines then
-        for _, line in ipairs(data.lines) do
-            local text = line.leftText
-            if text and type(text) == "string" then
-                local lower = text:lower()
-                -- Match standard Blizzard profession knowledge and skill patterns (case-insensitive)
-                if lower:find("study to")
-                    or lower:find("increase.-knowledge")
-                    or lower:find("grant.-knowledge")
-                    or lower:find("gain.-knowledge")
-                    or lower:find("increase your .- skill") then
-                    knowledgeItemCache[itemID] = true
-                    return true
+    if C_TooltipInfo then
+        local tooltipData
+        if itemLink then
+            tooltipData = C_TooltipInfo.GetHyperlink(itemLink)
+        else
+            tooltipData = C_TooltipInfo.GetItemByID(itemID)
+        end
+        if tooltipData and tooltipData.lines then
+            if TooltipUtil and TooltipUtil.SurfaceArgs then
+                TooltipUtil.SurfaceArgs(tooltipData)
+            end
+            local usePrefix = ITEM_SPELL_TRIGGER_ONUSE or "Use:"
+            for _, line in ipairs(tooltipData.lines) do
+                local text = line.leftText
+                if not text and line.args then
+                    for _, arg in ipairs(line.args) do
+                        if arg and arg.stringVal and type(arg.stringVal) == "string" and arg.stringVal ~= "" then
+                            text = arg.stringVal
+                            break
+                        end
+                    end
+                end
+                if text and type(text) == "string" then
+                    if text:find("^" .. usePrefix) or text:find("^Use:") then
+                        return true
+                    end
                 end
             end
         end
     end
+    return false
+end
 
-    -- Tooltip lines might not be loaded into client cache yet
-    -- Don't permanently cache false if data was missing
-    if data and data.lines and #data.lines > 0 then
-        knowledgeItemCache[itemID] = false
+local function IsDefaultKnowledgeItem(bag, slot, itemID, itemLink)
+    if not itemID then return false, true end
+
+    -- Check if item data is cached by client
+    if C_Item and C_Item.IsItemDataCachedByID and not C_Item.IsItemDataCachedByID(itemID) then
+        if C_Item.RequestLoadItemDataByID then
+            C_Item.RequestLoadItemDataByID(itemID)
+        end
+        return false, false
     end
 
-    return false
+    if not C_TooltipInfo then return false, true end
+
+    local data = nil
+    if bag and slot and C_TooltipInfo.GetBagItem then
+        data = C_TooltipInfo.GetBagItem(bag, slot)
+    elseif itemLink and C_TooltipInfo.GetHyperlink then
+        data = C_TooltipInfo.GetHyperlink(itemLink)
+    elseif C_TooltipInfo.GetItemByID then
+        data = C_TooltipInfo.GetItemByID(itemID)
+    end
+
+    if not data or not data.lines or #data.lines == 0 then
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            C_Item.RequestLoadItemDataByID(itemID)
+        end
+        return false, false
+    end
+
+    if TooltipUtil and TooltipUtil.SurfaceArgs then
+        TooltipUtil.SurfaceArgs(data)
+    end
+
+    for _, line in ipairs(data.lines) do
+        local text = line.leftText
+        if not text and line.args then
+            for _, arg in ipairs(line.args) do
+                if arg and arg.stringVal and type(arg.stringVal) == "string" and arg.stringVal ~= "" then
+                    text = arg.stringVal
+                    break
+                end
+            end
+        end
+
+        if text and type(text) == "string" then
+            local lower = text:lower()
+            -- Match standard Blizzard profession knowledge and skill patterns (case-insensitive)
+            if lower:find("study to")
+                or lower:find("increase.-knowledge")
+                or lower:find("grant.-knowledge")
+                or lower:find("gain.-knowledge")
+                or lower:find("increase your .- skill") then
+                return true, true
+            end
+        end
+    end
+
+    return false, true
+end
+
+local function IsKnowledgeItem(bag, slot, itemID)
+    if not itemID then return false, true end
+
+    local db = KnowledgeBigginsDB or defaults
+
+    -- 1. Blacklist / Block List Check (Highest Priority - instant discard)
+    if db.blacklist and db.blacklist[itemID] then
+        return false, true
+    end
+
+    -- 2. Whitelist / Allow List Check (User curated - accept if usable)
+    if db.whitelist and db.whitelist[itemID] then
+        if HasItemUseEffect(itemID) then
+            return true, true
+        end
+        if C_Item and C_Item.IsItemDataCachedByID and not C_Item.IsItemDataCachedByID(itemID) then
+            if C_Item.RequestLoadItemDataByID then
+                C_Item.RequestLoadItemDataByID(itemID)
+            end
+            return false, false
+        end
+        return false, true
+    end
+
+    -- Check cache next
+    if knowledgeItemCache[itemID] ~= nil then
+        return knowledgeItemCache[itemID], true
+    end
+
+    local isDefault, isDefinitive = IsDefaultKnowledgeItem(bag, slot, itemID)
+    if isDefault then
+        knowledgeItemCache[itemID] = true
+        return true, true
+    elseif isDefinitive then
+        knowledgeItemCache[itemID] = false
+        return false, true
+    else
+        -- Not definitive yet (waiting for item data load); do not cache false
+        return false, false
+    end
 end
 
 local function ScanBagsForKnowledge()
@@ -102,12 +205,15 @@ local function ScanBagsForKnowledge()
         return found
     end
 
-    for bag = 0, 4 do
+    local hasPendingItems = false
+    local maxBag = math.max(5, NUM_TOTAL_EQUIPPED_BAG_SLOTS or 5)
+    for bag = 0, maxBag do
         local numSlots = C_Container.GetContainerNumSlots(bag) or 0
         for slot = 1, numSlots do
             local info = C_Container.GetContainerItemInfo(bag, slot)
             if info and info.itemID then
-                if IsKnowledgeItem(bag, slot, info.itemID) then
+                local isKnown, isDefinitive = IsKnowledgeItem(bag, slot, info.itemID)
+                if isKnown then
                     table.insert(found, {
                         bag = bag,
                         slot = slot,
@@ -116,9 +222,19 @@ local function ScanBagsForKnowledge()
                         count = info.stackCount or 1,
                         link = info.hyperlink,
                     })
+                elseif not isDefinitive then
+                    hasPendingItems = true
                 end
             end
         end
+    end
+
+    if hasPendingItems and C_Timer and C_Timer.After then
+        C_Timer.After(0.3, function()
+            if not InCombatLockdown() and UpdateKnowledgeButton then
+                UpdateKnowledgeButton()
+            end
+        end)
     end
 
     return found
@@ -133,7 +249,7 @@ button:SetSize(45, 45)
 button:SetMovable(true)
 button:SetClampedToScreen(true)
 button:RegisterForDrag("LeftButton")
-button:RegisterForClicks("LeftButtonDown", "LeftButtonUp", "RightButtonDown", "RightButtonUp")
+button:RegisterForClicks("LeftButtonDown", "LeftButtonUp", "RightButtonUp")
 button:Hide()
 
 -- Native Action Bar Normal Bezel Frame (OVERLAY layer, stretched across full button)
@@ -196,6 +312,148 @@ button:SetScript("OnDragStop", function(self)
     db.yOfs = yOfs or -140
 end)
 
+-- Allow list helper with Use: action validation
+local function AddItemToWhitelist(itemID, itemLink, deferUpdate)
+    if not itemID then return false end
+
+    if not HasItemUseEffect(itemID, itemLink) then
+        PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+        PrintMsg("Cannot allow " .. (itemLink or ("item " .. itemID)) .. " - item has no Use action.")
+        return false
+    end
+
+    local db = KnowledgeBigginsDB or defaults
+    local isDefault = IsDefaultKnowledgeItem(nil, nil, itemID, itemLink)
+
+    if isDefault then
+        -- Check if it was blocked; dragging/allowing it should unblock it
+        if db.blacklist and db.blacklist[itemID] then
+            db.blacklist[itemID] = nil
+            if db.whitelist then db.whitelist[itemID] = nil end
+            knowledgeItemCache[itemID] = true
+            PlaySound(SOUNDKIT.IG_BACKPACK_COIN_OK)
+            PrintMsg("Unblocked " .. (itemLink or ("item " .. itemID)) .. " (automatically detected by default).")
+            if not deferUpdate and UpdateKnowledgeButton then
+                UpdateKnowledgeButton()
+            end
+            if optionsPanel and optionsPanel.RefreshTrays then
+                optionsPanel.RefreshTrays()
+            end
+            return true
+        else
+            PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+            PrintMsg((itemLink or ("item " .. itemID)) .. " is already automatically detected by default.")
+            return false
+        end
+    end
+
+    db.whitelist = db.whitelist or {}
+    if not db.whitelist[itemID] then
+        db.whitelist[itemID] = true
+        if db.blacklist then db.blacklist[itemID] = nil end
+        knowledgeItemCache[itemID] = true
+        PlaySound(SOUNDKIT.IG_BACKPACK_COIN_OK)
+        PrintMsg("Added " .. (itemLink or ("item " .. itemID)) .. " to custom allow list.")
+        if not deferUpdate and UpdateKnowledgeButton then
+            UpdateKnowledgeButton()
+        end
+        if optionsPanel and optionsPanel.RefreshTrays then
+            optionsPanel.RefreshTrays()
+        end
+        return true
+    else
+        PrintMsg((itemLink or ("Item " .. itemID)) .. " is already on custom allow list.")
+        return false
+    end
+end
+
+-- Drag and drop item onto button to allow
+button:SetScript("OnReceiveDrag", function(self)
+    if InCombatLockdown() then return end
+    local cursorType, itemID, itemLink = GetCursorInfo()
+    if cursorType == "item" and itemID then
+        ClearCursor()
+        AddItemToWhitelist(itemID, itemLink, false)
+    end
+end)
+
+-- Intercept drops via click or Alt + Right-Click to block
+button:SetScript("PreClick", function(self, btn, down)
+    if InCombatLockdown() then return end
+
+    -- Check if cursor is dropping an item via click
+    local cursorType, itemID, itemLink = GetCursorInfo()
+    if cursorType == "item" and itemID then
+        -- CRITICAL: Instantly disarm the secure button so this click CANNOT consume the dropped or queued item
+        self.droppingItem = true
+        self:SetAttribute("type", nil)
+        self:SetAttribute("type1", nil)
+        self:SetAttribute("type2", nil)
+        self:SetAttribute("macrotext", nil)
+        self:SetAttribute("macrotext1", nil)
+        self:SetAttribute("macrotext2", nil)
+        ClearCursor()
+        AddItemToWhitelist(itemID, itemLink, true) -- defer UpdateKnowledgeButton until PostClick
+        return
+    end
+
+    -- Alt + Right-Click to block current item from showing
+    if btn == "RightButton" and IsAltKeyDown() then
+        -- Disarm attributes so right-click cannot trigger secure action
+        self.droppingItem = true
+        self:SetAttribute("type", nil)
+        self:SetAttribute("type1", nil)
+        self:SetAttribute("type2", nil)
+        self:SetAttribute("macrotext", nil)
+        self:SetAttribute("macrotext1", nil)
+        self:SetAttribute("macrotext2", nil)
+
+        -- Only execute the block/dismiss mutation on mouse button release (not down) to prevent firing twice per click
+        if not down and currentLootedItem then
+            local targetItemID = currentLootedItem.itemID
+            local targetLink = currentLootedItem.link
+            local db = KnowledgeBigginsDB or defaults
+            local wasAllowed = db.whitelist and db.whitelist[targetItemID]
+            if wasAllowed then
+                db.whitelist[targetItemID] = nil
+            end
+
+            -- Test if item naturally matches default knowledge criteria
+            local isDefaultKnowledge = IsDefaultKnowledgeItem(currentLootedItem.bag, currentLootedItem.slot, targetItemID)
+
+            PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+
+            if isDefaultKnowledge then
+                -- Naturally matches default criteria: must add to block list so dynamic scanner won't pick it up again
+                db.blacklist = db.blacklist or {}
+                db.blacklist[targetItemID] = true
+                knowledgeItemCache[targetItemID] = false
+                PrintMsg("Added " .. (targetLink or ("item " .. targetItemID)) .. " to block list.")
+            else
+                -- Custom allowed item: removing from allow list is sufficient to prevent it from ever showing
+                knowledgeItemCache[targetItemID] = nil
+                PrintMsg("Removed " .. (targetLink or ("item " .. targetItemID)) .. " from custom allow list.")
+            end
+
+            if optionsPanel and optionsPanel.RefreshTrays then
+                optionsPanel.RefreshTrays()
+            end
+        end
+        return
+    end
+end)
+
+-- PostClick: safely re-arm the button after the click event has completely resolved
+button:SetScript("PostClick", function(self, btn)
+    if InCombatLockdown() then return end
+    if self.droppingItem then
+        self.droppingItem = nil
+        if UpdateKnowledgeButton then
+            UpdateKnowledgeButton()
+        end
+    end
+end)
+
 -- Tooltip Handling
 button:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -213,6 +471,11 @@ button:SetScript("OnEnter", function(self)
         else
             GameTooltip:AddLine("|cFF888888Position Locked (Unlock in Settings to move)|r")
         end
+        if db.whitelist and db.whitelist[currentLootedItem.itemID] and not IsDefaultKnowledgeItem(currentLootedItem.bag, currentLootedItem.slot, currentLootedItem.itemID) then
+            GameTooltip:AddLine("|cFFFF5555Alt + Right-Click:|r Remove from Allow List")
+        else
+            GameTooltip:AddLine("|cFFFF5555Alt + Right-Click:|r Block Item from Showing")
+        end
     else
         GameTooltip:AddLine("|cFFFFD100Knowledge Biggins|r")
         GameTooltip:AddLine("No unconsumed knowledge items in your bags.", 1, 1, 1)
@@ -222,6 +485,7 @@ button:SetScript("OnEnter", function(self)
         else
             GameTooltip:AddLine("|cFF888888Position Locked (Unlock in Settings to move)|r")
         end
+        GameTooltip:AddLine("|cFF888888Tip: Drop any click-to-use item here to allow it.|r")
     end
     GameTooltip:Show()
 end)
@@ -231,7 +495,7 @@ button:SetScript("OnLeave", function(self)
 end)
 
 -- Update the popup button with current unstudied items
-local function UpdateKnowledgeButton()
+UpdateKnowledgeButton = function()
     if InCombatLockdown() then
         isUpdatePending = true
         return
@@ -332,8 +596,6 @@ end
 -- 4. BLIZZARD CANVAS SETTINGS INTEGRATION
 -- ==============================================================================
 
-local optionsPanel = nil
-
 local function RegisterSettingsUI()
     local panel = CreateFrame("Frame", "KnowledgeBigginsOptionsPanel", UIParent)
     panel.name = "Knowledge"
@@ -355,7 +617,7 @@ local function RegisterSettingsUI()
     desc:SetPoint("RIGHT", logo, "LEFT", -20)
     desc:SetJustifyH("LEFT")
     desc:SetWordWrap(true)
-    desc:SetText("Zero-maintenance, one-click popup button to study and consume profession knowledge directly from your bags.")
+    desc:SetText("Automatically detects and queues profession knowledge and skill items out of the box with zero setup.\n\nThe Allow List and Block List below let you tailor behavior for your character: any click-to-use item can be added by dropping it onto the floating button, and unwanted items can be blocked with Alt + Right-Click.")
 
     -- Top-Right Defaults Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -364,9 +626,13 @@ local function RegisterSettingsUI()
     btnDefaults:SetText("Defaults")
     btnDefaults:SetScript("OnClick", function()
         KnowledgeBigginsDB = CopyTable(defaults)
+        knowledgeItemCache = {}
         KnowledgeBiggins:ResetPosition()
         if panel.RefreshControls then
             panel.RefreshControls()
+        end
+        if panel.RefreshTrays then
+            panel.RefreshTrays()
         end
         UpdateKnowledgeButton()
         PrintMsg("Settings reset to defaults.")
@@ -420,16 +686,198 @@ local function RegisterSettingsUI()
 
     -- Reset Position Button
     local resetBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    resetBtn:SetPoint("TOPLEFT", cbLocked, "BOTTOMLEFT", 0, -16)
-    resetBtn:SetSize(130, 26)
+    resetBtn:SetPoint("TOPLEFT", cbLocked, "BOTTOMLEFT", 0, -14)
+    resetBtn:SetSize(130, 24)
     resetBtn:SetText("Reset Position")
     resetBtn:SetScript("OnClick", function()
         KnowledgeBiggins:ResetPosition()
     end)
 
+    -- --------------------------------------------------------------------------
+    -- Custom Allow List Tray
+    -- --------------------------------------------------------------------------
+    local wlHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    wlHeader:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", 0, -16)
+    wlHeader:SetText("Custom Allow List (Drop any click-to-use item onto floating button to add):")
+
+    local btnResetWl = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    btnResetWl:SetPoint("TOPRIGHT", -24, 0)
+    btnResetWl:SetPoint("TOP", wlHeader, "TOP", 0, 4)
+    btnResetWl:SetSize(115, 20)
+    btnResetWl:SetText("Reset Allow List")
+
+    local wlEmpty = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    wlEmpty:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -6)
+    wlEmpty:SetText("(No custom items in allow list)")
+
+    local wlTiles = {}
+    for i = 1, 12 do
+        local tile = CreateFrame("Button", nil, panel)
+        tile:SetSize(30, 30)
+        tile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        if i == 1 then
+            tile:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -6)
+        else
+            tile:SetPoint("LEFT", wlTiles[i - 1], "RIGHT", 4, 0)
+        end
+
+        local icon = tile:CreateTexture(nil, "ARTWORK")
+        icon:SetPoint("TOPLEFT", 2, -2)
+        icon:SetPoint("BOTTOMRIGHT", -2, 2)
+        tile.icon = icon
+
+        local border = tile:CreateTexture(nil, "OVERLAY")
+        border:SetAllPoints(tile)
+        if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("UI-HUD-ActionBar-IconFrame") then
+            border:SetAtlas("UI-HUD-ActionBar-IconFrame")
+        else
+            border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+        end
+
+        tile:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+
+        tile:SetScript("OnEnter", function(self)
+            if self.itemID then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetItemByID(self.itemID)
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("|cFFFF5555Right-Click to remove from allow list|r")
+                GameTooltip:Show()
+            end
+        end)
+        tile:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        tile:SetScript("OnClick", function(self)
+            if self.itemID then
+                local db = KnowledgeBigginsDB or defaults
+                local id = self.itemID
+                if db.whitelist then db.whitelist[id] = nil end
+                knowledgeItemCache[id] = nil
+                PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+                local displayName = self.itemLink
+                if not displayName then
+                    local _, link = C_Item.GetItemInfo(id)
+                    displayName = link or (C_Item.GetItemLinkByItemID and C_Item.GetItemLinkByItemID(id)) or ("item " .. id)
+                end
+                PrintMsg("Removed " .. displayName .. " from custom allow list.")
+                UpdateKnowledgeButton()
+                if panel.RefreshTrays then panel.RefreshTrays() end
+                GameTooltip:Hide()
+            end
+        end)
+        tile:Hide()
+        wlTiles[i] = tile
+    end
+
+    btnResetWl:SetScript("OnClick", function()
+        local db = KnowledgeBigginsDB or defaults
+        db.whitelist = {}
+        knowledgeItemCache = {}
+        PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+        PrintMsg("Custom allow list cleared.")
+        UpdateKnowledgeButton()
+        if panel.RefreshTrays then panel.RefreshTrays() end
+    end)
+    btnResetWl:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Clear all items from the custom allow list.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    btnResetWl:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- --------------------------------------------------------------------------
+    -- Block List Tray
+    -- --------------------------------------------------------------------------
+    local blHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    blHeader:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -42)
+    blHeader:SetText("Block List (Alt + Right-Click floating button to block/ignore):")
+
+    local btnResetBl = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    btnResetBl:SetPoint("TOPRIGHT", -24, 0)
+    btnResetBl:SetPoint("TOP", blHeader, "TOP", 0, 4)
+    btnResetBl:SetSize(115, 20)
+    btnResetBl:SetText("Reset Block List")
+
+    local blEmpty = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    blEmpty:SetPoint("TOPLEFT", blHeader, "BOTTOMLEFT", 0, -6)
+    blEmpty:SetText("(No items blocked)")
+
+    local blTiles = {}
+    for i = 1, 12 do
+        local tile = CreateFrame("Button", nil, panel)
+        tile:SetSize(30, 30)
+        tile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        if i == 1 then
+            tile:SetPoint("TOPLEFT", blHeader, "BOTTOMLEFT", 0, -6)
+        else
+            tile:SetPoint("LEFT", blTiles[i - 1], "RIGHT", 4, 0)
+        end
+
+        local icon = tile:CreateTexture(nil, "ARTWORK")
+        icon:SetPoint("TOPLEFT", 2, -2)
+        icon:SetPoint("BOTTOMRIGHT", -2, 2)
+        tile.icon = icon
+
+        local border = tile:CreateTexture(nil, "OVERLAY")
+        border:SetAllPoints(tile)
+        if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("UI-HUD-ActionBar-IconFrame") then
+            border:SetAtlas("UI-HUD-ActionBar-IconFrame")
+        else
+            border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+        end
+
+        tile:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+
+        tile:SetScript("OnEnter", function(self)
+            if self.itemID then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetItemByID(self.itemID)
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("|cFF00FF00Right-Click to unblock (restore)|r")
+                GameTooltip:Show()
+            end
+        end)
+        tile:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        tile:SetScript("OnClick", function(self)
+            if self.itemID then
+                local db = KnowledgeBigginsDB or defaults
+                local id = self.itemID
+                if db.blacklist then db.blacklist[id] = nil end
+                knowledgeItemCache[id] = nil
+                PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+                local displayName = self.itemLink
+                if not displayName then
+                    local _, link = C_Item.GetItemInfo(id)
+                    displayName = link or (C_Item.GetItemLinkByItemID and C_Item.GetItemLinkByItemID(id)) or ("item " .. id)
+                end
+                PrintMsg("Unblocked " .. displayName .. " from block list.")
+                UpdateKnowledgeButton()
+                if panel.RefreshTrays then panel.RefreshTrays() end
+                GameTooltip:Hide()
+            end
+        end)
+        tile:Hide()
+        blTiles[i] = tile
+    end
+
+    btnResetBl:SetScript("OnClick", function()
+        local db = KnowledgeBigginsDB or defaults
+        db.blacklist = {}
+        knowledgeItemCache = {}
+        PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+        PrintMsg("Block list cleared.")
+        UpdateKnowledgeButton()
+        if panel.RefreshTrays then panel.RefreshTrays() end
+    end)
+    btnResetBl:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Clear all items from the block list.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    btnResetBl:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     -- Help Info
     local helpText = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    helpText:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", 0, -16)
+    helpText:SetPoint("TOPLEFT", blHeader, "BOTTOMLEFT", 0, -42)
     helpText:SetText("|cFFFFD100Positioning:|r When unlocked, hold |cFF00FF00Shift|r and drag the button with Left-Click to place it anywhere.\nRegular Left-Click always consumes knowledge items directly from your bags.")
 
     -- Slash Command Help Note
@@ -443,8 +891,89 @@ local function RegisterSettingsUI()
         if cbLocked then cbLocked:SetChecked(db.locked or false) end
     end
 
+    function panel.RefreshTrays()
+        local db = KnowledgeBigginsDB or defaults
+
+        -- Refresh Whitelist Tray
+        local wlItems = {}
+        if db.whitelist then
+            for id, enabled in pairs(db.whitelist) do
+                if enabled then table.insert(wlItems, id) end
+            end
+        end
+        table.sort(wlItems)
+
+        if #wlItems == 0 then
+            wlEmpty:Show()
+            for i = 1, 12 do
+                wlTiles[i].itemID = nil
+                wlTiles[i].itemLink = nil
+                wlTiles[i]:Hide()
+            end
+        else
+            wlEmpty:Hide()
+            for i = 1, 12 do
+                if i <= #wlItems then
+                    local id = wlItems[i]
+                    wlTiles[i].itemID = id
+                    if C_Item and C_Item.RequestLoadItemDataByID then
+                        C_Item.RequestLoadItemDataByID(id)
+                    end
+                    local _, itemLink = C_Item.GetItemInfo(id)
+                    wlTiles[i].itemLink = itemLink or (C_Item.GetItemLinkByItemID and C_Item.GetItemLinkByItemID(id))
+                    local iconFile = C_Item.GetItemIconByID(id) or 134400
+                    wlTiles[i].icon:SetTexture(iconFile)
+                    wlTiles[i]:Show()
+                else
+                    wlTiles[i].itemID = nil
+                    wlTiles[i].itemLink = nil
+                    wlTiles[i]:Hide()
+                end
+            end
+        end
+
+        -- Refresh Blacklist Tray
+        local blItems = {}
+        if db.blacklist then
+            for id, enabled in pairs(db.blacklist) do
+                if enabled then table.insert(blItems, id) end
+            end
+        end
+        table.sort(blItems)
+
+        if #blItems == 0 then
+            blEmpty:Show()
+            for i = 1, 12 do
+                blTiles[i].itemID = nil
+                blTiles[i].itemLink = nil
+                blTiles[i]:Hide()
+            end
+        else
+            blEmpty:Hide()
+            for i = 1, 12 do
+                if i <= #blItems then
+                    local id = blItems[i]
+                    blTiles[i].itemID = id
+                    if C_Item and C_Item.RequestLoadItemDataByID then
+                        C_Item.RequestLoadItemDataByID(id)
+                    end
+                    local _, itemLink = C_Item.GetItemInfo(id)
+                    blTiles[i].itemLink = itemLink or (C_Item.GetItemLinkByItemID and C_Item.GetItemLinkByItemID(id))
+                    local iconFile = C_Item.GetItemIconByID(id) or 134400
+                    blTiles[i].icon:SetTexture(iconFile)
+                    blTiles[i]:Show()
+                else
+                    blTiles[i].itemID = nil
+                    blTiles[i].itemLink = nil
+                    blTiles[i]:Hide()
+                end
+            end
+        end
+    end
+
     panel:SetScript("OnShow", function()
         panel.RefreshControls()
+        panel.RefreshTrays()
     end)
 
     if LibBigginsSuite and LibBigginsSuite.RegisterSubcategory then
@@ -464,6 +993,7 @@ local eventFrame = CreateFrame("Frame", "KnowledgeBigginsEventFrame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+eventFrame:RegisterEvent("ITEM_DATA_LOAD_RESULT")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
@@ -474,7 +1004,11 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         else
             for k, v in pairs(defaults) do
                 if KnowledgeBigginsDB[k] == nil then
-                    KnowledgeBigginsDB[k] = v
+                    if type(v) == "table" then
+                        KnowledgeBigginsDB[k] = CopyTable(v)
+                    else
+                        KnowledgeBigginsDB[k] = v
+                    end
                 end
             end
         end
@@ -484,6 +1018,13 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         UpdateKnowledgeButton()
     elseif event == "BAG_UPDATE_DELAYED" then
         UpdateKnowledgeButton()
+    elseif event == "ITEM_DATA_LOAD_RESULT" then
+        local loadedItemID, success = arg1, arg2
+        if success and knowledgeItemCache[loadedItemID] == nil then
+            if not InCombatLockdown() and UpdateKnowledgeButton then
+                UpdateKnowledgeButton()
+            end
+        end
     elseif event == "PLAYER_REGEN_DISABLED" then
         -- In combat: lock button state
     elseif event == "PLAYER_REGEN_ENABLED" then
@@ -533,6 +1074,56 @@ SlashCmdList["KNOWLEDGEBIGGINS"] = function(msg)
         if optionsPanel and optionsPanel.RefreshControls then
             optionsPanel.RefreshControls()
         end
+    elseif cmd == "ignore" or cmd == "blacklist" or cmd == "block" then
+        if currentLootedItem then
+            local targetItemID = currentLootedItem.itemID
+            local targetLink = currentLootedItem.link
+            local db = KnowledgeBigginsDB or defaults
+            local wasAllowed = db.whitelist and db.whitelist[targetItemID]
+            if wasAllowed then
+                db.whitelist[targetItemID] = nil
+            end
+
+            local isDefaultKnowledge = IsDefaultKnowledgeItem(currentLootedItem.bag, currentLootedItem.slot, targetItemID)
+            PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+
+            if isDefaultKnowledge then
+                db.blacklist = db.blacklist or {}
+                db.blacklist[targetItemID] = true
+                knowledgeItemCache[targetItemID] = false
+                PrintMsg("Added " .. (targetLink or ("item " .. targetItemID)) .. " to block list.")
+            else
+                knowledgeItemCache[targetItemID] = nil
+                PrintMsg("Removed " .. (targetLink or ("item " .. targetItemID)) .. " from custom allow list.")
+            end
+
+            UpdateKnowledgeButton()
+            if optionsPanel and optionsPanel.RefreshTrays then
+                optionsPanel.RefreshTrays()
+            end
+        else
+            PrintMsg("No item currently active to dismiss/block. Hold Alt + Right-Click the button when an item appears.")
+        end
+    elseif cmd:find("^unignore%s*") or cmd:find("^whitelist%s*") or cmd:find("^allow%s*") then
+        local arg = cmd:match("^%S+%s*(.*)$")
+        local itemID = tonumber(arg) or (arg and tonumber(arg:match("item:(%d+)")))
+        local itemLink = (arg and arg:find("%|Hitem:")) and arg or nil
+        if itemID then
+            AddItemToWhitelist(itemID, itemLink)
+        else
+            PrintMsg("Usage: /knowledgeb allow <itemID|itemLink>")
+        end
+    elseif cmd == "clear" or cmd == "resetlists" then
+        local db = KnowledgeBigginsDB or defaults
+        db.whitelist = {}
+        db.blacklist = {}
+        knowledgeItemCache = {}
+        PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+        PrintMsg("Cleared all custom allow and block list items.")
+        UpdateKnowledgeButton()
+        if optionsPanel and optionsPanel.RefreshTrays then
+            optionsPanel.RefreshTrays()
+        end
     elseif cmd == "reset" then
         KnowledgeBiggins:ResetPosition()
     elseif cmd == "scan" or cmd == "update" then
@@ -543,10 +1134,13 @@ SlashCmdList["KNOWLEDGEBIGGINS"] = function(msg)
         print("  |cFFFFD100/knowledgeb|r - Open settings panel")
         print("  |cFFFFD100/knowledgeb lock|r - Toggle button lock/unlock")
         print("  |cFFFFD100/knowledgeb show|r - Toggle always showing button")
+        print("  |cFFFFD100/knowledgeb ignore|r or |cFFFFD100/knowledgeb block|r - Block the currently displayed item")
+        print("  |cFFFFD100/knowledgeb allow <id>|r - Manually add item to allow list")
+        print("  |cFFFFD100/knowledgeb clear|r - Clear all custom allow and block list items")
         print("  |cFFFFD100/knowledgeb reset|r - Reset button position to center")
         print("  |cFFFFD100/knowledgeb scan|r - Force a bag scan for knowledge items")
         print("  |cFFFFD100/knowledgeb help|r or |cFFFFD100/knowledgeb ?|r - Show this list of commands")
-        print("  |cFF888888Tip: When unlocked, hold Shift and drag to reposition.|r")
+        print("  |cFF888888Shortcuts: Shift+Drag to move | Alt+Right-Click to block item | Drop item to allow|r")
     else
         PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/knowledgeb help|r for available commands.")
     end

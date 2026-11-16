@@ -1,3 +1,21 @@
+# Knowledge Biggins v1.1.0
+
+### Added
+- **Drag & Drop Custom Allow List:** Drag any item from your bags and drop it directly onto the floating button to add it to your custom allow list. Supports any click-to-use item across all expansions.
+- **One-Click Ignore (Block List):** Hold `Alt + Right-Click` on the floating button to immediately block the current item from showing. Useful for saving specific knowledge items for later.
+- **Settings Panel Management Trays:** Visual icon trays in `Options -> AddOns -> Biggins AddOns -> Knowledge` displaying all allowed and blocked items with mouseover tooltips and right-click removal.
+- **Allow List & Block List Reset Controls:** Added `[ Reset Allow List ]` and `[ Reset Block List ]` buttons to quickly clear curated lists.
+- **Full Reagent Bag Support:** Expanded bag scanning to cover all equipped bags including Bag 5 (`Enum.BagIndex.ReagentBag`), fully supporting unified bag addons (Baganator, Bagnon).
+- **Use Action Validation:** Added guardrail requiring items to possess an active `Use:` action before allowing, preventing dead-button lockups on passive items.
+- **Native Blizzard Keybindings:** Assign a dedicated keyboard shortcut in `Options -> Keybindings -> Knowledge Biggins` to consume queued knowledge items without mouse clicks.
+- **Enhanced Slash Commands:** Added `/knowledgeb allow <id>`, `/knowledgeb block`, `/knowledgeb ignore`, `/knowledgeb clear`, `/knowledgeb help`, and `/knowledgeb ?`.
+
+### Changed
+- **Terminology & Clarity:** Standardized user-facing UI and settings to "Allow List" and "Block List".
+- **Positioning Clarification:** Updated documentation and settings descriptions from "zero-maintenance" to "low-maintenance" to accurately reflect user curation options.
+
+---
+
 # Knowledge Biggins v1.0.0
 
 ### Initial Release

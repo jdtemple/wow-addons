@@ -1,5 +1,5 @@
 <Bindings>
-    <Binding name="PERFBIGGINS_TOGGLE" category="PerfBiggins" header="PERFBIGGINS_HEADER">
+    <Binding name="PERFBIGGINS_TOGGLE" category="Perf Biggins" header="PERFBIGGINS_HEADER">
         PerfBiggins:Toggle()
     </Binding>
 </Bindings>

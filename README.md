@@ -14,14 +14,44 @@ All projects here are open source and shared freely under the [MIT License](LICE
 
 ## Projects in this Repository
 
-### 1. [AutoJoin Biggins (v1.2.0)](./autojoin-biggins)
+### 1. [Angler Biggins (v2.2.0)](./angler-biggins)
+An ultra-lightweight fishing utility that automates the Underlight Angler artifact fishing pole's water walking, fish form, swim speed, and underwater breathing without bag clutter, item juggling, or gear-swapping loops.
+* **Dedicated Slot 28 Integration:** Interacts directly with your character's dedicated Fishing Profession Tool slot (slot 28) and weapon slot (slot 16), eliminating bag shuffling.
+* **Dragonflight & The War Within Trait Wakeup:** Resolves Blizzard's dormant profession equipment trait bug cleanly when entering water.
+* **Instance & Delve Resilience:** Fully functional across Dungeons, Raids, and Delves without getting caught in gear-swapping loops.
+* **Persistent Water Walking & Stand-on-Water Fishing:** Never strips the Underlight Angler upon transitioning to surface walking or dry land, allowing you to walk across lakes and fish directly on top of deep water pools.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Angler` with master enable toggle, live telemetry diagnostics, and top-right `[ Defaults ]` button.
+
+### 2. [AutoJoin Biggins (v1.4.0)](./autojoin-biggins)
 A lightweight, configurable auto-accept utility for party invitations from Guildmates, Character Friends, and Battle.net contacts.
 * **Granular Invite Filters:** Independent toggles for Guild, Friends, Battle.net, and All Players (with safety warning).
 * **Automatic Chat Channel Priming:** Automatically prepares active chat input to `/p` (Party), `/ra` (Raid), or `/i` (Instance) upon joining.
 * **Blizzard Dialog Suppression:** Eliminates intrusive invitation popup dialogs.
 * **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> AutoJoin` with top-right `[ Defaults ]` button and dynamic control graying out.
 
-### 2. [LazySpeed Biggins (v3.8.0)](./lazyspeed-biggins)
+### 3. [ChatLink Biggins (v1.2.0)](./chatlink-biggins)
+An ultra-lightweight chat utility designed to make web URLs in chat clickable for instant, native copy-pasting (`Ctrl+C` -> `Enter`).
+* **100% Blizzard Factory Aesthetic:** Uses native `StaticPopupDialogs` with auto-highlighted text and instant focus. No custom skins or third-party frameworks.
+* **Single-Pattern Protocol Isolation:** Strict protocol matching for `https://` and `http://` eliminating pattern collisions, domain whitelists, and chat loops.
+* **Sentence Punctuation Stripping:** Automatically trims trailing punctuation (`.,;:!?)[]'"`) so links copied at sentence boundaries remain clean and valid.
+* **Pipe Escape Protection:** Safely respects WoW `|` escape sequences, protecting adjacent item links, spell links, and player names.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> ChatLink` with top-right `[ Defaults ]` button and master toggle.
+
+### 4. [Knowledge Biggins (v1.1.0)](./knowledge-biggins)
+An ultra-lightweight popup button to study and consume profession knowledge items (shards, treatises, skill books) directly from your bags without menu diving.
+* **Universal Tooltip Detection:** Uses `C_TooltipInfo` to automatically detect any consumable item granting profession knowledge or skill across all professions and expansions with zero hardcoded databases.
+* **Drag & Drop Allow List:** Drop any click-to-use item directly onto the button to immediately allow it for consumption.
+* **Alt + Right-Click Block List:** Quickly block unwanted items from showing or reserve items for later with an instant click shortcut.
+* **Full Reagent Bag Compatibility:** Automatically scans all bags including Bag 5 (Reagent Bag), providing full support for unified inventory addons (Baganator, Bagnon).
+* **Native Blizzard Keybindings:** Assign dedicated keyboard shortcuts in `Options -> Keybindings -> Knowledge Biggins`.
+* **Visual Settings Trays:** Manage active allow and block lists in the Settings panel with mouseover tooltips and right-click removal.
+* **One-Click Secure Action Button:** Styled to match Blizzard's native action bars with stack counts and instant one-click consumption.
+* **Shift + Drag Positioning & Lock Protection:** Drag freely with `Shift + Left-Click Drag` when unlocked. The button can be locked to prevent accidental movement and optionally set to always show even with empty bags.
+* **Native Blizzard UI Scaling:** Fully parented to `UIParent` to automatically inherit and scale with Blizzard's Graphics -> UI Scale slider.
+* **Zero Combat Taint:** Strictly respects Blizzard combat lockdown (`InCombatLockdown`), queueing updates until combat drops.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Knowledge` with top-right `[ Defaults ]` button, position reset, allow/block list trays, and granular lock/visibility toggles.
+
+### 5. [LazySpeed Biggins (v4.0.0)](./lazyspeed-biggins)
 A high-performance flight, swim, and movement speedometer featuring a sleek nameplate-style HUD, dynamic color gradients, and zero Lua garbage generation.
 * **Nameplate-Style Integrated HUD:** Compact status bar with high-contrast centered telemetry overlaid directly on the dynamic fill bar.
 * **Percentage Default Unit:** Defaults to percentage (`%`) of base run speed, with clean radio button support for MPH, y/s, and km/h.
@@ -29,7 +59,7 @@ A high-performance flight, swim, and movement speedometer featuring a sleek name
 * **Screen Position Persistence:** Drag with left-click when unlocked, save position across sessions, and reset anytime via `[ Reset Position ]` or `/lazyspeed reset`.
 * **Zero Idle Footprint:** Completely unhooks its update script (`OnUpdate = nil`) when grounded or dormant for a verified `0.00ms` CPU footprint.
 
-### 3. [Perf Biggins (v1.2.0)](./perf-biggins)
+### 6. [Perf Biggins (v1.5.0)](./perf-biggins)
 A high-performance tri-bar telemetry HUD displaying real-time FPS, World Latency, and Home Latency in a unified nameplate stack.
 * **Tri-Bar Split Nameplate Stack:** Three individual status bars separated by a clean air gap, styled with dark slate tooltip backdrops and Blizzard Metallic Gold borders.
 * **Native Game Engine Keybinding:** First-class `Bindings.xml` integration under `Keybindings -> AddOns -> Perf Biggins` to instantly toggle HUD visibility.
@@ -38,15 +68,7 @@ A high-performance tri-bar telemetry HUD displaying real-time FPS, World Latency
 * **Zero Garbage Generation:** Uses Blizzard's native C++ `FontString:SetFormattedText()` with pre-cached static format string pointers.
 * **Modern Canvas Settings UI:** Granular width/height sliders, lock toggle, combat hide, and position reset.
 
-### 4. [SummonPet Biggins (v1.2.4)](./summonpet-biggins)
-An ultra-lightweight, event-driven companion pet summoner designed to keep your favorite companion pet summoned automatically without CPU stutter or memory bloat.
-* **0.00% Movement CPU Usage:** Purely event-driven lifecycles triggered on dismount, stealth exit, combat drop, or zone transitions.
-* **Native Game Engine Keybinding:** First-class `Bindings.xml` integration under `Keybindings -> AddOns -> SummonPet Biggins`.
-* **1-Click Pet Pinning:** Click `[ Use Currently Summoned Pet ]` or type `/spb pin` to permanently pin your favorite companion.
-* **Multi-Tier Instance Auto-Dismiss:** Granular hierarchy for Raids, Mythic+ Dungeons, Regular Dungeons, and Delves & Labyrinths.
-* **Modern Canvas Settings UI:** Multi-tier nested hierarchy with top-level master toggle and top-right `[ Defaults ]` button.
-
-### 5. [SafeRelease Biggins (v1.0.0)](./saferelease-biggins)
+### 7. [SafeRelease Biggins (v1.1.0)](./saferelease-biggins)
 An ultra-lightweight group safety utility designed to guard the "Release Spirit" button during wipes across raids, Mythic+ dungeons, and delves to prevent accidental and costly releases.
 * **Physical Click Interception:** Places an inert overlay button directly over the native Release button during lockouts, making early release physically impossible even with high-frequency mouse spam.
 * **3 Flexible Guard Modes:** Configurable for Countdown Timer Delay (1-10s), Modifier-Key Hold (Alt/Shift/Ctrl), or Hybrid Mode (countdown with instant modifier bypass).
@@ -55,30 +77,13 @@ An ultra-lightweight group safety utility designed to guard the "Release Spirit"
 * **Modular Content Scoping:** Independent toggles for Raids (Default: ON), Mythic+ Dungeons, Regular Dungeons, and Delves & Scenarios. Never blocks release in open world or PvP.
 * **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> SafeRelease` with top-right `[ Defaults ]` button and master toggle.
 
-### 6. [ChatLink Biggins (v1.0.0)](./chatlink-biggins)
-An ultra-lightweight chat utility designed to make web URLs in chat clickable for instant, native copy-pasting (`Ctrl+C` -> `Enter`).
-* **100% Blizzard Factory Aesthetic:** Uses native `StaticPopupDialogs` with auto-highlighted text and instant focus. No custom skins or third-party frameworks.
-* **Single-Pattern Protocol Isolation:** Strict protocol matching for `https://` and `http://` eliminating pattern collisions, domain whitelists, and chat loops.
-* **Sentence Punctuation Stripping:** Automatically trims trailing punctuation (`.,;:!?)[]'"`) so links copied at sentence boundaries remain clean and valid.
-* **Pipe Escape Protection:** Safely respects WoW `|` escape sequences, protecting adjacent item links, spell links, and player names.
-* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> ChatLink` with top-right `[ Defaults ]` button and master toggle.
-
-### 7. [Angler Biggins (v1.0.0)](./angler-biggins)
-An ultra-lightweight fishing utility that automates the Underlight Angler artifact fishing pole's water walking, fish form, swim speed, and underwater breathing without bag clutter, item juggling, or gear-swapping loops.
-* **Dedicated Slot 28 Integration:** Interacts directly with your character's dedicated Fishing Profession Tool slot (slot 28) and weapon slot (slot 16), eliminating bag shuffling.
-* **Dragonflight & The War Within Trait Wakeup:** Resolves Blizzard's dormant profession equipment trait bug cleanly when entering water.
-* **Instance & Delve Resilience:** Fully functional across Dungeons, Raids, and Delves without getting caught in gear-swapping loops.
-* **Persistent Water Walking & Stand-on-Water Fishing:** Never strips the Underlight Angler upon transitioning to surface walking or dry land, allowing you to walk across lakes and fish directly on top of deep water pools.
-* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Angler` with master enable toggle, live telemetry diagnostics, and top-right `[ Defaults ]` button.
-
-### 8. [Knowledge Biggins (v1.0.0)](./knowledge-biggins)
-An ultra-lightweight popup button to study and consume profession knowledge items (shards, treatises, skill books) directly from your bags without menu diving.
-* **Universal Tooltip Detection:** Uses `C_TooltipInfo` to automatically detect any consumable item granting profession knowledge or skill across all professions and expansions with zero hardcoded databases.
-* **One-Click Secure Action Button:** Styled to match Blizzard's native action bars with stack counts and instant one-click consumption.
-* **Shift + Drag Positioning & Lock Protection:** Drag freely with `Shift + Left-Click Drag` when unlocked. The button can be locked to prevent accidental movement and optionally set to always show even with empty bags.
-* **Native Blizzard UI Scaling:** Fully parented to `UIParent` to automatically inherit and scale with Blizzard's Graphics -> UI Scale slider.
-* **Zero Combat Taint:** Strictly respects Blizzard combat lockdown (`InCombatLockdown`), queueing updates until combat drops.
-* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Knowledge` with top-right `[ Defaults ]` button, position reset, and granular lock/visibility toggles.
+### 8. [SummonPet Biggins (v1.5.0)](./summonpet-biggins)
+An ultra-lightweight, event-driven companion pet summoner designed to keep your favorite companion pet summoned automatically without CPU stutter or memory bloat.
+* **0.00% Movement CPU Usage:** Purely event-driven lifecycles triggered on dismount, stealth exit, combat drop, or zone transitions.
+* **Native Game Engine Keybinding:** First-class `Bindings.xml` integration under `Keybindings -> AddOns -> SummonPet Biggins`.
+* **1-Click Pet Pinning:** Click `[ Use Currently Summoned Pet ]` or type `/spb pin` to permanently pin your favorite companion.
+* **Multi-Tier Instance Auto-Dismiss:** Granular hierarchy for Raids, Mythic+ Dungeons, Regular Dungeons, and Delves & Labyrinths.
+* **Modern Canvas Settings UI:** Multi-tier nested hierarchy with top-level master toggle and top-right `[ Defaults ]` button.
 
 ---
 

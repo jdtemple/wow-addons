@@ -28,10 +28,11 @@
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.5.0"
+addon.version = "1.5.1"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
+_G["BINDING_CATEGORY_PERFBIGGINS"] = "Perf Biggins"
 _G["BINDING_NAME_PERFBIGGINS_TOGGLE"] = "Toggle Performance HUD"
 
 -- ==============================================================================

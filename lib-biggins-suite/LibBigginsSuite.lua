@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 5
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 6
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -17,6 +17,42 @@ _G["LibBigginsSuite"] = Suite
 local CreateFrame = CreateFrame
 local Settings    = Settings
 local UIParent    = UIParent
+local C_AddOns    = C_AddOns
+local type        = type
+
+local function IsAddOnLoadedSafe(addonName)
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        if C_AddOns.IsAddOnLoaded(addonName) then return true end
+    elseif IsAddOnLoaded then
+        if IsAddOnLoaded(addonName) then return true end
+    end
+    return _G[addonName] ~= nil or _G[addonName .. "Frame"] ~= nil or _G[addonName .. "DB"] ~= nil
+end
+
+local function GetAddOnVersion(addonName)
+    local ver
+    if C_AddOns and C_AddOns.GetAddOnMetadata then
+        ver = C_AddOns.GetAddOnMetadata(addonName, "Version")
+    elseif GetAddOnMetadata then
+        ver = GetAddOnMetadata(addonName, "Version")
+    end
+    if ver and ver ~= "" then
+        return ver
+    end
+    local tbl = _G[addonName]
+    if type(tbl) == "table" and tbl.version then
+        return tbl.version
+    end
+    return _G[addonName .. "_Version"] or ""
+end
+
+local function GetAddOnCategoryID(addonName)
+    local tbl = _G[addonName]
+    if type(tbl) == "table" and tbl.categoryID then
+        return tbl.categoryID
+    end
+    return _G[addonName .. "_CategoryID"]
+end
 
 function Suite:GetOrCreateParentCategory(addonDir)
     if self.parentCategory then
@@ -72,71 +108,47 @@ function Suite:GetOrCreateParentCategory(addonDir)
     addonsHeader:SetJustifyH("LEFT")
     addonsHeader:SetText("Installed Suite Modules:")
 
-    -- Dynamic rows for each addon
+    -- Dynamic rows for each addon (alphabetical, zero hardcoded versions)
     local modules = {
         {
-            key = "Angler",
+            name  = "AnglerBiggins",
             title = "Angler Biggins",
-            desc = "Automates Underlight Angler water walking, fish form, and underwater breathing.",
-            checkLoaded = function() return _G["AnglerBiggins"] ~= nil end,
-            getVersion = function() return (_G["AnglerBiggins"] and _G["AnglerBiggins"].version) or "1.0.0" end,
-            getCatID = function() return _G["AnglerBiggins"] and _G["AnglerBiggins"].categoryID end,
+            desc  = "Automates Underlight Angler water walking, fish form, and underwater breathing.",
         },
         {
-            key = "AutoJoin",
+            name  = "AutoJoinBiggins",
             title = "AutoJoin Biggins",
-            desc = "Configurable auto-accept for party invitations from Guild, Friends, and BNet.",
-            checkLoaded = function() return _G["AutoJoinBiggins"] ~= nil end,
-            getVersion = function() return (_G["AutoJoinBiggins"] and _G["AutoJoinBiggins"].version) or "1.3.1" end,
-            getCatID = function() return _G["AutoJoinBiggins"] and _G["AutoJoinBiggins"].categoryID end,
+            desc  = "Configurable auto-accept for party invitations from Guild, Friends, and BNet.",
         },
         {
-            key = "ChatLink",
+            name  = "ChatLinkBiggins",
             title = "ChatLink Biggins",
-            desc = "Converts web URLs into clickable links and displays player tooltips on name hover.",
-            checkLoaded = function() return _G["ChatLinkBiggins"] ~= nil end,
-            getVersion = function() return (_G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].version) or "1.1.1" end,
-            getCatID = function() return _G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].categoryID end,
+            desc  = "Converts web URLs into clickable links and displays player tooltips on name hover.",
         },
         {
-            key = "Knowledge",
+            name  = "KnowledgeBiggins",
             title = "Knowledge Biggins",
-            desc = "Popup button to instantly study and consume profession knowledge from your bags.",
-            checkLoaded = function() return _G["KnowledgeBiggins"] ~= nil end,
-            getVersion = function() return (_G["KnowledgeBiggins"] and _G["KnowledgeBiggins"].version) or "1.0.0" end,
-            getCatID = function() return _G["KnowledgeBiggins"] and _G["KnowledgeBiggins"].categoryID end,
+            desc  = "Popup button to instantly study and consume profession knowledge from your bags.",
         },
         {
-            key = "LazySpeed",
+            name  = "LazySpeedBiggins",
             title = "LazySpeed Biggins",
-            desc = "High-precision flight, swim, and movement speedometer with dynamic HUD.",
-            checkLoaded = function() return _G["LazySpeedBigginsFrame"] ~= nil or _G["LazySpeedBigginsDB"] ~= nil end,
-            getVersion = function() return _G["LazySpeedBiggins_Version"] or "3.8.1" end,
-            getCatID = function() return _G["LazySpeedBiggins_CategoryID"] end,
+            desc  = "High-precision flight, swim, and movement speedometer with dynamic HUD.",
         },
         {
-            key = "Perf",
+            name  = "PerfBiggins",
             title = "Perf Biggins",
-            desc = "High-performance FPS and dual-latency telemetry HUD in a nameplate stack.",
-            checkLoaded = function() return _G["PerfBiggins"] ~= nil end,
-            getVersion = function() return (_G["PerfBiggins"] and _G["PerfBiggins"].version) or "1.3.1" end,
-            getCatID = function() return _G["PerfBiggins"] and _G["PerfBiggins"].categoryID end,
+            desc  = "High-performance FPS and dual-latency telemetry HUD in a nameplate stack.",
         },
         {
-            key = "SafeRelease",
+            name  = "SafeReleaseBiggins",
             title = "SafeRelease Biggins",
-            desc = "Guards the Release Spirit button during wipes in raids, M+, and delves.",
-            checkLoaded = function() return _G["SafeReleaseBiggins"] ~= nil end,
-            getVersion = function() return (_G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].version) or "1.0.1" end,
-            getCatID = function() return _G["SafeReleaseBiggins"] and _G["SafeReleaseBiggins"].categoryID end,
+            desc  = "Guards the Release Spirit button during wipes in raids, M+, and delves.",
         },
         {
-            key = "SummonPet",
+            name  = "SummonPetBiggins",
             title = "SummonPet Biggins",
-            desc = "Ultra-lightweight companion pet summoner with native keybind & smart auto-dismiss.",
-            checkLoaded = function() return _G["SummonPetBiggins"] ~= nil end,
-            getVersion = function() return (_G["SummonPetBiggins"] and _G["SummonPetBiggins"].version) or "1.2.3" end,
-            getCatID = function() return _G["SummonPetBiggins"] and _G["SummonPetBiggins"].categoryID end,
+            desc  = "Ultra-lightweight companion pet summoner with native keybind & smart auto-dismiss.",
         },
     }
 
@@ -153,7 +165,7 @@ function Suite:GetOrCreateParentCategory(addonDir)
         btnConfigure:SetSize(110, 22)
         btnConfigure:SetText("Configure")
         btnConfigure:SetScript("OnClick", function()
-            local catID = mod.getCatID()
+            local catID = GetAddOnCategoryID(mod.name)
             if catID and Settings and Settings.OpenToCategory then
                 Settings.OpenToCategory(catID)
             end
@@ -182,9 +194,11 @@ function Suite:GetOrCreateParentCategory(addonDir)
     local function RefreshParentPanel()
         for _, row in ipairs(parentPanel.moduleRows) do
             local mod = row.mod
-            local isLoaded = mod.checkLoaded()
+            local isLoaded = IsAddOnLoadedSafe(mod.name)
             if isLoaded then
-                row.titleText:SetText("|cFFFFD100" .. mod.title .. "|r  |cFF00FF00v" .. mod.getVersion() .. "|r")
+                local ver = GetAddOnVersion(mod.name)
+                local verStr = (ver and ver ~= "") and ("  |cFF00FF00v" .. ver .. "|r") or ""
+                row.titleText:SetText("|cFFFFD100" .. mod.title .. "|r" .. verStr)
                 row.descText:SetTextColor(0.8, 0.8, 0.8)
                 row.btnConfigure:Show()
                 row.btnConfigure:Enable()
