@@ -35,6 +35,9 @@ function Suite:GetOrCreateParentCategory(addonDir)
     -- Subtitle / Description
     local desc = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+    desc:SetPoint("RIGHT", logo, "LEFT", -20)
+    desc:SetJustifyH("LEFT")
+    desc:SetWordWrap(true)
     desc:SetText("High-performance, lightweight World of Warcraft addons with zero Lua garbage generation.")
 
     -- Suite Logo Texture (Top Right)
@@ -46,11 +49,16 @@ function Suite:GetOrCreateParentCategory(addonDir)
     -- Author & Architecture Header
     local authorHeader = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     authorHeader:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -18)
+    authorHeader:SetJustifyH("LEFT")
     authorHeader:SetText("Engineering Philosophy & Standards:")
 
     local authorInfo = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     authorInfo:SetPoint("TOPLEFT", authorHeader, "BOTTOMLEFT", 0, -6)
-    authorInfo:SetText("Created by |cFFFFD100Biggins|r (US-Whisperwind).\nEvery addon in this suite is built from the ground up for maximum CPU efficiency:\n- Zero Lua memory allocation in update loops (no garbage collector churn)\n- Purely event-driven lifecycle management and hard script detachment\n- Modern Blizzard Canvas Settings integration")
+    authorInfo:SetPoint("RIGHT", logo, "LEFT", -20)
+    authorInfo:SetJustifyH("LEFT")
+    authorInfo:SetJustifyV("TOP")
+    authorInfo:SetWordWrap(true)
+    authorInfo:SetText("Created by |cFFFFD100Biggins|r (US-Whisperwind).\nEvery addon in this suite is built from the ground up for maximum CPU efficiency:\n  - Zero Lua memory allocation in update loops (no garbage collector churn)\n  - Purely event-driven lifecycle management and hard script detachment\n  - Modern Blizzard Canvas Settings integration")
 
     -- Divider line
     local line = parentPanel:CreateTexture(nil, "ARTWORK")
@@ -61,6 +69,7 @@ function Suite:GetOrCreateParentCategory(addonDir)
     -- Installed AddOns Header
     local addonsHeader = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     addonsHeader:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 0, -14)
+    addonsHeader:SetJustifyH("LEFT")
     addonsHeader:SetText("Installed Suite Modules:")
 
     -- Dynamic rows for each addon
@@ -88,6 +97,14 @@ function Suite:GetOrCreateParentCategory(addonDir)
             checkLoaded = function() return _G["ChatLinkBiggins"] ~= nil end,
             getVersion = function() return (_G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].version) or "1.1.1" end,
             getCatID = function() return _G["ChatLinkBiggins"] and _G["ChatLinkBiggins"].categoryID end,
+        },
+        {
+            key = "Knowledge",
+            title = "Knowledge Biggins",
+            desc = "Popup button to instantly study and consume profession knowledge from your bags.",
+            checkLoaded = function() return _G["KnowledgeBiggins"] ~= nil end,
+            getVersion = function() return (_G["KnowledgeBiggins"] and _G["KnowledgeBiggins"].version) or "1.0.0" end,
+            getCatID = function() return _G["KnowledgeBiggins"] and _G["KnowledgeBiggins"].categoryID end,
         },
         {
             key = "LazySpeed",
@@ -131,15 +148,6 @@ function Suite:GetOrCreateParentCategory(addonDir)
         row:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -10)
         row:SetSize(580, 42)
 
-        local rowTitle = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        rowTitle:SetPoint("TOPLEFT", 0, 0)
-        row.titleText = rowTitle
-
-        local rowDesc = row:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        rowDesc:SetPoint("TOPLEFT", rowTitle, "BOTTOMLEFT", 0, -2)
-        rowDesc:SetText(mod.desc)
-        row.descText = rowDesc
-
         local btnConfigure = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
         btnConfigure:SetPoint("TOPRIGHT", 0, 0)
         btnConfigure:SetSize(110, 22)
@@ -151,6 +159,20 @@ function Suite:GetOrCreateParentCategory(addonDir)
             end
         end)
         row.btnConfigure = btnConfigure
+
+        local rowTitle = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        rowTitle:SetPoint("TOPLEFT", 0, 0)
+        rowTitle:SetPoint("RIGHT", btnConfigure, "LEFT", -12)
+        rowTitle:SetJustifyH("LEFT")
+        row.titleText = rowTitle
+
+        local rowDesc = row:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        rowDesc:SetPoint("TOPLEFT", rowTitle, "BOTTOMLEFT", 0, -2)
+        rowDesc:SetPoint("RIGHT", btnConfigure, "LEFT", -12)
+        rowDesc:SetJustifyH("LEFT")
+        rowDesc:SetWordWrap(true)
+        rowDesc:SetText(mod.desc)
+        row.descText = rowDesc
 
         row.mod = mod
         table.insert(parentPanel.moduleRows, row)

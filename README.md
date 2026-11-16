@@ -71,17 +71,27 @@ An ultra-lightweight fishing utility that automates the Underlight Angler artifa
 * **Persistent Water Walking & Stand-on-Water Fishing:** Never strips the Underlight Angler upon transitioning to surface walking or dry land, allowing you to walk across lakes and fish directly on top of deep water pools.
 * **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Angler` with master enable toggle, live telemetry diagnostics, and top-right `[ Defaults ]` button.
 
+### 8. [Knowledge Biggins (v1.0.0)](./knowledge-biggins)
+An ultra-lightweight popup button to study and consume profession knowledge items (shards, treatises, skill books) directly from your bags without menu diving.
+* **Universal Tooltip Detection:** Uses `C_TooltipInfo` to automatically detect any consumable item granting profession knowledge or skill across all professions and expansions with zero hardcoded databases.
+* **One-Click Secure Action Button:** Styled to match Blizzard's native action bars with stack counts and instant one-click consumption.
+* **Shift + Drag Positioning & Lock Protection:** Drag freely with `Shift + Left-Click Drag` when unlocked. The button can be locked to prevent accidental movement and optionally set to always show even with empty bags.
+* **Native Blizzard UI Scaling:** Fully parented to `UIParent` to automatically inherit and scale with Blizzard's Graphics -> UI Scale slider.
+* **Zero Combat Taint:** Strictly respects Blizzard combat lockdown (`InCombatLockdown`), queueing updates until combat drops.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Knowledge` with top-right `[ Defaults ]` button, position reset, and granular lock/visibility toggles.
+
 ---
 
 ## Unified In-Game Settings (`Biggins AddOns`)
 
-All seven addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
+All eight addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
 
 ```text
 [-] Biggins AddOns
     Angler
     AutoJoin
     ChatLink
+    Knowledge
     LazySpeed
     Perf
     SafeRelease

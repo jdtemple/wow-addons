@@ -1,0 +1,10 @@
+## Interface: 120107, 120105
+## Title: Knowledge Biggins
+## Notes: Lightweight popup button to instantly study and consume profession knowledge items from your bags without menu diving.
+## Author: Biggins
+## Version: 1.0.0
+## SavedVariables: KnowledgeBigginsDB
+## IconTexture: Interface\Icons\INV_Misc_Book_11
+
+LibBigginsSuite.lua
+KnowledgeBiggins.lua

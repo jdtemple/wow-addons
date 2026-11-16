@@ -45,11 +45,12 @@ if (-not (Test-Path $RetailPath)) {
 $gameAddons = @(
     'AnglerBiggins',
     'AutoJoinBiggins',
+    'ChatLinkBiggins',
+    'KnowledgeBiggins',
     'LazySpeedBiggins',
     'PerfBiggins',
-    'SummonPetBiggins',
     'SafeReleaseBiggins',
-    'ChatLinkBiggins'
+    'SummonPetBiggins'
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan

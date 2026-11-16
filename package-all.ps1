@@ -3,7 +3,7 @@
     Packages all Biggins AddOns for CurseForge, Wago, and local installation.
 
 .DESCRIPTION
-    Iterates through all 6 suite addons in C:\Code\wow-addons, invokes their respective
+    Iterates through all 8 suite addons in C:\Code\wow-addons, invokes their respective
     package.ps1 build scripts, generates release ZIP archives in each addon's dist/ folder,
     and optionally synchronizes all release packages directly into the local World of Warcraft
     retail AddOns directory.
@@ -28,6 +28,7 @@ $addons = @(
     'angler-biggins',
     'autojoin-biggins',
     'chatlink-biggins',
+    'knowledge-biggins',
     'lazyspeed-biggins',
     'perf-biggins',
     'saferelease-biggins',

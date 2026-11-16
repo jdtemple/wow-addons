@@ -28,8 +28,10 @@ Each addon folder in this monorepo maps to a specific numeric **Project ID** on 
 
 | Addon Directory       | Public Display Name | CurseForge Project ID | Primary Category          |
 | :-------------------- | :------------------ | :-------------------- | :------------------------ |
+| `angler-biggins`      | Angler Biggins      | `1790339`             | Professions / Fishing     |
 | `autojoin-biggins`    | AutoJoin Biggins    | `1760364`             | Chat & Communication      |
 | `chatlink-biggins`    | ChatLink Biggins    | `1763882`             | Chat & Communication      |
+| `knowledge-biggins`   | Knowledge Biggins   | `TBD`                 | Professions / Utility     |
 | `lazyspeed-biggins`   | LazySpeed Biggins   | `1678350`             | Action Bars / Movement    |
 | `perf-biggins`        | Perf Biggins        | `1760380`             | Unit Frames / Performance |
 | `saferelease-biggins` | SafeRelease Biggins | `1763542`             | Buffs & Debuffs / Utility |
