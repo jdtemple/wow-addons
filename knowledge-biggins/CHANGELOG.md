@@ -1,3 +1,12 @@
+# Knowledge Biggins v1.1.1
+
+### Fixed
+- **World & Bag Initialization on Login:** Added native `PLAYER_ENTERING_WORLD` handling to ensure items already in bags are immediately detected upon entering the game world without requiring a `/reload`.
+- **Eliminated Negative Cache Poisoning:** The internal cache now only stores confirmed knowledge items. Newly looted items whose dynamic spell/use descriptions are still downloading from the server will no longer be permanently flagged as non-knowledge items.
+- **Stock Action Bar Stack Count Styling:** Upgraded the stack count font string from `NumberFontNormalSmallGray` to native Blizzard `NumberFontNormal` (crisp white text with black outline) with right justification at `(-2, 2)`, matching stock action buttons.
+- **Keybinding Label Shortened:** Shortened the keybindings settings label to "Study Knowledge" to prevent truncation in the Blizzard Keybindings UI.
+- **TOC & Keybindings Optimization:** Removed `Bindings.xml` from the `.toc` manifest. The game client automatically loads `Bindings.xml` natively for keybindings; removing it from the `.toc` eliminates FrameXML parse warnings.
+
 # Knowledge Biggins v1.1.0
 
 ### Added

@@ -28,7 +28,7 @@
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.5.1"
+addon.version = "1.5.2"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"

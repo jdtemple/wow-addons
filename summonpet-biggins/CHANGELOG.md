@@ -1,3 +1,8 @@
+# SummonPet Biggins v1.5.2
+
+### Fixed
+- **TOC Keybindings Optimization:** Removed `Bindings.xml` from the `.toc` manifest. The game client automatically loads `Bindings.xml` natively for keybindings; removing it from the `.toc` eliminates FrameXML parse warnings.
+
 # SummonPet Biggins v1.5.1
 
 ### Fixed

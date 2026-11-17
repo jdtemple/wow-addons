@@ -38,7 +38,7 @@ local defaults = {
 
 local KnowledgeBiggins = {}
 _G["KnowledgeBiggins"] = KnowledgeBiggins
-KnowledgeBiggins.version = "1.1.0"
+KnowledgeBiggins.version = "1.1.1"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_KNOWLEDGEBIGGINS_HEADER"] = "Knowledge Biggins"
@@ -98,32 +98,30 @@ local function HasItemUseEffect(itemID, itemLink)
 end
 
 local function IsDefaultKnowledgeItem(bag, slot, itemID, itemLink)
-    if not itemID then return false, true end
+    if not itemID then return false end
 
-    -- Check if item data is cached by client
+    -- Check if item data is cached by client; request if missing
     if C_Item and C_Item.IsItemDataCachedByID and not C_Item.IsItemDataCachedByID(itemID) then
         if C_Item.RequestLoadItemDataByID then
             C_Item.RequestLoadItemDataByID(itemID)
         end
-        return false, false
     end
 
-    if not C_TooltipInfo then return false, true end
+    if not C_TooltipInfo then return false end
 
     local data = nil
     if bag and slot and C_TooltipInfo.GetBagItem then
         data = C_TooltipInfo.GetBagItem(bag, slot)
-    elseif itemLink and C_TooltipInfo.GetHyperlink then
+    end
+    if (not data or not data.lines or #data.lines == 0) and itemLink and C_TooltipInfo.GetHyperlink then
         data = C_TooltipInfo.GetHyperlink(itemLink)
-    elseif C_TooltipInfo.GetItemByID then
+    end
+    if (not data or not data.lines or #data.lines == 0) and C_TooltipInfo.GetItemByID then
         data = C_TooltipInfo.GetItemByID(itemID)
     end
 
     if not data or not data.lines or #data.lines == 0 then
-        if C_Item and C_Item.RequestLoadItemDataByID then
-            C_Item.RequestLoadItemDataByID(itemID)
-        end
-        return false, false
+        return false
     end
 
     if TooltipUtil and TooltipUtil.SurfaceArgs then
@@ -149,54 +147,44 @@ local function IsDefaultKnowledgeItem(bag, slot, itemID, itemLink)
                 or lower:find("grant.-knowledge")
                 or lower:find("gain.-knowledge")
                 or lower:find("increase your .- skill") then
-                return true, true
+                return true
             end
         end
     end
 
-    return false, true
+    return false
 end
 
-local function IsKnowledgeItem(bag, slot, itemID)
-    if not itemID then return false, true end
+local function IsKnowledgeItem(bag, slot, itemID, itemLink)
+    if not itemID then return false end
 
     local db = KnowledgeBigginsDB or defaults
 
     -- 1. Blacklist / Block List Check (Highest Priority - instant discard)
     if db.blacklist and db.blacklist[itemID] then
-        return false, true
+        return false
     end
 
     -- 2. Whitelist / Allow List Check (User curated - accept if usable)
     if db.whitelist and db.whitelist[itemID] then
-        if HasItemUseEffect(itemID) then
-            return true, true
+        if HasItemUseEffect(itemID, itemLink) then
+            return true
         end
-        if C_Item and C_Item.IsItemDataCachedByID and not C_Item.IsItemDataCachedByID(itemID) then
-            if C_Item.RequestLoadItemDataByID then
-                C_Item.RequestLoadItemDataByID(itemID)
-            end
-            return false, false
-        end
-        return false, true
+        return false
     end
 
-    -- Check cache next
-    if knowledgeItemCache[itemID] ~= nil then
-        return knowledgeItemCache[itemID], true
+    -- 3. Cache Check (Instant hit for confirmed knowledge items)
+    if knowledgeItemCache[itemID] then
+        return true
     end
 
-    local isDefault, isDefinitive = IsDefaultKnowledgeItem(bag, slot, itemID)
-    if isDefault then
+    -- 4. Dynamic Tooltip Evaluation (Do NOT cache false so asynchronous loads are never poisoned)
+    if IsDefaultKnowledgeItem(bag, slot, itemID, itemLink) then
         knowledgeItemCache[itemID] = true
-        return true, true
-    elseif isDefinitive then
-        knowledgeItemCache[itemID] = false
-        return false, true
-    else
-        -- Not definitive yet (waiting for item data load); do not cache false
-        return false, false
+        return true
     end
+
+    return false
 end
 
 local function ScanBagsForKnowledge()
@@ -205,15 +193,13 @@ local function ScanBagsForKnowledge()
         return found
     end
 
-    local hasPendingItems = false
     local maxBag = math.max(5, NUM_TOTAL_EQUIPPED_BAG_SLOTS or 5)
     for bag = 0, maxBag do
         local numSlots = C_Container.GetContainerNumSlots(bag) or 0
         for slot = 1, numSlots do
             local info = C_Container.GetContainerItemInfo(bag, slot)
             if info and info.itemID then
-                local isKnown, isDefinitive = IsKnowledgeItem(bag, slot, info.itemID)
-                if isKnown then
+                if IsKnowledgeItem(bag, slot, info.itemID, info.hyperlink) then
                     table.insert(found, {
                         bag = bag,
                         slot = slot,
@@ -222,19 +208,9 @@ local function ScanBagsForKnowledge()
                         count = info.stackCount or 1,
                         link = info.hyperlink,
                     })
-                elseif not isDefinitive then
-                    hasPendingItems = true
                 end
             end
         end
-    end
-
-    if hasPendingItems and C_Timer and C_Timer.After then
-        C_Timer.After(0.3, function()
-            if not InCombatLockdown() and UpdateKnowledgeButton then
-                UpdateKnowledgeButton()
-            end
-        end)
     end
 
     return found
@@ -287,9 +263,10 @@ else
     button:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
 end
 
--- Stack Count FontString (Matches native ActionButton NumberFontNormalSmallGray)
-button.Count = button:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmallGray", 2)
-button.Count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -3, 3)
+-- Stack Count FontString (Matches native Blizzard ActionButton NumberFontNormal)
+button.Count = button:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+button.Count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
+button.Count:SetJustifyH("RIGHT")
 
 -- Dragging Scripts (When unlocked, Shift + Left-Click Drag moves the button)
 button:SetScript("OnDragStart", function(self)
@@ -992,8 +969,8 @@ end
 local eventFrame = CreateFrame("Frame", "KnowledgeBigginsEventFrame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
-eventFrame:RegisterEvent("ITEM_DATA_LOAD_RESULT")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
@@ -1015,15 +992,23 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
     elseif event == "PLAYER_LOGIN" then
         ApplyPosition()
         RegisterSettingsUI()
+    elseif event == "PLAYER_ENTERING_WORLD" then
         UpdateKnowledgeButton()
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.5, function()
+                if not InCombatLockdown() and UpdateKnowledgeButton then
+                    UpdateKnowledgeButton()
+                end
+            end)
+        end
     elseif event == "BAG_UPDATE_DELAYED" then
         UpdateKnowledgeButton()
-    elseif event == "ITEM_DATA_LOAD_RESULT" then
-        local loadedItemID, success = arg1, arg2
-        if success and knowledgeItemCache[loadedItemID] == nil then
-            if not InCombatLockdown() and UpdateKnowledgeButton then
-                UpdateKnowledgeButton()
-            end
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.25, function()
+                if not InCombatLockdown() and UpdateKnowledgeButton then
+                    UpdateKnowledgeButton()
+                end
+            end)
         end
     elseif event == "PLAYER_REGEN_DISABLED" then
         -- In combat: lock button state
