@@ -23,6 +23,7 @@
 ### Slash Commands
 
 * `/knowledgeb` - Open the Blizzard Settings options panel.
+* `/knowledgeb toggle` - Toggle the addon enabled or disabled.
 * `/knowledgeb lock` - Toggle locking the button position (prevents dragging).
 * `/knowledgeb show` - Toggle always showing the button even with an empty bag.
 * `/knowledgeb ignore` or `/knowledgeb block` - Block the currently displayed item.

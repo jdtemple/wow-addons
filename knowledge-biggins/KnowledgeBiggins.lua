@@ -26,6 +26,7 @@ local C_Item                   = C_Item
 
 -- Defaults
 local defaults = {
+    enabled = true,
     point = "CENTER",
     xOfs = 0,
     yOfs = -140,
@@ -38,7 +39,7 @@ local defaults = {
 
 local KnowledgeBiggins = {}
 _G["KnowledgeBiggins"] = KnowledgeBiggins
-KnowledgeBiggins.version = "1.1.1"
+KnowledgeBiggins.version = "1.2.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_KNOWLEDGEBIGGINS_HEADER"] = "Knowledge Biggins"
@@ -479,6 +480,12 @@ UpdateKnowledgeButton = function()
     end
 
     local db = KnowledgeBigginsDB or defaults
+    if db.enabled == false then
+        currentLootedItem = nil
+        button:Hide()
+        return
+    end
+
     button:SetScale(db.scale or 1.0)
 
     local items = ScanBagsForKnowledge()
@@ -649,19 +656,29 @@ local function RegisterSettingsUI()
         return cb
     end
 
-    -- Checkbox 1: Always Show Button
-    local cbAlwaysShow = CreateSettingCheckbox("alwaysShow", "Always Show Button", "Keep the button visible on screen even when you have no knowledge items in your bags.", "TOPLEFT", desc, "BOTTOMLEFT", 0, -18, function(val)
+    -- Master Enable Checkbox
+    local cbEnable = CreateSettingCheckbox("enabled", "Enable Knowledge Biggins", "Enable or disable automatic profession knowledge detection and the floating button.", "TOPLEFT", desc, "BOTTOMLEFT", 0, -16, function(val)
+        local status = val and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+        PrintMsg("Knowledge Biggins is now " .. status .. ".")
+        UpdateKnowledgeButton()
+        if panel.RefreshControls then
+            panel.RefreshControls()
+        end
+    end)
+
+    -- Child Controls (Indented 20px under Master Enable)
+    local cbAlwaysShow = CreateSettingCheckbox("alwaysShow", "Always Show Button", "Keep the button visible on screen even when you have no knowledge items in your bags.", "TOPLEFT", cbEnable, "BOTTOMLEFT", 20, -8, function(val)
         local status = val and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
         PrintMsg("Always Show Button is now " .. status .. ".")
     end)
 
-    -- Checkbox 2: Lock Frame Position
+    -- Checkbox 2: Lock Frame Position (Indented 20px)
     local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents moving the button. When unchecked, you can hold Shift and drag the button.", "TOPLEFT", cbAlwaysShow, "BOTTOMLEFT", 0, -8, function(val)
         local status = val and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
         PrintMsg("Button position is now " .. status .. ".")
     end)
 
-    -- Reset Position Button
+    -- Reset Position Button (Indented 20px)
     local resetBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetBtn:SetPoint("TOPLEFT", cbLocked, "BOTTOMLEFT", 0, -14)
     resetBtn:SetSize(130, 24)
@@ -674,7 +691,7 @@ local function RegisterSettingsUI()
     -- Custom Allow List Tray
     -- --------------------------------------------------------------------------
     local wlHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    wlHeader:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", 0, -16)
+    wlHeader:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", -20, -16)
     wlHeader:SetText("Custom Allow List (Drop any click-to-use item onto floating button to add):")
 
     local btnResetWl = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -864,8 +881,22 @@ local function RegisterSettingsUI()
 
     function panel.RefreshControls()
         local db = KnowledgeBigginsDB or defaults
-        if cbAlwaysShow then cbAlwaysShow:SetChecked(db.alwaysShow or false) end
-        if cbLocked then cbLocked:SetChecked(db.locked or false) end
+        local isEnabled = db.enabled ~= false
+        if cbEnable then cbEnable:SetChecked(isEnabled) end
+        if cbAlwaysShow then
+            cbAlwaysShow:SetChecked(db.alwaysShow or false)
+            cbAlwaysShow:SetEnabled(isEnabled)
+            cbAlwaysShow:SetAlpha(isEnabled and 1.0 or 0.5)
+        end
+        if cbLocked then
+            cbLocked:SetChecked(db.locked or false)
+            cbLocked:SetEnabled(isEnabled)
+            cbLocked:SetAlpha(isEnabled and 1.0 or 0.5)
+        end
+        if resetBtn then
+            resetBtn:SetEnabled(isEnabled)
+            resetBtn:SetAlpha(isEnabled and 1.0 or 0.5)
+        end
     end
 
     function panel.RefreshTrays()
@@ -1041,6 +1072,15 @@ SlashCmdList["KNOWLEDGEBIGGINS"] = function(msg)
 
     if cmd == "" or cmd == "options" or cmd == "config" or cmd == "opt" or cmd == "settings" then
         KnowledgeBiggins:OpenSettings()
+    elseif cmd == "toggle" or cmd == "enable" or cmd == "disable" then
+        local db = KnowledgeBigginsDB or defaults
+        db.enabled = not (db.enabled ~= false)
+        local status = db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+        PrintMsg("Knowledge Biggins is now " .. status .. ".")
+        UpdateKnowledgeButton()
+        if optionsPanel and optionsPanel.RefreshControls then
+            optionsPanel.RefreshControls()
+        end
     elseif cmd == "lock" or cmd == "unlock" then
         local db = KnowledgeBigginsDB or defaults
         db.locked = not db.locked
@@ -1117,6 +1157,7 @@ SlashCmdList["KNOWLEDGEBIGGINS"] = function(msg)
     elseif cmd == "help" or cmd == "?" then
         PrintMsg("Commands:")
         print("  |cFFFFD100/knowledgeb|r - Open settings panel")
+        print("  |cFFFFD100/knowledgeb toggle|r - Toggle addon enabled/disabled")
         print("  |cFFFFD100/knowledgeb lock|r - Toggle button lock/unlock")
         print("  |cFFFFD100/knowledgeb show|r - Toggle always showing button")
         print("  |cFFFFD100/knowledgeb ignore|r or |cFFFFD100/knowledgeb block|r - Block the currently displayed item")

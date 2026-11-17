@@ -24,6 +24,7 @@ Configure or position your button via the native Blizzard Settings panel or by t
 
 ```
 /knowledgeb          - Open settings panel
+/knowledgeb toggle   - Toggle addon on or off
 /knowledgeb lock     - Toggle button lock/unlock
 /knowledgeb show     - Toggle always showing button
 /knowledgeb ignore   - Block/ignore the currently displayed item (also: /knowledgeb block)

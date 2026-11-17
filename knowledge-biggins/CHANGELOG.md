@@ -1,3 +1,9 @@
+# Knowledge Biggins v1.2.0
+
+### Added
+- **Master Enable Checkbox:** Added top-level "Enable Knowledge Biggins" checkbox in `Options -> AddOns -> Biggins AddOns -> Knowledge` to seamlessly toggle the addon on or off, aligning with all other addons in the Biggins suite.
+- **Toggle Slash Command:** Added `/knowledgeb toggle` (or `/knowledgeb enable`) slash command to quickly toggle the addon on or off from chat or macros.
+
 # Knowledge Biggins v1.1.1
 
 ### Fixed
