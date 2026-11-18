@@ -4,8 +4,8 @@
 
 ### Features
 - **Universal Tooltip Detection:** Uses live tooltip parsing (`C_TooltipInfo`) to automatically detect any consumable item that increases Profession Knowledge or skill across all professions (Mining, Herbalism, Skinning, Inscription, Blacksmithing, etc.) and expansions. No static item databases to maintain.
-- **Drag & Drop Custom Allow List:** Drag any click-to-use item from your bags and drop it directly onto the floating button to allow it for instant one-click consumption.
-- **One-Click Ignore (Block List):** Hold `Alt + Right-Click` on the button to immediately block unwanted items from showing or save items in your bags for later without consumption prompts.
+- **Drag & Drop Custom Allow List:** Drag any click-to-use or openable item (including satchels, patron order payouts, and coin purses) from your bags and drop it directly onto the floating button or settings tray to allow it for instant one-click consumption or opening.
+- **One-Click Ignore (Block List):** Hold `Alt + Right-Click` on the button or drag items directly into the Block List tray to immediately block unwanted items from showing or save items in your bags for later without consumption prompts.
 - **Visual Settings Trays:** Inspect active allowed and blocked items in `Options -> AddOns -> Biggins AddOns -> Knowledge` with mouseover tooltips and right-click removal.
 - **Full Reagent Bag Compatibility:** Automatically scans all bags including Bag 5 (Reagent Bag), ensuring complete compatibility with unified inventory addons (Baganator, Bagnon).
 - **Native Blizzard Keybindings:** Assign a dedicated shortcut in `Options -> Keybindings -> Knowledge Biggins` to consume queued items directly from your keyboard.

@@ -39,7 +39,7 @@ local defaults = {
 
 local KnowledgeBiggins = {}
 _G["KnowledgeBiggins"] = KnowledgeBiggins
-KnowledgeBiggins.version = "1.2.0"
+KnowledgeBiggins.version = "1.3.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_KNOWLEDGEBIGGINS_HEADER"] = "Knowledge Biggins"
@@ -65,6 +65,13 @@ local function HasItemUseEffect(itemID, itemLink)
     if C_Item and C_Item.GetItemSpell and C_Item.GetItemSpell(itemID) then
         return true
     end
+    -- Check item class from synchronous instant info (Consumables & Containers/Caches/Satchels)
+    if C_Item and C_Item.GetItemInfoInstant then
+        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
+        if classID == 0 or classID == 1 or (Enum.ItemClass and (classID == Enum.ItemClass.Consumable or classID == Enum.ItemClass.Container)) then
+            return true
+        end
+    end
     if C_TooltipInfo then
         local tooltipData
         if itemLink then
@@ -77,6 +84,8 @@ local function HasItemUseEffect(itemID, itemLink)
                 TooltipUtil.SurfaceArgs(tooltipData)
             end
             local usePrefix = ITEM_SPELL_TRIGGER_ONUSE or "Use:"
+            local openPrefix = ITEM_OPENABLE or "<Right Click to Open>"
+            local readPrefix = ITEM_CAN_BE_READ or "<Right Click to Read>"
             for _, line in ipairs(tooltipData.lines) do
                 local text = line.leftText
                 if not text and line.args then
@@ -88,7 +97,11 @@ local function HasItemUseEffect(itemID, itemLink)
                     end
                 end
                 if text and type(text) == "string" then
-                    if text:find("^" .. usePrefix) or text:find("^Use:") then
+                    local lower = text:lower()
+                    if text:find("^" .. usePrefix) or text:find("^Use:") or
+                       text:find(openPrefix, 1, true) or lower:find("right click to open", 1, true) or
+                       text:find(readPrefix, 1, true) or lower:find("right click to read", 1, true) or
+                       lower:find("<right click", 1, true) then
                         return true
                     end
                 end
@@ -166,12 +179,9 @@ local function IsKnowledgeItem(bag, slot, itemID, itemLink)
         return false
     end
 
-    -- 2. Whitelist / Allow List Check (User curated - accept if usable)
+    -- 2. Whitelist / Allow List Check (User curated)
     if db.whitelist and db.whitelist[itemID] then
-        if HasItemUseEffect(itemID, itemLink) then
-            return true
-        end
-        return false
+        return true
     end
 
     -- 3. Cache Check (Instant hit for confirmed knowledge items)
@@ -290,15 +300,9 @@ button:SetScript("OnDragStop", function(self)
     db.yOfs = yOfs or -140
 end)
 
--- Allow list helper with Use: action validation
+-- Allow list helper
 local function AddItemToWhitelist(itemID, itemLink, deferUpdate)
     if not itemID then return false end
-
-    if not HasItemUseEffect(itemID, itemLink) then
-        PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-        PrintMsg("Cannot allow " .. (itemLink or ("item " .. itemID)) .. " - item has no Use action.")
-        return false
-    end
 
     local db = KnowledgeBigginsDB or defaults
     local isDefault = IsDefaultKnowledgeItem(nil, nil, itemID, itemLink)
@@ -341,6 +345,28 @@ local function AddItemToWhitelist(itemID, itemLink, deferUpdate)
         return true
     else
         PrintMsg((itemLink or ("Item " .. itemID)) .. " is already on custom allow list.")
+        return false
+    end
+end
+
+-- Block list helper
+local function AddItemToBlacklist(itemID, itemLink)
+    if not itemID then return false end
+    local db = KnowledgeBigginsDB or defaults
+    db.blacklist = db.blacklist or {}
+    if not db.blacklist[itemID] then
+        db.blacklist[itemID] = true
+        if db.whitelist then db.whitelist[itemID] = nil end
+        knowledgeItemCache[itemID] = false
+        PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+        PrintMsg("Added " .. (itemLink or ("item " .. itemID)) .. " to block list.")
+        UpdateKnowledgeButton()
+        if optionsPanel and optionsPanel.RefreshTrays then
+            optionsPanel.RefreshTrays()
+        end
+        return true
+    else
+        PrintMsg((itemLink or ("Item " .. itemID)) .. " is already on block list.")
         return false
     end
 end
@@ -692,7 +718,7 @@ local function RegisterSettingsUI()
     -- --------------------------------------------------------------------------
     local wlHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     wlHeader:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", -20, -16)
-    wlHeader:SetText("Custom Allow List (Drop any click-to-use item onto floating button to add):")
+    wlHeader:SetText("Custom Allow List (Drop items here or onto floating button to add):")
 
     local btnResetWl = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     btnResetWl:SetPoint("TOPRIGHT", -24, 0)
@@ -700,15 +726,35 @@ local function RegisterSettingsUI()
     btnResetWl:SetSize(115, 20)
     btnResetWl:SetText("Reset Allow List")
 
+    local function TryDropItemOnWhitelist()
+        local cursorType, itemID, itemLink = GetCursorInfo()
+        if cursorType == "item" and itemID then
+            ClearCursor()
+            AddItemToWhitelist(itemID, itemLink, false)
+            return true
+        end
+        return false
+    end
+
+    local wlDropZone = CreateFrame("Button", nil, panel)
+    wlDropZone:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -4)
+    wlDropZone:SetSize(420, 34)
+    wlDropZone:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    wlDropZone:SetScript("OnReceiveDrag", TryDropItemOnWhitelist)
+    wlDropZone:SetScript("OnClick", function()
+        TryDropItemOnWhitelist()
+    end)
+
     local wlEmpty = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     wlEmpty:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -6)
-    wlEmpty:SetText("(No custom items in allow list)")
+    wlEmpty:SetText("(No custom items in allow list - drag & drop items here to add)")
 
     local wlTiles = {}
     for i = 1, 12 do
         local tile = CreateFrame("Button", nil, panel)
         tile:SetSize(30, 30)
         tile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        tile:SetFrameLevel(wlDropZone:GetFrameLevel() + 2)
         if i == 1 then
             tile:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -6)
         else
@@ -740,8 +786,10 @@ local function RegisterSettingsUI()
             end
         end)
         tile:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        tile:SetScript("OnClick", function(self)
-            if self.itemID then
+        tile:SetScript("OnReceiveDrag", TryDropItemOnWhitelist)
+        tile:SetScript("OnClick", function(self, btn)
+            if TryDropItemOnWhitelist() then return end
+            if self.itemID and (btn == "RightButton" or not IsShiftKeyDown()) then
                 local db = KnowledgeBigginsDB or defaults
                 local id = self.itemID
                 if db.whitelist then db.whitelist[id] = nil end
@@ -783,7 +831,7 @@ local function RegisterSettingsUI()
     -- --------------------------------------------------------------------------
     local blHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     blHeader:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -42)
-    blHeader:SetText("Block List (Alt + Right-Click floating button to block/ignore):")
+    blHeader:SetText("Block List (Drop items here or Alt + Right-Click floating button to block):")
 
     local btnResetBl = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     btnResetBl:SetPoint("TOPRIGHT", -24, 0)
@@ -791,15 +839,35 @@ local function RegisterSettingsUI()
     btnResetBl:SetSize(115, 20)
     btnResetBl:SetText("Reset Block List")
 
+    local function TryDropItemOnBlacklist()
+        local cursorType, itemID, itemLink = GetCursorInfo()
+        if cursorType == "item" and itemID then
+            ClearCursor()
+            AddItemToBlacklist(itemID, itemLink)
+            return true
+        end
+        return false
+    end
+
+    local blDropZone = CreateFrame("Button", nil, panel)
+    blDropZone:SetPoint("TOPLEFT", blHeader, "BOTTOMLEFT", 0, -4)
+    blDropZone:SetSize(420, 34)
+    blDropZone:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    blDropZone:SetScript("OnReceiveDrag", TryDropItemOnBlacklist)
+    blDropZone:SetScript("OnClick", function()
+        TryDropItemOnBlacklist()
+    end)
+
     local blEmpty = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     blEmpty:SetPoint("TOPLEFT", blHeader, "BOTTOMLEFT", 0, -6)
-    blEmpty:SetText("(No items blocked)")
+    blEmpty:SetText("(No items blocked - drag & drop items here to block)")
 
     local blTiles = {}
     for i = 1, 12 do
         local tile = CreateFrame("Button", nil, panel)
         tile:SetSize(30, 30)
         tile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        tile:SetFrameLevel(blDropZone:GetFrameLevel() + 2)
         if i == 1 then
             tile:SetPoint("TOPLEFT", blHeader, "BOTTOMLEFT", 0, -6)
         else
@@ -831,8 +899,10 @@ local function RegisterSettingsUI()
             end
         end)
         tile:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        tile:SetScript("OnClick", function(self)
-            if self.itemID then
+        tile:SetScript("OnReceiveDrag", TryDropItemOnBlacklist)
+        tile:SetScript("OnClick", function(self, btn)
+            if TryDropItemOnBlacklist() then return end
+            if self.itemID and (btn == "RightButton" or not IsShiftKeyDown()) then
                 local db = KnowledgeBigginsDB or defaults
                 local id = self.itemID
                 if db.blacklist then db.blacklist[id] = nil end

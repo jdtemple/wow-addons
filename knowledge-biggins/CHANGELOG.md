@@ -1,3 +1,10 @@
+# Knowledge Biggins v1.3.0
+
+### Added
+- **Interactive Settings Tray Drag & Drop:** Added direct drag & drop and click-to-drop target zones to both the Custom Allow List and Block List visual trays in `Options -> AddOns -> Biggins AddOns -> Knowledge`. Players can now drop items directly into the options panel trays from their bags without needing to target the floating button.
+- **Universal Container & Click-to-Open Support:** Expanded the Custom Allow List to support containers, lockboxes, satchels, patron order reward bags (such as *Artisan's Consortium Payout*), and coin purses. Items with `<Right Click to Open>` and `<Right Click to Read>` can now be whitelisted and opened with one click via the popup button.
+- **Removed Restrictive Use Validation on Allow List:** Removed the strict `Use:` effect requirement on custom allow list additions, giving players full freedom to whitelist any click-to-use or click-to-open inventory items.
+
 # Knowledge Biggins v1.2.0
 
 ### Added
