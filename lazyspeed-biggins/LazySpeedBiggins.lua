@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v4.1.0 - High-Performance Speedometer & Skyriding Vigor HUD
+    LazySpeedBiggins v4.1.1 - High-Performance Speedometer & Skyriding Vigor HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+)
@@ -951,7 +951,7 @@ local function ResetAllToDefaults()
     DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: All options have been reset to default.")
 end
 
-_G["LazySpeedBiggins_Version"] = "4.1.0"
+_G["LazySpeedBiggins_Version"] = "4.1.1"
 
 local function InitializeBlizzardSettings()
     local panel = CreateFrame("Frame", "LazySpeedBigginsOptionsPanel", UIParent)
@@ -1051,9 +1051,18 @@ local function InitializeBlizzardSettings()
     local cbCombat = CreateSettingCheckbox("hideInCombat", "Hide During Combat", "Instantly hides and detaches the HUD during combat to keep your screen clear.", "TOPLEFT", cbVigorGlow, "BOTTOMLEFT", -20, -6)
     uiWidgets.cbCombat = cbCombat
 
-    -- Stacking Mode Section
+    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the HUD frame with the mouse.", "TOPLEFT", cbCombat, "BOTTOMLEFT", 0, -6, function(val)
+        UpdateMouseInteractivity()
+        local status = val and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position is now " .. status .. ".")
+    end)
+    uiWidgets.cbLocked = cbLocked
+
+    -- =========================================================================
+    -- Right Column: Stacking Mode, Units, Dimensions & Position Reset
+    -- =========================================================================
     local stackHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    stackHeader:SetPoint("TOPLEFT", cbCombat, "BOTTOMLEFT", 0, -12)
+    stackHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 340, -120)
     stackHeader:SetText("Stacking Mode:")
     uiWidgets.stackHeader = stackHeader
 
@@ -1087,16 +1096,9 @@ local function InitializeBlizzardSettings()
     local rbHorizontal = CreateStackingRadio("HORIZONTAL", "Horizontal", "Stacks speedometer and Vigor bar side-by-side in a compact horizontal ribbon.", "LEFT", rbVertical.text, "RIGHT", 16, 0)
     uiWidgets.rbHorizontal = rbHorizontal
 
-    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the HUD frame with the mouse.", "TOPLEFT", rbVertical, "BOTTOMLEFT", -4, -8, function(val)
-        UpdateMouseInteractivity()
-        local status = val and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position is now " .. status .. ".")
-    end)
-    uiWidgets.cbLocked = cbLocked
-
     -- Unit Selection Header
     local unitHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    unitHeader:SetPoint("TOPLEFT", cbLocked, "BOTTOMLEFT", 0, -12)
+    unitHeader:SetPoint("TOPLEFT", rbVertical, "BOTTOMLEFT", -4, -12)
     unitHeader:SetText("Speed Measurement Unit:")
     uiWidgets.unitHeader = unitHeader
 
@@ -1117,7 +1119,7 @@ local function InitializeBlizzardSettings()
         return radio
     end
 
-    local radioMPH = CreateUnitRadio(2, "Miles per Hour (mph)", "TOPLEFT", unitHeader, "BOTTOMLEFT", 6, -6)
+    local radioMPH = CreateUnitRadio(2, "Miles per Hour (mph)", "TOPLEFT", unitHeader, "BOTTOMLEFT", 4, -6)
     uiWidgets.radioMPH = radioMPH
 
     local radioYS = CreateUnitRadio(1, "Yards per Second (y/s)", "TOPLEFT", radioMPH, "BOTTOMLEFT", 0, -6)
@@ -1174,7 +1176,7 @@ local function InitializeBlizzardSettings()
     end
 
     -- Sliders (Anchored below unit radios)
-    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust horizontal width of HUD bars in pixels.", 100, 300, 1, "TOPLEFT", radioPCT, "BOTTOMLEFT", -6, -20)
+    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust horizontal width of HUD bars in pixels.", 100, 300, 1, "TOPLEFT", radioPCT, "BOTTOMLEFT", -4, -20)
     uiWidgets.sliderWidth = sliderWidth
 
     local sliderHeight = CreateSettingSlider("barHeight", "Bar Height", "Adjust vertical height of HUD bars in pixels.", 14, 36, 1, "TOPLEFT", sliderWidth, "BOTTOMLEFT", 0, -24)
@@ -1182,7 +1184,7 @@ local function InitializeBlizzardSettings()
 
     -- Reset Position Button
     local btnResetPos = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnResetPos:SetPoint("TOPLEFT", sliderHeight, "BOTTOMLEFT", -6, -20)
+    btnResetPos:SetPoint("TOPLEFT", sliderHeight, "BOTTOMLEFT", 0, -20)
     btnResetPos:SetSize(160, 24)
     btnResetPos:SetText("Reset Position")
     btnResetPos:SetScript("OnClick", function()
@@ -1202,9 +1204,10 @@ local function InitializeBlizzardSettings()
     btnResetPos:SetScript("OnLeave", function() GameTooltip:Hide() end)
     uiWidgets.btnResetPos = btnResetPos
 
-    -- Slash Command Help Note
+    -- Slash Command Help Note (anchored below all controls across both columns)
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", 0, -14)
+    helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", -324, -24)
+    helpNote:SetJustifyH("LEFT")
     helpNote:SetText("Slash commands: /lazyspeedb (Type /lazyspeedb ? for available commands)")
 
     panel:SetScript("OnShow", function()

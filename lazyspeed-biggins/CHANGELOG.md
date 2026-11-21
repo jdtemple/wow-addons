@@ -1,3 +1,9 @@
+# LazySpeed Biggins v4.1.1
+
+### Fixed
+- **Settings Panel Two-Column Layout:** Reorganized the Blizzard Settings options panel into a clean two-column grid. Visibility and behavioral checkboxes are anchored on the left column, while Stacking Mode, Speed Measurement Units, Bar Dimensions sliders, and Reset Position occupy the right column. This eliminates vertical overflow and prevents controls from bleeding past the bottom frame border.
+- **Slash Commands Note Spacing:** Repositioned the slash commands footer note cleanly below the Reset Position button across the entire panel width, preventing text overlap with right-column controls.
+
 # LazySpeed Biggins v4.1.0
 
 ### Added
