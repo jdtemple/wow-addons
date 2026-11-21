@@ -1,4 +1,4 @@
-# LazySpeed Biggins (v4.0.0)
+# LazySpeed Biggins (v4.1.0)
 
 A high-performance speedometer, flight, and swim gauge for *World of Warcraft: Midnight* (Patch 12.1+).
 
@@ -48,7 +48,8 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 * **Show While Swimming** *(Default: ON)*
 * **Show While on Ground** *(Default: OFF)*
 * **Show Skyriding Vigor Bar** *(Default: ON)*
-* **Glow on Accelerated Recharge Buffs** *(Default: ON)*
+  * **Hide Vigor Bar When Full** *(Child option: auto-hides bar at 6/6 charges, reappears when recharging; Default: OFF)*
+  * **Glow on Accelerated Recharge Buffs** *(Child option: Thrill/Skim aura glow; Default: ON)*
 * **Hide During Combat** *(Default: ON)*
 
 ### 2. Stacking Mode

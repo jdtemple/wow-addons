@@ -68,6 +68,7 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
    * Toggle Swimming visibility
    * Toggle Ground movement visibility
    * Toggle Skyriding Vigor bar
+   * Toggle Hide Vigor Bar When Full (auto-hides at 6/6 charges)
    * Toggle Accelerated Recharge Aura Glow
    * Toggle In-Combat hide killswitch
 4. **Stacking Mode:**
@@ -87,6 +88,7 @@ Commands are available via `/lazyspeedb`. In-game command help is available at a
 | `/lazyspeedb`                       | Opens the settings panel in the game menu                  |
 | `/lazyspeedb toggle`                | Toggles the master speedometer and Vigor HUD on or off     |
 | `/lazyspeedb vigor`                 | Toggles the Skyriding Vigor bar on or off                  |
+| `/lazyspeedb vigorfull`             | Toggles hiding the Vigor bar when full on or off           |
 | `/lazyspeedb glow` (or `/aura`)     | Toggles recharge buff glow on or off                       |
 | `/lazyspeedb stack [horiz/vert]`    | Switches between vertical and horizontal stacking modes    |
 | `/lazyspeedb lock`                  | Toggles locking frame position                             |

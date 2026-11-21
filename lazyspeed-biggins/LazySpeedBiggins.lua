@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v4.0.0 - High-Performance Speedometer & Skyriding Vigor HUD
+    LazySpeedBiggins v4.1.0 - High-Performance Speedometer & Skyriding Vigor HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+)
@@ -233,12 +233,13 @@ local LazySpeed_StopEngine
 -- 2. PERSISTENT SETTINGS (SavedVariables & Defaults)
 -- ==============================================================================
 local DB_DEFAULTS = {
-    enabled       = true,        -- Master enable toggle
-    showFlying    = true,        -- Show Speedometer while Flying / Skyriding
-    showSwimming  = true,        -- Show Speedometer while Swimming / Submerged in water
-    showGround    = false,       -- Show Speedometer while on Ground (foot or ground mounts)
-    showVigor     = true,        -- Show Skyriding Vigor / Surge Forward charge bar
-    showVigorGlow = true,        -- Show aura glow on accelerated recharge buffs (Thrill/Skim)
+    enabled           = true,        -- Master enable toggle
+    showFlying        = true,        -- Show Speedometer while Flying / Skyriding
+    showSwimming      = true,        -- Show Speedometer while Swimming / Submerged in water
+    showGround        = false,       -- Show Speedometer while on Ground (foot or ground mounts)
+    showVigor         = true,        -- Show Skyriding Vigor / Surge Forward charge bar
+    hideVigorWhenFull = false,       -- Automatically hide Vigor bar when charges are at maximum
+    showVigorGlow     = true,        -- Show aura glow on accelerated recharge buffs (Thrill/Skim)
     stackingMode  = "VERTICAL",  -- "VERTICAL" (Speedometer on top, Vigor below) or "HORIZONTAL"
     hideInCombat  = true,        -- Hide immediately during combat
     locked        = false,       -- Lock frame position to prevent dragging
@@ -515,9 +516,13 @@ function addon:UpdateLayout()
     -- Evaluate Skyriding Vigor Bar Visibility (Strictly mounted in Skyriding mode)
     local showVigor = false
     if (db.showVigor ~= false) and IsInSkyridingMode() then
-        local charges = GetSurgeForwardCharges()
+        local charges, maxCharges = GetSurgeForwardCharges()
         if charges ~= nil then
-            showVigor = true
+            if db.hideVigorWhenFull and maxCharges and (charges >= maxCharges) then
+                showVigor = false
+            else
+                showVigor = true
+            end
         end
     end
 
@@ -748,6 +753,11 @@ local function SpeedometerUpdateLoop(self, elapsed)
 
         local charges, maxCharges, startTime, duration = GetSurgeForwardCharges()
         if charges then
+            if db.hideVigorWhenFull and maxCharges and (charges >= maxCharges) then
+                LazySpeed_EvaluateState()
+                return
+            end
+
             local currentVal = charges
             if charges < maxCharges and duration and duration > 0 and startTime and startTime > 0 then
                 local elapsed = GetTime() - startTime
@@ -801,13 +811,15 @@ local function SpeedometerUpdateLoop(self, elapsed)
             end
         end
     else
-        -- Vigor bar is collapsed/hidden (e.g. while unmounted or swimming)
-        -- Detect mounting into Skyriding mode to expand the HUD stack
+        -- Vigor bar is collapsed/hidden (e.g. while unmounted, swimming, or full)
+        -- Detect mounting into Skyriding mode or spending vigor to expand the HUD stack
         if (db.showVigor ~= false) and IsInSkyridingMode() then
-            local charges = GetSurgeForwardCharges()
+            local charges, maxCharges = GetSurgeForwardCharges()
             if charges ~= nil then
-                addon:UpdateLayout()
-                return
+                if not (db.hideVigorWhenFull and maxCharges and (charges >= maxCharges)) then
+                    addon:UpdateLayout()
+                    return
+                end
             end
         end
     end
@@ -872,7 +884,19 @@ local function UpdateOptionsUI()
     if uiWidgets.cbSwimming then uiWidgets.cbSwimming:SetChecked(LazySpeedBigginsDB.showSwimming) end
     if uiWidgets.cbGround   then uiWidgets.cbGround:SetChecked(LazySpeedBigginsDB.showGround) end
     if uiWidgets.cbVigor    then uiWidgets.cbVigor:SetChecked(LazySpeedBigginsDB.showVigor ~= false) end
-    if uiWidgets.cbVigorGlow then uiWidgets.cbVigorGlow:SetChecked(LazySpeedBigginsDB.showVigorGlow ~= false) end
+
+    local isVigorActive = isEnabled and (LazySpeedBigginsDB.showVigor ~= false)
+    if uiWidgets.cbHideVigorFull then
+        uiWidgets.cbHideVigorFull:SetChecked(LazySpeedBigginsDB.hideVigorWhenFull or false)
+        if uiWidgets.cbHideVigorFull.SetEnabled then uiWidgets.cbHideVigorFull:SetEnabled(isVigorActive) end
+        uiWidgets.cbHideVigorFull:SetAlpha(isVigorActive and 1.0 or 0.5)
+    end
+    if uiWidgets.cbVigorGlow then
+        uiWidgets.cbVigorGlow:SetChecked(LazySpeedBigginsDB.showVigorGlow ~= false)
+        if uiWidgets.cbVigorGlow.SetEnabled then uiWidgets.cbVigorGlow:SetEnabled(isVigorActive) end
+        uiWidgets.cbVigorGlow:SetAlpha(isVigorActive and 1.0 or 0.5)
+    end
+
     if uiWidgets.cbCombat   then uiWidgets.cbCombat:SetChecked(LazySpeedBigginsDB.hideInCombat) end
     if uiWidgets.cbLocked   then uiWidgets.cbLocked:SetChecked(LazySpeedBigginsDB.locked or false) end
 
@@ -901,7 +925,7 @@ local function UpdateOptionsUI()
 
     -- Gray out child controls when disabled
     local childWidgets = {
-        uiWidgets.cbFlying, uiWidgets.cbSwimming, uiWidgets.cbGround, uiWidgets.cbVigor, uiWidgets.cbVigorGlow, uiWidgets.cbCombat, uiWidgets.cbLocked,
+        uiWidgets.cbFlying, uiWidgets.cbSwimming, uiWidgets.cbGround, uiWidgets.cbVigor, uiWidgets.cbHideVigorFull, uiWidgets.cbVigorGlow, uiWidgets.cbCombat, uiWidgets.cbLocked,
         uiWidgets.stackHeader, uiWidgets.rbVertical, uiWidgets.rbHorizontal,
         uiWidgets.unitHeader, uiWidgets.radioMPH, uiWidgets.radioYS, uiWidgets.radioKMH, uiWidgets.radioPCT,
         uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.btnResetPos
@@ -927,7 +951,7 @@ local function ResetAllToDefaults()
     DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: All options have been reset to default.")
 end
 
-_G["LazySpeedBiggins_Version"] = "4.0.0"
+_G["LazySpeedBiggins_Version"] = "4.1.0"
 
 local function InitializeBlizzardSettings()
     local panel = CreateFrame("Frame", "LazySpeedBigginsOptionsPanel", UIParent)
@@ -1009,10 +1033,15 @@ local function InitializeBlizzardSettings()
     local cbGround = CreateSettingCheckbox("showGround", "Show Speedometer While on Ground", "Displays speedometer while running on foot or riding ground mounts.", "TOPLEFT", cbSwimming, "BOTTOMLEFT", 0, -6)
     uiWidgets.cbGround = cbGround
 
-    local cbVigor = CreateSettingCheckbox("showVigor", "Show Skyriding Vigor Bar", "Displays a 1-6 recharge bar for Surge Forward / Vigor while mounted in Skyriding mode.", "TOPLEFT", cbGround, "BOTTOMLEFT", 0, -6)
+    local cbVigor = CreateSettingCheckbox("showVigor", "Show Skyriding Vigor Bar", "Displays a 1-6 recharge bar for Surge Forward / Vigor while mounted in Skyriding mode.", "TOPLEFT", cbGround, "BOTTOMLEFT", 0, -6, function()
+        UpdateOptionsUI()
+    end)
     uiWidgets.cbVigor = cbVigor
 
-    local cbVigorGlow = CreateSettingCheckbox("showVigorGlow", "Glow on Accelerated Recharge Buffs", "Illuminates a Blue glow for Thrill of the Skies, a Red glow for Ground Skimming, and a Violet glow when both are active. When disabled, only the status bar fill changes color.", "TOPLEFT", cbVigor, "BOTTOMLEFT", 20, -6, function(val)
+    local cbHideVigorFull = CreateSettingCheckbox("hideVigorWhenFull", "Hide Vigor Bar When Full", "Automatically hides the Vigor bar while at maximum charges (e.g. 6/6), reappearing whenever Vigor is spent and recharging.", "TOPLEFT", cbVigor, "BOTTOMLEFT", 20, -6)
+    uiWidgets.cbHideVigorFull = cbHideVigorFull
+
+    local cbVigorGlow = CreateSettingCheckbox("showVigorGlow", "Glow on Accelerated Recharge Buffs", "Illuminates a Blue glow for Thrill of the Skies, a Red glow for Ground Skimming, and a Violet glow when both are active. When disabled, only the status bar fill changes color.", "TOPLEFT", cbHideVigorFull, "BOTTOMLEFT", 0, -6, function(val)
         if not val then
             HideFlameAura()
         end
@@ -1277,8 +1306,19 @@ EventWatcherFrame:SetScript("OnUpdate", function(self, elapsed)
 
     local isAirborne = isGliding or isSteadyFlying
     local isSkyriding = IsInSkyridingMode()
+    local isVigorNeeded = false
+    if isSkyriding and (db.showVigor ~= false) then
+        if db.hideVigorWhenFull then
+            local charges, maxCharges = GetSurgeForwardCharges()
+            if charges and maxCharges and (charges < maxCharges) then
+                isVigorNeeded = true
+            end
+        else
+            isVigorNeeded = true
+        end
+    end
 
-    if (isAirborne and db.showFlying) or (isSwimming and db.showSwimming) or (isSkyriding and db.showVigor ~= false) then
+    if (isAirborne and db.showFlying) or (isSwimming and db.showSwimming) or isVigorNeeded then
         addon:UpdateLayout()
     end
 end)
@@ -1313,6 +1353,13 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         addon:UpdateLayout()
         local status = LazySpeedBigginsDB.showVigor and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Skyriding Vigor bar is now " .. status .. ".")
+    elseif command == "vigorfull" or command == "hidefull" then
+        if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
+        LazySpeedBigginsDB.hideVigorWhenFull = not (LazySpeedBigginsDB.hideVigorWhenFull or false)
+        UpdateOptionsUI()
+        addon:UpdateLayout()
+        local status = LazySpeedBigginsDB.hideVigorWhenFull and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Hide Vigor bar when full is now " .. status .. ".")
     elseif command == "aura" or command == "glow" or command == "flame" then
         if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
         LazySpeedBigginsDB.showVigorGlow = not (LazySpeedBigginsDB.showVigorGlow ~= false)
@@ -1364,6 +1411,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Show Swimming:    %s", ColorBool(db.showSwimming)))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Show Ground:      %s", ColorBool(db.showGround)))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Show Vigor Bar:   %s", ColorBool(db.showVigor ~= false)))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Hide Vigor Full:  %s", ColorBool(db.hideVigorWhenFull or false)))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Show Buff Glow:   %s", ColorBool(db.showVigorGlow ~= false)))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Hide in Combat:   %s", ColorBool(db.hideInCombat)))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Measurement Unit: %s", modeLabels[db.unitMode or 4] or "%"))
@@ -1373,6 +1421,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb|r - Open options menu")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb toggle|r - Toggle master HUD on/off")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb vigor|r - Toggle Skyriding Vigor bar on/off")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb vigorfull|r - Toggle hiding Vigor bar when full")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb glow|r (or |cFFFFD100/lazyspeedb aura|r) - Toggle recharge buff glow on/off")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb stack [horiz/vert]|r - Switch horizontal or vertical layout")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb lock|r - Toggle locking frame position")

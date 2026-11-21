@@ -1,3 +1,10 @@
+# LazySpeed Biggins v4.1.0
+
+### Added
+- **Hide Vigor Bar When Full:** Added a new setting to automatically hide the Skyriding Vigor bar when charges are at maximum (e.g. 6/6), collapsing the HUD to the speedometer alone. As soon as Vigor is spent (e.g. on Surge Forward or Skyward Ascent), the Vigor bar smoothly reappears and tracks recharge until full again.
+- **Nested Options UI:** Nested the "Hide Vigor Bar When Full" checkbox directly as an indented child option under "Show Skyriding Vigor Bar" in the Blizzard Settings panel, dynamically dimming alongside the glow option when Vigor is disabled.
+- **New Slash Command:** Added `/lazyspeedb vigorfull` (alias `/lazyspeedb hidefull`) to quickly toggle the full-charge auto-hide feature from chat.
+
 # LazySpeed Biggins v4.0.0
 
 ### Added
