@@ -1,3 +1,15 @@
+# Perf Biggins v1.6.0
+
+### Added
+- **Configurable Bar Spacing:** Added a new Bar Spacing slider (0 - 50 px, default 4 px) to adjust the distance between telemetry bars in both vertical and horizontal stacking modes. Allows seamless spacing adjustment to avoid overlap with custom UI skins (such as Clockwork Biggins).
+- **New Slash Command:** Added `/perfb spacing <0-50>` (alias `/perfb gap`) to adjust bar spacing directly from chat.
+
+### Changed
+- **Settings Panel Two-Column Layout:** Reorganized the Blizzard Settings options panel into a clean two-column grid. Visibility and behavior checkboxes are anchored on the left column, while Stacking Mode, Bar Dimensions sliders, Bar Spacing, and Reset Position occupy the right column. Eliminates vertical overflow and matches the LazySpeed Biggins options layout.
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/perfb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # Perf Biggins v1.5.2
 
 ### Fixed

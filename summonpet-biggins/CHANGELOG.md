@@ -1,3 +1,8 @@
+# SummonPet Biggins v1.5.3
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/summonpetb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # SummonPet Biggins v1.5.2
 
 ### Fixed

@@ -1,3 +1,8 @@
+# AutoJoin Biggins v1.4.1
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/autojoinb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # AutoJoin Biggins v1.4.0
 
 ### Breaking Changes

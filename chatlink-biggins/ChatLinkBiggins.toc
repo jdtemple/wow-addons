@@ -2,8 +2,9 @@
 ## Title: |cFFFFD100ChatLink Biggins|r
 ## Notes: Converts web URLs into clickable copy links and displays player tooltips on name hover.
 ## Author: Biggins
-## Version: 1.2.0
+## Version: 1.2.1
 ## SavedVariables: ChatLinkBigginsDB
+## Category: Chat & Communication
 ## IconTexture: Interface\AddOns\ChatLinkBiggins\logo.jpg
 
 LibBigginsSuite.lua

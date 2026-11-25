@@ -1,5 +1,11 @@
 # LibBigginsSuite Changelog
 
+## v1.0.7
+
+### Added
+- **Scrollable Suite Overview Canvas:** Embedded a modern native `ScrollFrameTemplate` with `MinimalScrollBar` into the Biggins AddOns parent settings panel. All suite modules, descriptions, and configure buttons are now smoothly scrollable via mousewheel and scrollbar thumb drag, eliminating bottom-frame border bleeding and supporting infinite future module expansion.
+
+---
 ## v1.0.6
 
 ### Changed

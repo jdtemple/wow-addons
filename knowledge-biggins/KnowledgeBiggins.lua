@@ -39,7 +39,7 @@ local defaults = {
 
 local KnowledgeBiggins = {}
 _G["KnowledgeBiggins"] = KnowledgeBiggins
-KnowledgeBiggins.version = "1.3.0"
+KnowledgeBiggins.version = "1.3.2"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_KNOWLEDGEBIGGINS_HEADER"] = "Knowledge Biggins"
@@ -460,7 +460,7 @@ end)
 
 -- Tooltip Handling
 button:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip_SetDefaultAnchor(GameTooltip, self)
     local db = KnowledgeBigginsDB or defaults
     if currentLootedItem then
         if currentLootedItem.bag and currentLootedItem.slot then
@@ -947,7 +947,7 @@ local function RegisterSettingsUI()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", helpText, "BOTTOMLEFT", 0, -14)
-    helpNote:SetText("Slash commands: /knowledgeb (Type /knowledgeb ? for available commands)")
+    helpNote:SetText("Slash commands: |cFFFFD100/knowledgeb|r (Type |cFFFFD100/knowledgeb ?|r for available commands)")
 
     function panel.RefreshControls()
         local db = KnowledgeBigginsDB or defaults

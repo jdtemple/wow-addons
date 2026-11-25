@@ -26,7 +26,7 @@
 
 local addonName, addon = ...
 _G["ChatLinkBiggins"] = addon
-addon.version = "1.2.0"
+addon.version = "1.2.1"
 
 -- Upvalue caching
 local CreateFrame              = CreateFrame
@@ -781,7 +781,7 @@ local function CreateSettingsUI()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", noteBox, "BOTTOMLEFT", 0, -14)
-    helpNote:SetText("Slash commands: /chatlinkb (Type /chatlinkb ? for available commands)")
+    helpNote:SetText("Slash commands: |cFFFFD100/chatlinkb|r (Type |cFFFFD100/chatlinkb ?|r for available commands)")
 
     -- Refresh UI Controls from SavedVariables
     panel.RefreshControls = function()

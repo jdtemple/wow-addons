@@ -28,7 +28,7 @@
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.5.2"
+addon.version = "1.6.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
@@ -84,6 +84,7 @@ local DB_DEFAULTS = {
     manualFpsCap = 144,
     barWidth     = 180,
     barHeight    = 18,
+    barSpacing   = 4,
     locked       = false,
     hideInCombat = false,
     point        = "CENTER",
@@ -287,7 +288,7 @@ function addon:UpdateLayout()
     end
 
     -- Split Bar Sizing & Gap (Vertical stack or Horizontal ribbon)
-    local gap = 4
+    local gap = db.barSpacing or 4
     local isHorizontal = (db.stackingMode == "HORIZONTAL")
     local totalWidth, totalHeight
     if isHorizontal then
@@ -539,6 +540,12 @@ function addon:UpdateOptionsUI()
             uiWidgets.sliderHeight.valueText:SetText(tostring(PerfBigginsDB.barHeight or 18) .. " px")
         end
     end
+    if uiWidgets.sliderSpacing then
+        uiWidgets.sliderSpacing:SetValue(PerfBigginsDB.barSpacing or 4)
+        if uiWidgets.sliderSpacing.valueText then
+            uiWidgets.sliderSpacing.valueText:SetText(tostring(PerfBigginsDB.barSpacing or 4) .. " px")
+        end
+    end
 
     -- Gray out child controls when disabled
     local childWidgets = {
@@ -546,7 +553,7 @@ function addon:UpdateOptionsUI()
         uiWidgets.stackHeader, uiWidgets.rbVertical, uiWidgets.rbHorizontal,
         uiWidgets.cbAutoFps,
         uiWidgets.cbLocked, uiWidgets.cbCombat,
-        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.btnResetPos
+        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.sliderSpacing, uiWidgets.btnResetPos
     }
     for _, w in ipairs(childWidgets) do
         if w then
@@ -636,43 +643,7 @@ function addon:RegisterOptions()
     local cbHome = CreateSettingCheckbox("showHome", "Show Home Latency Bar", "Displays Home Latency (chat, auction house, guild system, realm data).", "TOPLEFT", cbWorld, "BOTTOMLEFT", 0, -6)
     uiWidgets.cbHome = cbHome
 
-    -- Stacking Mode Section
-    local stackHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    stackHeader:SetPoint("TOPLEFT", cbHome, "BOTTOMLEFT", 0, -10)
-    stackHeader:SetText("Stacking Mode:")
-    uiWidgets.stackHeader = stackHeader
-
-    local function CreateStackingRadio(modeVal, label, tooltip, anchorPoint, relativeTo, relPoint, x, y)
-        local radio = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
-        radio:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
-        radio.text = radio:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        radio.text:SetPoint("LEFT", radio, "RIGHT", 4, 0)
-        radio.text:SetText(label)
-        radio.tooltipText = tooltip
-        radio:SetScript("OnClick", function()
-            if not PerfBigginsDB then PerfBigginsDB = {} end
-            PerfBigginsDB.stackingMode = modeVal
-            addon:UpdateLayout()
-            addon:UpdateOptionsUI()
-        end)
-        radio:SetScript("OnEnter", function(self)
-            if self.tooltipText then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
-                GameTooltip:Show()
-            end
-        end)
-        radio:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        return radio
-    end
-
-    local rbVertical = CreateStackingRadio("VERTICAL", "Vertical (Default)", "Stacks telemetry bars vertically top-to-bottom like a compact nameplate stack.", "TOPLEFT", stackHeader, "BOTTOMLEFT", 4, -4)
-    uiWidgets.rbVertical = rbVertical
-
-    local rbHorizontal = CreateStackingRadio("HORIZONTAL", "Horizontal", "Stacks telemetry bars horizontally side-by-side in a compact ribbon.", "LEFT", rbVertical.text, "RIGHT", 16, 0)
-    uiWidgets.rbHorizontal = rbHorizontal
-
-    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the telemetry frame with the mouse.", "TOPLEFT", rbVertical, "BOTTOMLEFT", -4, -8, function(val)
+    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the telemetry frame with the mouse.", "TOPLEFT", cbHome, "BOTTOMLEFT", -20, -8, function(val)
         local status = val and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
         PrintMsg("Frame position is now " .. status .. ".")
     end)
@@ -736,20 +707,61 @@ function addon:RegisterOptions()
         return slider
     end
 
-    -- Sliders (Anchored below checkboxes, aligned with 20px indent)
+    -- Sliders (Anchored below checkboxes in left column)
     local sliderFpsCap = CreateSettingSlider("manualFpsCap", "FPS Bar Max Scale", "Sets the frame rate target required for a 100% full status bar.", 60, 360, 1, "TOPLEFT", cbAutoFps, "BOTTOMLEFT", 4, -22, " FPS")
     sliderFpsCap.valueText:SetText(tostring(activeFpsCap) .. " FPS")
     uiWidgets.sliderFpsCap = sliderFpsCap
 
-    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust the horizontal width of telemetry bars in pixels.", 100, 300, 1, "TOPLEFT", sliderFpsCap, "BOTTOMLEFT", 0, -28)
+    -- =========================================================================
+    -- Right Column: Stacking Mode, Dimensions, Spacing & Position Reset
+    -- =========================================================================
+    local stackHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    stackHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 340, -120)
+    stackHeader:SetText("Stacking Mode:")
+    uiWidgets.stackHeader = stackHeader
+
+    local function CreateStackingRadio(modeVal, label, tooltip, anchorPoint, relativeTo, relPoint, x, y)
+        local radio = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
+        radio:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
+        radio.text = radio:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        radio.text:SetPoint("LEFT", radio, "RIGHT", 4, 0)
+        radio.text:SetText(label)
+        radio.tooltipText = tooltip
+        radio:SetScript("OnClick", function()
+            if not PerfBigginsDB then PerfBigginsDB = {} end
+            PerfBigginsDB.stackingMode = modeVal
+            addon:UpdateLayout()
+            addon:UpdateOptionsUI()
+        end)
+        radio:SetScript("OnEnter", function(self)
+            if self.tooltipText then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
+                GameTooltip:Show()
+            end
+        end)
+        radio:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        return radio
+    end
+
+    local rbVertical = CreateStackingRadio("VERTICAL", "Vertical (Default)", "Stacks telemetry bars vertically top-to-bottom like a compact nameplate stack.", "TOPLEFT", stackHeader, "BOTTOMLEFT", 4, -4)
+    uiWidgets.rbVertical = rbVertical
+
+    local rbHorizontal = CreateStackingRadio("HORIZONTAL", "Horizontal", "Stacks telemetry bars horizontally side-by-side in a compact ribbon.", "LEFT", rbVertical.text, "RIGHT", 16, 0)
+    uiWidgets.rbHorizontal = rbHorizontal
+
+    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust the horizontal width of telemetry bars in pixels.", 100, 300, 1, "TOPLEFT", rbVertical, "BOTTOMLEFT", -4, -24)
     uiWidgets.sliderWidth = sliderWidth
 
-    local sliderHeight = CreateSettingSlider("barHeight", "Bar Height", "Adjust the vertical height of telemetry bars in pixels.", 12, 36, 1, "TOPLEFT", sliderWidth, "BOTTOMLEFT", 0, -28)
+    local sliderHeight = CreateSettingSlider("barHeight", "Bar Height", "Adjust the vertical height of telemetry bars in pixels.", 12, 36, 1, "TOPLEFT", sliderWidth, "BOTTOMLEFT", 0, -24)
     uiWidgets.sliderHeight = sliderHeight
+
+    local sliderSpacing = CreateSettingSlider("barSpacing", "Bar Spacing", "Adjust the spacing between adjacent telemetry bars in pixels (0 - 50 px).", 0, 50, 1, "TOPLEFT", sliderHeight, "BOTTOMLEFT", 0, -24)
+    uiWidgets.sliderSpacing = sliderSpacing
 
     -- Reset Position Button
     local btnResetPos = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnResetPos:SetPoint("TOPLEFT", sliderHeight, "BOTTOMLEFT", -4, -24)
+    btnResetPos:SetPoint("TOPLEFT", sliderSpacing, "BOTTOMLEFT", 0, -20)
     btnResetPos:SetSize(160, 24)
     btnResetPos:SetText("Reset Position")
     btnResetPos:SetScript("OnClick", function()
@@ -769,10 +781,11 @@ function addon:RegisterOptions()
     btnResetPos:SetScript("OnLeave", function() GameTooltip:Hide() end)
     uiWidgets.btnResetPos = btnResetPos
 
-    -- Slash Command Help Note
+    -- Slash Command Help Note (anchored below the lowest control on the panel)
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", 0, -18)
-    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: /perfb (Type /perfb ? for available commands)")
+    helpNote:SetPoint("TOPLEFT", sliderFpsCap, "BOTTOMLEFT", -4, -30)
+    helpNote:SetJustifyH("LEFT")
+    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: |cFFFFD100/perfb|r (Type |cFFFFD100/perfb ?|r for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()
@@ -866,6 +879,17 @@ local function SlashHandler(msg)
         addon:UpdateLayout()
         local status = db.hideInCombat and "|cFF00FF00Enabled (Hiding in combat)|r" or "|cFFFF0000Disabled (Always visible)|r"
         PrintMsg("Hide in combat is now " .. status .. ".")
+    elseif cmd:find("^spacing") or cmd:find("^gap") then
+        local val = tonumber(cmd:match("%d+"))
+        if val ~= nil then
+            val = math.max(0, math.min(50, math.floor(val + 0.5)))
+            db.barSpacing = val
+            addon:UpdateLayout()
+            addon:UpdateOptionsUI()
+            PrintMsg("Bar spacing set to |cFF00FF00" .. val .. " px|r.")
+        else
+            PrintMsg("Current bar spacing is |cFF00FF00" .. (db.barSpacing or 4) .. " px|r. Usage: |cFFFFD100/perfb spacing <0-50>|r")
+        end
     elseif cmd == "reset" then
         db.point = "CENTER"
         db.relativePoint = "CENTER"
@@ -886,6 +910,7 @@ local function SlashHandler(msg)
         print(string.format("  Auto-Detect FPS:  %s", ColorBool(db.autoFpsCap ~= false)))
         print(string.format("  Active FPS Scale: %d FPS", math.floor(activeFpsCap)))
         print(string.format("  Bar Dimensions:   %d x %d px", db.barWidth, db.barHeight))
+        print(string.format("  Bar Spacing:      %d px", db.barSpacing or 4))
     elseif cmd == "help" or cmd == "?" then
         PrintMsg("Commands:")
         print("  |cFFFFD100/perfb|r - Open settings panel")
@@ -895,6 +920,7 @@ local function SlashHandler(msg)
         print("  |cFFFFD100/perfb world|r - Toggle World latency bar visibility")
         print("  |cFFFFD100/perfb home|r - Toggle Home latency bar visibility")
         print("  |cFFFFD100/perfb stack [horiz|vert]|r - Switch horizontal or vertical layout")
+        print("  |cFFFFD100/perfb spacing <0-50>|r - Adjust spacing between stacked bars in pixels")
         print("  |cFFFFD100/perfb combat|r - Toggle auto-hiding during combat")
         print("  |cFFFFD100/perfb reset|r - Reset frame position to center")
         print("  |cFFFFD100/perfb status|r - Display current configuration")

@@ -22,7 +22,7 @@
 
 local addonName, addon = ...
 _G["SafeReleaseBiggins"] = addon
-addon.version = "1.1.0"
+addon.version = "1.1.1"
 
 -- Upvalue caching
 local CreateFrame     = CreateFrame
@@ -684,7 +684,7 @@ function addon:RegisterOptions()
     -- Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", cbAnnounce, "BOTTOMLEFT", 0, -16)
-    helpNote:SetText("Slash commands: /safereleaseb (Type /safereleaseb ? for available commands)")
+    helpNote:SetText("Slash commands: |cFFFFD100/safereleaseb|r (Type |cFFFFD100/safereleaseb ?|r for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()

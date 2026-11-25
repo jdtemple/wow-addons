@@ -4,7 +4,7 @@
 
 local addonName, addon = ...
 _G["AutoJoinBiggins"] = addon
-addon.version = "1.4.0"
+addon.version = "1.4.1"
 
 -- Default Settings
 local defaults = {
@@ -449,7 +449,7 @@ function addon:RegisterOptions()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", cbAnnounce, "BOTTOMLEFT", -20, -24)
-    helpNote:SetText("Slash commands: /autojoinb (Type /autojoinb ? for available commands)")
+    helpNote:SetText("Slash commands: |cFFFFD100/autojoinb|r (Type |cFFFFD100/autojoinb ?|r for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()

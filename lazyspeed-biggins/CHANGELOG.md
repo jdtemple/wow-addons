@@ -1,3 +1,12 @@
+# LazySpeed Biggins v4.2.0
+
+### Added
+- **Configurable Bar Spacing:** Added a new Bar Spacing slider (0 - 50 px, default 4 px) to adjust the distance between HUD bars in both vertical and horizontal stacking modes. Allows seamless spacing adjustment to avoid overlap with custom UI skins (such as Clockwork Biggins).
+- **New Slash Command:** Added `/lazyspeedb spacing <0-50>` (alias `/lazyspeedb gap`) to adjust bar spacing directly from chat.
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/lazyspeedb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # LazySpeed Biggins v4.1.1
 
 ### Fixed

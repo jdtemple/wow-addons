@@ -32,7 +32,7 @@
 
 local addonName, addon = ...
 _G["LazySpeedBiggins"] = addon
-addon.version = "4.0.0"
+addon.version = "4.2.0"
 
 -- ==============================================================================
 -- 1. LOCAL UPVALUE CACHING & RESTRICTION HELPERS (Performance & Safety)
@@ -246,6 +246,7 @@ local DB_DEFAULTS = {
     unitMode      = 4,           -- Default to Percentage (4)
     barWidth      = 180,         -- Frame width in pixels (Range: 100 - 300)
     barHeight     = 22,          -- Frame height in pixels (Range: 14 - 36)
+    barSpacing    = 4,           -- Spacing between stacked HUD bars in pixels (Range: 0 - 50)
     point         = "CENTER",
     relativePoint = "CENTER",
     xOfs          = 0,
@@ -550,7 +551,7 @@ function addon:UpdateLayout()
     -- Bar Sizing & Gap Calculation
     local width  = db.barWidth or 180
     local height = db.barHeight or 22
-    local gap    = 4
+    local gap    = db.barSpacing or 4
     local isHorizontal = (db.stackingMode == "HORIZONTAL")
 
     local totalWidth, totalHeight
@@ -922,13 +923,19 @@ local function UpdateOptionsUI()
             uiWidgets.sliderHeight.valueText:SetText(tostring(LazySpeedBigginsDB.barHeight or 22) .. " px")
         end
     end
+    if uiWidgets.sliderSpacing then
+        uiWidgets.sliderSpacing:SetValue(LazySpeedBigginsDB.barSpacing or 4)
+        if uiWidgets.sliderSpacing.valueText then
+            uiWidgets.sliderSpacing.valueText:SetText(tostring(LazySpeedBigginsDB.barSpacing or 4) .. " px")
+        end
+    end
 
     -- Gray out child controls when disabled
     local childWidgets = {
         uiWidgets.cbFlying, uiWidgets.cbSwimming, uiWidgets.cbGround, uiWidgets.cbVigor, uiWidgets.cbHideVigorFull, uiWidgets.cbVigorGlow, uiWidgets.cbCombat, uiWidgets.cbLocked,
         uiWidgets.stackHeader, uiWidgets.rbVertical, uiWidgets.rbHorizontal,
         uiWidgets.unitHeader, uiWidgets.radioMPH, uiWidgets.radioYS, uiWidgets.radioKMH, uiWidgets.radioPCT,
-        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.btnResetPos
+        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.sliderSpacing, uiWidgets.btnResetPos
     }
     for _, w in ipairs(childWidgets) do
         if w then
@@ -1182,9 +1189,12 @@ local function InitializeBlizzardSettings()
     local sliderHeight = CreateSettingSlider("barHeight", "Bar Height", "Adjust vertical height of HUD bars in pixels.", 14, 36, 1, "TOPLEFT", sliderWidth, "BOTTOMLEFT", 0, -24)
     uiWidgets.sliderHeight = sliderHeight
 
+    local sliderSpacing = CreateSettingSlider("barSpacing", "Bar Spacing", "Adjust spacing between adjacent HUD bars in pixels (0 - 50 px).", 0, 50, 1, "TOPLEFT", sliderHeight, "BOTTOMLEFT", 0, -24)
+    uiWidgets.sliderSpacing = sliderSpacing
+
     -- Reset Position Button
     local btnResetPos = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnResetPos:SetPoint("TOPLEFT", sliderHeight, "BOTTOMLEFT", 0, -20)
+    btnResetPos:SetPoint("TOPLEFT", sliderSpacing, "BOTTOMLEFT", 0, -20)
     btnResetPos:SetSize(160, 24)
     btnResetPos:SetText("Reset Position")
     btnResetPos:SetScript("OnClick", function()
@@ -1208,7 +1218,7 @@ local function InitializeBlizzardSettings()
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", btnResetPos, "BOTTOMLEFT", -324, -24)
     helpNote:SetJustifyH("LEFT")
-    helpNote:SetText("Slash commands: /lazyspeedb (Type /lazyspeedb ? for available commands)")
+    helpNote:SetText("Slash commands: |cFFFFD100/lazyspeedb|r (Type |cFFFFD100/lazyspeedb ?|r for available commands)")
 
     panel:SetScript("OnShow", function()
         UpdateOptionsUI()
@@ -1393,6 +1403,17 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         UpdateOptionsUI()
         local status = LazySpeedBigginsDB.locked and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Frame position is now " .. status .. ".")
+    elseif command:find("^spacing") or command:find("^gap") then
+        local val = tonumber(command:match("%d+"))
+        if val ~= nil then
+            val = math.max(0, math.min(50, math.floor(val + 0.5)))
+            db.barSpacing = val
+            addon:UpdateLayout()
+            UpdateOptionsUI()
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Bar spacing set to |cFF00FF00" .. val .. " px|r.")
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Current bar spacing is |cFF00FF00" .. (db.barSpacing or 4) .. " px|r. Usage: |cFFFFD100/lazyspeedb spacing <0-50>|r")
+        end
     elseif command == "defaults" or command == "reset defaults" then
         ResetAllToDefaults()
     elseif command == "reset" then
@@ -1419,6 +1440,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Hide in Combat:   %s", ColorBool(db.hideInCombat)))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Measurement Unit: %s", modeLabels[db.unitMode or 4] or "%"))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Dimensions:   %d x %d px", db.barWidth or 180, db.barHeight or 22))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Spacing:      %d px", db.barSpacing or 4))
     elseif command == "help" or command == "?" then
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins:|r Commands:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb|r - Open options menu")
@@ -1427,11 +1449,9 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb vigorfull|r - Toggle hiding Vigor bar when full")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb glow|r (or |cFFFFD100/lazyspeedb aura|r) - Toggle recharge buff glow on/off")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb stack [horiz/vert]|r - Switch horizontal or vertical layout")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb spacing <0-50>|r - Adjust spacing between stacked bars in pixels")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb lock|r - Toggle locking frame position")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb reset|r - Reset frame position to center")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb defaults|r - Reset all options to default")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb status|r - Display current configuration")
-        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb help|r or |cFFFFD100/lazyspeedb ?|r - Show this list of commands")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb defaults|r - Reset all options to default")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb status|r - Display current configuration")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb help|r or |cFFFFD100/lazyspeedb ?|r - Show this list of commands")

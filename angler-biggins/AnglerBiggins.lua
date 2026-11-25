@@ -22,7 +22,7 @@
 
 local addonName, addon = ...
 _G["AnglerBiggins"] = addon
-addon.version = "2.2.0"
+addon.version = "2.2.1"
 
 -- Item & Spell Constants
 local UNDERLIGHT_ANGLER_ID        = 133755
@@ -1203,7 +1203,7 @@ function addon:CreateSettingsUI()
     -- Slash Command Help Note
     local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     helpNote:SetPoint("TOPLEFT", statusBox, "BOTTOMLEFT", 0, -14)
-    helpNote:SetText("Slash commands: /anglerb (Type /anglerb ? for available commands)")
+    helpNote:SetText("Slash commands: |cFFFFD100/anglerb|r (Type |cFFFFD100/anglerb ?|r for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()

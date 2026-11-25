@@ -1,3 +1,13 @@
+# Knowledge Biggins v1.3.2
+
+### Fixed
+- **Edit Mode Tooltip Placement:** Updated the floating button's hover tooltip to use `GameTooltip_SetDefaultAnchor`, allowing it to properly dock at the player's configured Edit Mode / UI Layout Editor location instead of forcing an override anchor directly above the button.
+
+# Knowledge Biggins v1.3.1
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/knowledgeb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # Knowledge Biggins v1.3.0
 
 ### Added

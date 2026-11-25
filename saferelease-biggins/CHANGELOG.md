@@ -1,3 +1,8 @@
+# SafeRelease Biggins v1.1.1
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/safereleaseb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # SafeRelease Biggins v1.1.0
 
 ### Breaking Changes

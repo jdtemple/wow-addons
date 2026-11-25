@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.5.2"
+addon.version = "1.5.3"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -1026,7 +1026,7 @@ function addon:RegisterOptions()
     -- Keybinding Hint
     local keybindNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     keybindNote:SetPoint("TOPLEFT", btnPin, "BOTTOMLEFT", -26, -18)
-    keybindNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> SummonPet Biggins\nSlash commands: /summonpetb (Type /summonpetb ? for available commands)")
+    keybindNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> SummonPet Biggins\nSlash commands: |cFFFFD100/summonpetb|r (Type |cFFFFD100/summonpetb ?|r for available commands)")
 
     panel:SetScript("OnShow", function()
         addon:UpdateOptionsUI()

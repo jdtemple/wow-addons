@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 6
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 7
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -63,32 +63,47 @@ function Suite:GetOrCreateParentCategory(addonDir)
     parentPanel.name = "Biggins AddOns"
     parentPanel:Hide() -- Force initial hidden state so the first presentation to the user triggers a clean OnShow
 
+    -- Modern Native ScrollFrame (ScrollFrameTemplate auto-creates MinimalScrollBar)
+    local scrollFrame = CreateFrame("ScrollFrame", "BigginsAddOnsScrollFrame", parentPanel, "ScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", parentPanel, "TOPLEFT", 0, 0)
+    scrollFrame:SetPoint("BOTTOMRIGHT", parentPanel, "BOTTOMRIGHT", -22, 0)
+
+    local scrollChild = CreateFrame("Frame", "BigginsAddOnsScrollChild", scrollFrame)
+    scrollFrame:SetScrollChild(scrollChild)
+    scrollChild:SetSize(600, 720)
+
+    scrollFrame:SetScript("OnSizeChanged", function(self, w, h)
+        if w and w > 0 then
+            scrollChild:SetWidth(w)
+        end
+    end)
+
+    -- Suite Logo Texture (Top Right)
+    local logo = scrollChild:CreateTexture(nil, "ARTWORK")
+    logo:SetPoint("TOPRIGHT", -24, -16)
+    logo:SetSize(84, 84)
+    logo:SetTexture("Interface\\AddOns\\" .. (addonDir or "AutoJoinBiggins") .. "\\suite-logo.jpg")
+
     -- Title (Blizzard Gold)
-    local title = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    local title = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("|cFFFFD100Biggins AddOns|r")
 
     -- Subtitle / Description
-    local desc = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local desc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     desc:SetPoint("RIGHT", logo, "LEFT", -20)
     desc:SetJustifyH("LEFT")
     desc:SetWordWrap(true)
     desc:SetText("High-performance, lightweight World of Warcraft addons with zero Lua garbage generation.")
 
-    -- Suite Logo Texture (Top Right)
-    local logo = parentPanel:CreateTexture(nil, "ARTWORK")
-    logo:SetPoint("TOPRIGHT", -24, -16)
-    logo:SetSize(84, 84)
-    logo:SetTexture("Interface\\AddOns\\" .. (addonDir or "AutoJoinBiggins") .. "\\suite-logo.jpg")
-
     -- Author & Architecture Header
-    local authorHeader = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local authorHeader = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     authorHeader:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -18)
     authorHeader:SetJustifyH("LEFT")
     authorHeader:SetText("Engineering Philosophy & Standards:")
 
-    local authorInfo = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local authorInfo = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     authorInfo:SetPoint("TOPLEFT", authorHeader, "BOTTOMLEFT", 0, -6)
     authorInfo:SetPoint("RIGHT", logo, "LEFT", -20)
     authorInfo:SetJustifyH("LEFT")
@@ -97,13 +112,13 @@ function Suite:GetOrCreateParentCategory(addonDir)
     authorInfo:SetText("Created by |cFFFFD100Biggins|r (US-Whisperwind).\nEvery addon in this suite is built from the ground up for maximum CPU efficiency:\n  - Zero Lua memory allocation in update loops (no garbage collector churn)\n  - Purely event-driven lifecycle management and hard script detachment\n  - Modern Blizzard Canvas Settings integration")
 
     -- Divider line
-    local line = parentPanel:CreateTexture(nil, "ARTWORK")
+    local line = scrollChild:CreateTexture(nil, "ARTWORK")
     line:SetPoint("TOPLEFT", authorInfo, "BOTTOMLEFT", 0, -14)
     line:SetSize(580, 1)
     line:SetColorTexture(0.8, 0.7, 0.2, 0.3)
 
     -- Installed AddOns Header
-    local addonsHeader = parentPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local addonsHeader = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     addonsHeader:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 0, -14)
     addonsHeader:SetJustifyH("LEFT")
     addonsHeader:SetText("Installed Suite Modules:")
@@ -156,7 +171,7 @@ function Suite:GetOrCreateParentCategory(addonDir)
     parentPanel.moduleRows = {}
 
     for _, mod in ipairs(modules) do
-        local row = CreateFrame("Frame", nil, parentPanel)
+        local row = CreateFrame("Frame", nil, scrollChild)
         row:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -10)
         row:SetSize(580, 42)
 
@@ -192,6 +207,13 @@ function Suite:GetOrCreateParentCategory(addonDir)
     end
 
     local function RefreshParentPanel()
+        local scrollW = scrollFrame:GetWidth()
+        if scrollW and scrollW > 0 then
+            scrollChild:SetWidth(scrollW)
+        end
+        local contentH = 180 + (#parentPanel.moduleRows * 52) + 30
+        scrollChild:SetHeight(contentH)
+
         for _, row in ipairs(parentPanel.moduleRows) do
             local mod = row.mod
             local isLoaded = IsAddOnLoadedSafe(mod.name)

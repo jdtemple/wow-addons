@@ -1,3 +1,8 @@
+# Angler Biggins v2.2.1
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/anglerb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # Angler Biggins v2.2.0
 
 ### Added & Polish

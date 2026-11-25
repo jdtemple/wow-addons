@@ -1,3 +1,8 @@
+# ChatLink Biggins v1.2.1
+
+### Polish
+- **Options Slash Command Footer:** Elevated slash command documentation in the options panel with highlighted Blizzard Gold styling (`/chatlinkb`) to enhance visual hierarchy and readability across the Biggins Suite.
+
 # ChatLink Biggins v1.2.0
 
 ### Breaking Changes
