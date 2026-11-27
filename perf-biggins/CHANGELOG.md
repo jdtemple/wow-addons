@@ -1,3 +1,16 @@
+# Perf Biggins v1.7.1 (2026-11-27)
+
+### Architecture Modularization & Settings Decoupling
+- **Modular File Structure:**
+  - Extracted shared constants, defaults, format strings, and color scales into `Core/Constants.lua`.
+  - Extracted status bars, container frames, unified drag handlers, and dynamic layout engine into `Modules/HUD.lua`.
+  - Extracted 10 FPS telemetry update loop and dynamic FPS ceiling evaluation into `Core/Telemetry.lua`.
+  - Extracted Blizzard Settings options canvas and two-column control grid into `Core/Options.lua`.
+  - Streamlined `PerfBiggins.lua` as lifecycle event orchestrator and slash command router.
+- **Suite-Wide Architectural Consistency:**
+  - Standardized load order: `LibBigginsSuite.lua` -> `Core\*.lua` -> `Modules\*.lua` -> `<AddonName>.lua`.
+  - Implemented explicit `addon:UpdateInteractivity()` to support runtime `/perfb lock` toggle.
+
 # Perf Biggins v1.7.0
 
 ### Added

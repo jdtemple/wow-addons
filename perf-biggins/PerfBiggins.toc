@@ -2,10 +2,14 @@
 ## Title: |cFFFFD100Perf Biggins|r
 ## Notes: Lightweight, high-performance tri-bar HUD displaying FPS, World Latency, and Home Latency with zero garbage collection.
 ## Author: Biggins
-## Version: 1.7.0
+## Version: 1.7.1
 ## SavedVariables: PerfBigginsDB
 ## Category: User Interface
 ## IconTexture: Interface\AddOns\PerfBiggins\logo.jpg
 
 LibBigginsSuite.lua
+Core\Constants.lua
+Modules\HUD.lua
+Core\Telemetry.lua
+Core\Options.lua
 PerfBiggins.lua

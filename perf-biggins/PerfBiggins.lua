@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Perf Biggins v1.7.0 - High-Performance FPS & Dual-Latency HUD
+    Perf Biggins v1.7.1 - High-Performance FPS & Dual-Latency HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: The War Within / Midnight (Patch 11.x - 12.x / 12.1.7)
@@ -22,409 +22,48 @@
        snap together seamlessly and the frame dynamically resizes without gaps.
     6. Blizzard Gold Aesthetic: Matching LazySpeed styling with dark slate tooltip
        backdrop and Blizzard metallic gold border.
-    7. Modern Settings UI: Integrated into Options -> AddOns -> Biggins AddOns -> Perf
-       with sliders, checkboxes, lock toggle, and slash commands (/perfb).
+    7. Modular Architecture:
+         - Core/Constants.lua: Defaults, scales, format strings, color gradients.
+         - Modules/HUD.lua: Master frame, status bars, drag handlers, dynamic layout.
+         - Core/Telemetry.lua: 10 FPS update loop and dynamic FPS ceiling evaluation.
+         - Core/Options.lua: Blizzard Settings canvas UI and two-column control grid.
+         - PerfBiggins.lua: Lifecycle event orchestration and slash command routing.
 ============================================================================== ]]--
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.7.0"
+addon.version = "1.7.1"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
 _G["BINDING_CATEGORY_PERFBIGGINS"] = "Perf Biggins"
 _G["BINDING_NAME_PERFBIGGINS_TOGGLE"] = "Toggle Performance HUD"
 
--- ==============================================================================
--- 1. LOCAL UPVALUE CACHING & CONSTANTS
--- ==============================================================================
-local GetFramerate        = GetFramerate
-local GetNetStats          = GetNetStats
-local InCombatLockdown     = InCombatLockdown
-local UnitAffectingCombat  = UnitAffectingCombat
-local floor                = math.floor
-local min                  = math.min
-local max                  = math.max
+-- Cache global functions
+local CreateFrame = CreateFrame
+local pairs       = pairs
+local tonumber    = tonumber
+local math_max    = math.max
+local math_min    = math.min
+local math_floor  = math.floor
+local strtrim     = strtrim
+local string      = string
+local print       = print
 
--- Font helper with safe fallback to active Blizzard game fonts
-local function GetDefaultFont()
-    if STANDARD_TEXT_FONT and type(STANDARD_TEXT_FONT) == "string" then
-        return STANDARD_TEXT_FONT
-    end
-    if GameFontHighlight and GameFontHighlight.GetFont then
-        local font = GameFontHighlight:GetFont()
-        if font then return font end
-    end
-    return "Fonts\\FRIZQT__.TTF"
-end
-
--- Pre-cached format string pointers (Zero garbage collection in Lua heap)
-local FORMAT_FPS   = "%.1f FPS"
-local FORMAT_WORLD = "%.0f ms World"
-local FORMAT_HOME  = "%.0f ms Home"
-
--- Max fill limits for 100% status bar display
-local DEFAULT_FPS_CAP = 144  -- Default fallback FPS cap
-local activeFpsCap    = 144  -- Active dynamic FPS scale cap
-local MAX_LATENCY_CAP = 200  -- Max Latency scale cap in ms
-
--- Update Loop Rate: 10 FPS (0.10s) for silky smooth responsiveness
-local UPDATE_THROTTLE = 0.10
-
--- ==============================================================================
--- 2. SAVEDVARIABLES & DEFAULTS
--- ==============================================================================
-local DB_DEFAULTS = {
-    enabled      = true,
-    showFps      = true,
-    showWorld    = true,
-    showHome     = true,
-    stackingMode = "VERTICAL",
-    autoFpsCap   = true,
-    manualFpsCap = 144,
-    barWidth     = 180,
-    barHeight    = 18,
-    barSpacing   = 4,
-    bgAlpha      = 25,
-    locked       = false,
-    hideInCombat = false,
-    point        = "CENTER",
-    relativePoint= "CENTER",
-    xOfs         = 0,
-    yOfs         = -160,
-}
-
--- Print helper with Blizzard Gold prefix
-local function PrintMsg(msg)
-    print("|cFFFFD100[PerfBiggins]|r " .. msg)
-end
-addon.PrintMsg = PrintMsg
-
--- Check if player is in combat
-local function IsInCombat()
-    if InCombatLockdown and InCombatLockdown() then return true end
-    if UnitAffectingCombat and UnitAffectingCombat("player") then return true end
-    return false
-end
-
-
--- Helper to calculate the active maximum FPS scale ceiling
-function addon:CalculateActiveFpsCap()
-    local db = PerfBigginsDB or DB_DEFAULTS
-    if not db.autoFpsCap then
-        activeFpsCap = max(30, db.manualFpsCap or DEFAULT_FPS_CAP)
-        return activeFpsCap, "Manual"
-    end
-
-    -- Tier 1: Check foreground maxFPS CVar (Only if the checkbox useMaxFPS is enabled)
-    local useMax = (GetCVarBool and GetCVarBool("useMaxFPS")) or (GetCVar and GetCVar("useMaxFPS") == "1")
-    if useMax then
-        local maxFpsStr = GetCVar and GetCVar("maxFPS")
-        local maxFps = tonumber(maxFpsStr) or 0
-        if maxFps > 0 then
-            activeFpsCap = maxFps
-            addon._lastFpsTier = "maxFPS"
-            return activeFpsCap, "maxFPS"
-        end
-    end
-
-    -- Tier 2: Adaptive floor for uncapped setups (start at 60Hz baseline, expand with actual FPS)
-    local baseline = 60
-    if activeFpsCap and activeFpsCap > baseline and (addon._lastFpsTier == "Adaptive") then
-        baseline = activeFpsCap
-    end
-    addon._lastFpsTier = "Adaptive"
-    activeFpsCap = baseline
-    return activeFpsCap, "Adaptive"
+-- Toggle Master HUD Visibility
+function addon:Toggle()
+    local db = PerfBigginsDB or addon.DB_DEFAULTS
+    db.enabled = not db.enabled
+    addon:UpdateOptionsUI()
+    addon:UpdateLayout()
+    local status = db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
+    addon:PrintMsg("Performance HUD is now " .. status .. ".")
 end
 
 -- ==============================================================================
--- 3. COLOR GRADIENT EVALUATION
+-- LIFECYCLE EVENT DISPATCHER
 -- ==============================================================================
--- FPS: High is good (Green >= 59.5 rounds to 60.0 FPS, Yellow 30-59, Red < 30)
-local function GetFpsColor(fps)
-    if fps >= 59.5 then
-        return 0.10, 0.90, 0.20 -- Vibrant Emerald Green
-    elseif fps >= 29.5 then
-        return 0.95, 0.82, 0.10 -- Golden Yellow
-    else
-        return 0.95, 0.20, 0.20 -- Warning Red
-    end
-end
 
--- Latency: Low is good (Green <= 50, Yellow 51-100, Orange 101-200, Red > 200)
-local function GetLatencyColor(ms)
-    if ms <= 50 then
-        return 0.10, 0.90, 0.20 -- Optimal Green
-    elseif ms <= 100 then
-        return 0.95, 0.82, 0.10 -- Acceptable Yellow
-    elseif ms <= 200 then
-        return 1.00, 0.55, 0.05 -- Elevated Orange
-    else
-        return 0.95, 0.20, 0.20 -- High Latency Red
-    end
-end
-
--- ==============================================================================
--- 4. MAIN FRAME & SPLIT STATUS BAR CREATION
--- ==============================================================================
--- Transparent master container frame managing stack anchoring and unified movement
-local mainFrame = CreateFrame("Frame", "PerfBigginsFrame", UIParent)
-mainFrame:SetClampedToScreen(true)
-mainFrame:SetMovable(true)
-mainFrame:EnableMouse(true)
-mainFrame:RegisterForDrag("LeftButton")
-
--- Unified Drag Handlers: Dragging any bar moves the entire stack as a single unit
-local function OnDragStartHandler(self)
-    local db = PerfBigginsDB or DB_DEFAULTS
-    if not db.locked then
-        mainFrame:StartMoving()
-    end
-end
-
-local function OnDragStopHandler(self)
-    mainFrame:StopMovingOrSizing()
-    local point, _, relPoint, x, y = mainFrame:GetPoint()
-    local db = PerfBigginsDB
-    if db then
-        db.point = point or "CENTER"
-        db.relativePoint = relPoint or "CENTER"
-        db.xOfs = x or 0
-        db.yOfs = y or -160
-    end
-end
-
-mainFrame:SetScript("OnDragStart", OnDragStartHandler)
-mainFrame:SetScript("OnDragStop", OnDragStopHandler)
-
--- Helper to create individual status bars wrapped in a Blizzard Gold bordered container
-local function CreateTelemetryBar(barName, defaultText)
-    -- Visual container frame with Blizzard metallic gold border (matching LazySpeed)
-    local container = CreateFrame("Frame", barName .. "Container", mainFrame, "BackdropTemplate")
-    container:SetClampedToScreen(true)
-    container:EnableMouse(true)
-    container:RegisterForDrag("LeftButton")
-    container:SetScript("OnDragStart", OnDragStartHandler)
-    container:SetScript("OnDragStop", OnDragStopHandler)
-
-    container:SetBackdrop({
-        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile     = true,
-        tileSize = 12,
-        edgeSize = 12,
-        insets   = { left = 3, right = 3, top = 3, bottom = 3 }
-    })
-    container:SetBackdropColor(0.05, 0.05, 0.05, 0.85)
-    container:SetBackdropBorderColor(0.8, 0.7, 0.2, 1.0) -- Blizzard Metallic Gold
-
-    local bar = CreateFrame("StatusBar", barName, container)
-    bar:SetPoint("CENTER", container, "CENTER", 0, 0)
-    bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    bar:SetMinMaxValues(0, 100)
-    bar:SetValue(0)
-
-    -- Subtle dark background track behind the status bar
-    local bg = bar:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(bar)
-    bg:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    bg:SetVertexColor(0.05, 0.05, 0.05, 0.75)
-    bar.bg = bg
-
-    -- Centered text overlay
-    local text = bar:CreateFontString(nil, "OVERLAY")
-    text:SetPoint("CENTER", bar, "CENTER", 0, 0)
-    text:SetFont(GetDefaultFont(), 11, "OUTLINE")
-    text:SetTextColor(1, 1, 1, 1)
-    text:SetShadowOffset(1, -1)
-    text:SetShadowColor(0, 0, 0, 1)
-    text:SetText(defaultText)
-    bar.text = text
-
-    bar.container = container
-    return bar
-end
-
-local barFps   = CreateTelemetryBar("PerfBigginsBarFPS", "--- FPS")
-local barWorld = CreateTelemetryBar("PerfBigginsBarWorld", "--- ms World")
-local barHome  = CreateTelemetryBar("PerfBigginsBarHome", "--- ms Home")
-
-addon.mainFrame = mainFrame
-addon.barFps    = barFps
-addon.barWorld  = barWorld
-addon.barHome   = barHome
-
--- ==============================================================================
--- 5. DYNAMIC LAYOUT & COLLAPSE ENGINE
--- ==============================================================================
-function addon:UpdateLayout()
-    local db = PerfBigginsDB or DB_DEFAULTS
-    if db.enabled == false then
-        mainFrame:Hide()
-        return
-    end
-
-    local width  = db.barWidth or 180
-    local height = db.barHeight or 18
-
-    -- Build list of currently visible bars in order
-    local visibleBars = {}
-    if db.showFps   then table.insert(visibleBars, barFps)   else barFps.container:Hide()   end
-    if db.showWorld then table.insert(visibleBars, barWorld) else barWorld.container:Hide() end
-    if db.showHome  then table.insert(visibleBars, barHome)  else barHome.container:Hide()  end
-
-    local count = #visibleBars
-    if count == 0 then
-        mainFrame:Hide()
-        return
-    end
-
-    -- If in combat and hideInCombat is on, keep hidden
-    if db.hideInCombat and IsInCombat() then
-        mainFrame:Hide()
-        return
-    else
-        mainFrame:Show()
-    end
-
-    -- Split Bar Sizing & Gap (Vertical stack or Horizontal ribbon)
-    local gap = db.barSpacing or 4
-    local isHorizontal = (db.stackingMode == "HORIZONTAL")
-    local totalWidth, totalHeight
-    if isHorizontal then
-        totalWidth  = (count * width) + ((count - 1) * gap)
-        totalHeight = height
-    else
-        totalWidth  = width
-        totalHeight = (count * height) + ((count - 1) * gap)
-    end
-
-    mainFrame:SetSize(totalWidth, max(1, totalHeight))
-
-    -- Dynamic font sizing based on bar height
-    local fontSize = max(9, min(14, floor(height * 0.62)))
-    local fontPath = GetDefaultFont()
-
-    -- Anchor visible bar containers sequentially
-    local prevContainer = nil
-    for i, bar in ipairs(visibleBars) do
-        local c = bar.container
-        c:ClearAllPoints()
-        c:SetSize(width, height)
-
-        bar:ClearAllPoints()
-        bar:SetPoint("CENTER", c, "CENTER", 0, 0)
-        bar:SetSize(max(1, width - 6), max(1, height - 6))
-        bar.text:SetFont(fontPath, fontSize, "OUTLINE")
-
-        if i == 1 then
-            c:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 0, 0)
-        elseif isHorizontal then
-            c:SetPoint("TOPLEFT", prevContainer, "TOPRIGHT", gap, 0)
-        else
-            c:SetPoint("TOPLEFT", prevContainer, "BOTTOMLEFT", 0, -gap)
-        end
-        c:Show()
-        bar:Show()
-        prevContainer = c
-    end
-
-    -- Apply background opacity to containers and tracks
-    local bgAlpha = (db.bgAlpha ~= nil and db.bgAlpha or 25) / 100
-    for _, b in ipairs({ barFps, barWorld, barHome }) do
-        b.container:SetBackdropColor(0.05, 0.05, 0.05, bgAlpha)
-        b.bg:SetVertexColor(0.05, 0.05, 0.05, bgAlpha * 0.88)
-    end
-
-    -- Mouse interactivity based on lock status
-    local mouseEnabled = not db.locked
-    mainFrame:EnableMouse(mouseEnabled)
-    barFps.container:EnableMouse(mouseEnabled)
-    barWorld.container:EnableMouse(mouseEnabled)
-    barHome.container:EnableMouse(mouseEnabled)
-end
-
--- Restore saved position on screen
-function addon:RestorePosition()
-    local db = PerfBigginsDB or DB_DEFAULTS
-    mainFrame:ClearAllPoints()
-    mainFrame:SetPoint(db.point or "CENTER", UIParent, db.relativePoint or "CENTER", db.xOfs or 0, db.yOfs or -160)
-end
-
--- ==============================================================================
--- 6. HIGH-PERFORMANCE THROTTLED TELEMETRY LOOP
--- ==============================================================================
-local updateTimer = 0
-
-local function TelemetryUpdateLoop(self, elapsed)
-    updateTimer = updateTimer + (elapsed or 0)
-    if updateTimer < UPDATE_THROTTLE then return end
-    updateTimer = 0
-
-    local db = PerfBigginsDB
-    if not db or db.enabled == false then return end
-
-    -- 1. FPS Bar Update (Live refresh with 1 decimal place matching LazySpeed)
-    if db.showFps then
-        local currentFps = GetFramerate() or 0
-        barFps.text:SetFormattedText(FORMAT_FPS, currentFps)
-
-        -- If completely uncapped (Tier 3 Adaptive) in Auto mode and current FPS exceeds current ceiling by >= 1 FPS, adapt upward cleanly
-        if db.autoFpsCap and addon._lastFpsTier == "Adaptive" and currentFps >= (activeFpsCap + 1.0) then
-            activeFpsCap = math.floor(currentFps + 0.5)
-            if addon.UpdateOptionsUI then addon:UpdateOptionsUI() end
-        end
-
-        local cap = max(30, activeFpsCap or DEFAULT_FPS_CAP)
-        local pct = min(100, max(0, (currentFps / cap) * 100))
-        barFps:SetValue(pct)
-
-        local r, g, b = GetFpsColor(currentFps)
-        barFps:SetStatusBarColor(r, g, b)
-    end
-
-    -- 2. Latency Bars Update (World & Home)
-    if db.showWorld or db.showHome then
-        local _, _, homeMs, worldMs = GetNetStats()
-        worldMs = worldMs or 0
-        homeMs  = homeMs or 0
-
-        -- World Latency
-        if db.showWorld then
-            barWorld.text:SetFormattedText(FORMAT_WORLD, worldMs)
-
-            local pct = min(100, max(0, (worldMs / MAX_LATENCY_CAP) * 100))
-            barWorld:SetValue(pct)
-
-            local r, g, b = GetLatencyColor(worldMs)
-            barWorld:SetStatusBarColor(r, g, b)
-        end
-
-        -- Home Latency
-        if db.showHome then
-            barHome.text:SetFormattedText(FORMAT_HOME, homeMs)
-
-            local pct = min(100, max(0, (homeMs / MAX_LATENCY_CAP) * 100))
-            barHome:SetValue(pct)
-
-            local r, g, b = GetLatencyColor(homeMs)
-            barHome:SetStatusBarColor(r, g, b)
-        end
-    end
-end
-
--- Failsafe wrapper: Protects against unhandled API exceptions and prevents loop detachment
-local function SafeOnUpdate(self, elapsed)
-    local ok, err = pcall(TelemetryUpdateLoop, self, elapsed)
-    if not ok and err then
-        PrintMsg("|cFFFF0000Telemetry Loop Error:|r " .. tostring(err))
-    end
-end
-
--- ==============================================================================
--- 7. EVENT LISTENER & COMBAT OPTIMIZATIONS
--- ==============================================================================
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -440,7 +79,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             if not PerfBigginsDB then
                 PerfBigginsDB = {}
             end
-            for k, v in pairs(DB_DEFAULTS) do
+            for k, v in pairs(addon.DB_DEFAULTS) do
                 if PerfBigginsDB[k] == nil then
                     PerfBigginsDB[k] = v
                 end
@@ -452,14 +91,14 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             addon:RegisterOptions()
 
             -- Start telemetry loop
-            mainFrame:SetScript("OnUpdate", SafeOnUpdate)
-            SafeOnUpdate(mainFrame, 1.0)
+            addon.mainFrame:SetScript("OnUpdate", function(f, elapsed) addon:SafeOnUpdate(elapsed) end)
+            addon:SafeOnUpdate(1.0)
         end
     elseif event == "PLAYER_ENTERING_WORLD" then
         addon:CalculateActiveFpsCap()
         addon:RestorePosition()
         addon:UpdateLayout()
-        SafeOnUpdate(mainFrame, 1.0)
+        addon:SafeOnUpdate(1.0)
     elseif event == "CVAR_UPDATE" then
         local cvarName = ...
         if cvarName == "maxFPS" or cvarName == "useMaxFPS" or not cvarName then
@@ -470,385 +109,26 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         -- Entered Combat
         local db = PerfBigginsDB
         if db and db.hideInCombat then
-            mainFrame:SetScript("OnUpdate", nil) -- Detach loop for 0.00ms CPU footprint
-            mainFrame:Hide()
+            addon.mainFrame:SetScript("OnUpdate", nil) -- Detach loop for 0.00ms CPU footprint
+            addon.mainFrame:Hide()
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
         -- Left Combat
         local db = PerfBigginsDB
         if db and db.hideInCombat then
-            mainFrame:SetScript("OnUpdate", SafeOnUpdate) -- Reattach loop
+            addon.mainFrame:SetScript("OnUpdate", function(f, elapsed) addon:SafeOnUpdate(elapsed) end) -- Reattach loop
             addon:UpdateLayout()
         end
     end
 end)
 
 -- ==============================================================================
+-- SLASH COMMAND HANDLER (/perfb)
 -- ==============================================================================
--- 8. BLIZZARD MODERN SETTINGS API INTEGRATION (Escape -> Options -> AddOns)
--- ==============================================================================
-local registeredSettings = {}
 
--- ==============================================================================
--- 8. BLIZZARD MODERN SETTINGS API INTEGRATION (Canvas Layout)
--- ==============================================================================
-local uiWidgets = {}
-
-local function ResetAllToDefaults()
-    if not PerfBigginsDB then PerfBigginsDB = {} end
-    for varName, defVal in pairs(DB_DEFAULTS) do
-        PerfBigginsDB[varName] = defVal
-    end
-    addon:RestorePosition()
-    addon:UpdateOptionsUI()
-    addon:UpdateLayout()
-    PrintMsg("All options and frame position have been reset to default.")
-end
-
-function addon:UpdateOptionsUI()
-    if not uiWidgets.panel or not PerfBigginsDB then return end
-    local isEnabled = PerfBigginsDB.enabled ~= false
-
-    if uiWidgets.cbEnable then uiWidgets.cbEnable:SetChecked(isEnabled) end
-    if uiWidgets.cbFps then uiWidgets.cbFps:SetChecked(PerfBigginsDB.showFps) end
-    if uiWidgets.cbWorld then uiWidgets.cbWorld:SetChecked(PerfBigginsDB.showWorld) end
-    if uiWidgets.cbHome then uiWidgets.cbHome:SetChecked(PerfBigginsDB.showHome) end
-    if uiWidgets.cbLocked then uiWidgets.cbLocked:SetChecked(PerfBigginsDB.locked) end
-    if uiWidgets.cbCombat then uiWidgets.cbCombat:SetChecked(PerfBigginsDB.hideInCombat) end
-
-    -- Stacking Mode radio buttons
-    local isVertical = (PerfBigginsDB.stackingMode or "VERTICAL") == "VERTICAL"
-    if uiWidgets.rbVertical   then uiWidgets.rbVertical:SetChecked(isVertical) end
-    if uiWidgets.rbHorizontal then uiWidgets.rbHorizontal:SetChecked(not isVertical) end
-
-    -- Auto FPS detection toggle and dynamic cap slider
-    local isAutoFps = PerfBigginsDB.autoFpsCap ~= false
-    if uiWidgets.cbAutoFps then uiWidgets.cbAutoFps:SetChecked(isAutoFps) end
-
-    if uiWidgets.sliderFpsCap then
-        local capVal = isAutoFps and activeFpsCap or (PerfBigginsDB.manualFpsCap or DEFAULT_FPS_CAP)
-        uiWidgets.sliderFpsCap:SetValue(capVal)
-        if uiWidgets.sliderFpsCap.valueText then
-            local suffix = isAutoFps and " FPS (Auto)" or " FPS"
-            uiWidgets.sliderFpsCap.valueText:SetText(tostring(math.floor(capVal)) .. suffix)
-        end
-        uiWidgets.sliderFpsCap:SetEnabled(isEnabled and not isAutoFps)
-        uiWidgets.sliderFpsCap:SetAlpha((isEnabled and not isAutoFps) and 1.0 or 0.5)
-    end
-
-    if uiWidgets.sliderWidth then
-        uiWidgets.sliderWidth:SetValue(PerfBigginsDB.barWidth or 180)
-        if uiWidgets.sliderWidth.valueText then
-            uiWidgets.sliderWidth.valueText:SetText(tostring(PerfBigginsDB.barWidth or 180) .. " px")
-        end
-    end
-    if uiWidgets.sliderHeight then
-        uiWidgets.sliderHeight:SetValue(PerfBigginsDB.barHeight or 18)
-        if uiWidgets.sliderHeight.valueText then
-            uiWidgets.sliderHeight.valueText:SetText(tostring(PerfBigginsDB.barHeight or 18) .. " px")
-        end
-    end
-    if uiWidgets.sliderSpacing then
-        uiWidgets.sliderSpacing:SetValue(PerfBigginsDB.barSpacing or 4)
-        if uiWidgets.sliderSpacing.valueText then
-            uiWidgets.sliderSpacing.valueText:SetText(tostring(PerfBigginsDB.barSpacing or 4) .. " px")
-        end
-    end
-    if uiWidgets.sliderBgAlpha then
-        local bgVal = PerfBigginsDB.bgAlpha ~= nil and PerfBigginsDB.bgAlpha or 25
-        uiWidgets.sliderBgAlpha:SetValue(bgVal)
-        if uiWidgets.sliderBgAlpha.valueText then
-            uiWidgets.sliderBgAlpha.valueText:SetText(tostring(bgVal) .. "%")
-        end
-    end
-
-    -- Gray out child controls when disabled
-    local childWidgets = {
-        uiWidgets.cbFps, uiWidgets.cbWorld, uiWidgets.cbHome,
-        uiWidgets.stackHeader, uiWidgets.rbVertical, uiWidgets.rbHorizontal,
-        uiWidgets.cbAutoFps,
-        uiWidgets.cbLocked, uiWidgets.cbCombat,
-        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.sliderSpacing, uiWidgets.sliderBgAlpha, uiWidgets.btnResetPos
-    }
-    for _, w in ipairs(childWidgets) do
-        if w then
-            if w.SetEnabled then w:SetEnabled(isEnabled) end
-            w:SetAlpha(isEnabled and 1.0 or 0.5)
-        end
-    end
-end
-
-function addon:RegisterOptions()
-    local panel = CreateFrame("Frame", "PerfBigginsOptionsPanel", UIParent)
-    panel.name = "Perf Biggins"
-    uiWidgets.panel = panel
-
-    -- Title (Blizzard Gold)
-    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("|cFFFFD100Perf Biggins|r")
-
-    -- Subtitle / Description
-    local desc = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
-    desc:SetText("High-performance FPS and dual-latency telemetry HUD with zero Lua garbage generation.")
-
-    -- Suite Logo Texture (Top Right)
-    local logo = panel:CreateTexture(nil, "ARTWORK")
-    logo:SetPoint("TOPRIGHT", -24, -16)
-    logo:SetSize(64, 64)
-    logo:SetTexture("Interface\\AddOns\\PerfBiggins\\logo.jpg")
-
-    -- Top-Right "Defaults" Button
-    local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
-    btnDefaults:SetSize(110, 22)
-    btnDefaults:SetText("Defaults")
-    btnDefaults:SetScript("OnClick", function()
-        ResetAllToDefaults()
-    end)
-    btnDefaults:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Restore all Perf Biggins settings and frame position back to default.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    btnDefaults:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    -- Helper to create and bind checkboxes
-    local function CreateSettingCheckbox(key, label, tooltip, anchorPoint, relativeTo, relPoint, x, y, onClickCallback)
-        local cb = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-        cb:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
-        cb.Text:SetText(label)
-        cb.Text:SetFontObject("GameFontHighlight")
-        cb.tooltipText = tooltip
-        local currentVal = (PerfBigginsDB and PerfBigginsDB[key] ~= nil) and PerfBigginsDB[key] or DB_DEFAULTS[key]
-        cb:SetChecked(currentVal)
-        cb:SetScript("OnClick", function(self)
-            if not PerfBigginsDB then PerfBigginsDB = {} end
-            PerfBigginsDB[key] = self:GetChecked()
-            if onClickCallback then onClickCallback(self:GetChecked()) end
-            addon:UpdateLayout()
-            addon:UpdateOptionsUI()
-        end)
-        cb:SetScript("OnEnter", function(self)
-            if self.tooltipText then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
-                GameTooltip:Show()
-            end
-        end)
-        cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        return cb
-    end
-
-    -- Master Enable Checkbox
-    local cbEnable = CreateSettingCheckbox("enabled", "Enable Performance HUD", "Show or hide the performance telemetry HUD overlay.", "TOPLEFT", desc, "BOTTOMLEFT", 0, -18, function(val)
-        local status = val and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
-        PrintMsg("Performance HUD is now " .. status .. ".")
-    end)
-    uiWidgets.cbEnable = cbEnable
-
-    -- Child Checkboxes (Indented 20px)
-    local cbFps = CreateSettingCheckbox("showFps", "Show FPS Bar", "Displays the real-time Frames Per Second bar.", "TOPLEFT", cbEnable, "BOTTOMLEFT", 20, -6)
-    uiWidgets.cbFps = cbFps
-
-    local cbWorld = CreateSettingCheckbox("showWorld", "Show World Latency Bar", "Displays World Latency (combat, ability casts, encounter mechanics).", "TOPLEFT", cbFps, "BOTTOMLEFT", 0, -6)
-    uiWidgets.cbWorld = cbWorld
-
-    local cbHome = CreateSettingCheckbox("showHome", "Show Home Latency Bar", "Displays Home Latency (chat, auction house, guild system, realm data).", "TOPLEFT", cbWorld, "BOTTOMLEFT", 0, -6)
-    uiWidgets.cbHome = cbHome
-
-    local cbLocked = CreateSettingCheckbox("locked", "Lock Frame Position", "Prevents dragging the telemetry frame with the mouse.", "TOPLEFT", cbHome, "BOTTOMLEFT", -20, -8, function(val)
-        local status = val and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
-        PrintMsg("Frame position is now " .. status .. ".")
-    end)
-    uiWidgets.cbLocked = cbLocked
-
-    local cbCombat = CreateSettingCheckbox("hideInCombat", "Hide During Combat", "Automatically hides the HUD while in combat to reduce screen clutter.", "TOPLEFT", cbLocked, "BOTTOMLEFT", 0, -6)
-    uiWidgets.cbCombat = cbCombat
-
-    -- Auto-Detect Max FPS Checkbox
-    local cbAutoFps = CreateSettingCheckbox("autoFpsCap", "Auto-Detect Max FPS (Recommended)", "Automatically detects your Max Foreground FPS limit or display refresh rate from WoW settings.", "TOPLEFT", cbCombat, "BOTTOMLEFT", 0, -6, function(val)
-        addon:CalculateActiveFpsCap()
-        addon:UpdateOptionsUI()
-    end)
-    uiWidgets.cbAutoFps = cbAutoFps
-
-    -- Helper to create and bind sliders
-    local function CreateSettingSlider(key, label, tooltip, minVal, maxVal, step, anchorPoint, relativeTo, relPoint, x, y, unitSuffix)
-        local slider = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
-        slider:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
-        slider:SetSize(220, 16)
-        slider:SetMinMaxValues(minVal, maxVal)
-        slider:SetValueStep(step)
-        slider:SetObeyStepOnDrag(true)
-
-        local suffix = unitSuffix or " px"
-        local val = (PerfBigginsDB and PerfBigginsDB[key]) or DB_DEFAULTS[key]
-        slider:SetValue(val)
-
-        local titleText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        titleText:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
-        titleText:SetText(label)
-
-        local valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        valueText:SetPoint("BOTTOMRIGHT", slider, "TOPRIGHT", 0, 4)
-        valueText:SetText(tostring(val) .. suffix)
-
-        if slider.Low then slider.Low:SetText(tostring(minVal)) end
-        if slider.High then slider.High:SetText(tostring(maxVal)) end
-
-        slider:SetScript("OnValueChanged", function(self, newVal)
-            newVal = floor(newVal + 0.5)
-            if not PerfBigginsDB then PerfBigginsDB = {} end
-            PerfBigginsDB[key] = newVal
-            valueText:SetText(tostring(newVal) .. suffix)
-            if key == "manualFpsCap" then
-                addon:CalculateActiveFpsCap()
-            end
-            addon:UpdateLayout()
-        end)
-        slider:SetScript("OnEnter", function(self)
-            if tooltip then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(tooltip, 1, 1, 1, true)
-                GameTooltip:Show()
-            end
-        end)
-        slider:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-        slider.titleText = titleText
-        slider.valueText = valueText
-        return slider
-    end
-
-    -- Sliders (Anchored below checkboxes in left column)
-    local sliderFpsCap = CreateSettingSlider("manualFpsCap", "FPS Bar Max Scale", "Sets the frame rate target required for a 100% full status bar.", 60, 360, 1, "TOPLEFT", cbAutoFps, "BOTTOMLEFT", 4, -22, " FPS")
-    sliderFpsCap.valueText:SetText(tostring(activeFpsCap) .. " FPS")
-    uiWidgets.sliderFpsCap = sliderFpsCap
-
-    -- =========================================================================
-    -- Right Column: Stacking Mode, Dimensions, Spacing & Position Reset
-    -- =========================================================================
-    local stackHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    stackHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 340, -120)
-    stackHeader:SetText("Stacking Mode:")
-    uiWidgets.stackHeader = stackHeader
-
-    local function CreateStackingRadio(modeVal, label, tooltip, anchorPoint, relativeTo, relPoint, x, y)
-        local radio = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
-        radio:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
-        radio.text = radio:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        radio.text:SetPoint("LEFT", radio, "RIGHT", 4, 0)
-        radio.text:SetText(label)
-        radio.tooltipText = tooltip
-        radio:SetScript("OnClick", function()
-            if not PerfBigginsDB then PerfBigginsDB = {} end
-            PerfBigginsDB.stackingMode = modeVal
-            addon:UpdateLayout()
-            addon:UpdateOptionsUI()
-        end)
-        radio:SetScript("OnEnter", function(self)
-            if self.tooltipText then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
-                GameTooltip:Show()
-            end
-        end)
-        radio:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        return radio
-    end
-
-    local rbVertical = CreateStackingRadio("VERTICAL", "Vertical (Default)", "Stacks telemetry bars vertically top-to-bottom like a compact nameplate stack.", "TOPLEFT", stackHeader, "BOTTOMLEFT", 4, -4)
-    uiWidgets.rbVertical = rbVertical
-
-    local rbHorizontal = CreateStackingRadio("HORIZONTAL", "Horizontal", "Stacks telemetry bars horizontally side-by-side in a compact ribbon.", "LEFT", rbVertical.text, "RIGHT", 16, 0)
-    uiWidgets.rbHorizontal = rbHorizontal
-
-    local sliderWidth = CreateSettingSlider("barWidth", "Bar Width", "Adjust the horizontal width of telemetry bars in pixels.", 100, 300, 1, "TOPLEFT", rbVertical, "BOTTOMLEFT", -4, -24)
-    uiWidgets.sliderWidth = sliderWidth
-
-    local sliderHeight = CreateSettingSlider("barHeight", "Bar Height", "Adjust the vertical height of telemetry bars in pixels.", 12, 36, 1, "TOPLEFT", sliderWidth, "BOTTOMLEFT", 0, -24)
-    uiWidgets.sliderHeight = sliderHeight
-
-    local sliderSpacing = CreateSettingSlider("barSpacing", "Bar Spacing", "Adjust the spacing between adjacent telemetry bars in pixels (0 - 50 px).", 0, 50, 1, "TOPLEFT", sliderHeight, "BOTTOMLEFT", 0, -24)
-    uiWidgets.sliderSpacing = sliderSpacing
-
-    local sliderBgAlpha = CreateSettingSlider("bgAlpha", "Background Opacity", "Adjust the opacity of the dark background and depleted bar tracks (0% - 100%).", 0, 100, 1, "TOPLEFT", sliderSpacing, "BOTTOMLEFT", 0, -24, "%")
-    uiWidgets.sliderBgAlpha = sliderBgAlpha
-
-    -- Reset Position Button
-    local btnResetPos = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnResetPos:SetPoint("TOPLEFT", sliderBgAlpha, "BOTTOMLEFT", 0, -20)
-    btnResetPos:SetSize(160, 24)
-    btnResetPos:SetText("Reset Position")
-    btnResetPos:SetScript("OnClick", function()
-        if not PerfBigginsDB then PerfBigginsDB = {} end
-        PerfBigginsDB.point = "CENTER"
-        PerfBigginsDB.relativePoint = "CENTER"
-        PerfBigginsDB.xOfs = 0
-        PerfBigginsDB.yOfs = -160
-        addon:RestorePosition()
-        PrintMsg("Frame position reset to screen center.")
-    end)
-    btnResetPos:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Resets telemetry HUD back to the center of your screen.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    btnResetPos:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    uiWidgets.btnResetPos = btnResetPos
-
-    -- Slash Command Help Note (anchored below the lowest control on the panel)
-    local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    helpNote:SetPoint("TOPLEFT", sliderFpsCap, "BOTTOMLEFT", -4, -30)
-    helpNote:SetJustifyH("LEFT")
-    helpNote:SetText("Keybinds: Game Menu -> Options -> Keybindings -> AddOns -> Perf Biggins\nSlash commands: |cFFFFD100/perfb|r (Type |cFFFFD100/perfb ?|r for available commands)")
-
-    panel:SetScript("OnShow", function()
-        addon:UpdateOptionsUI()
-    end)
-
-    -- Register with modern Settings UI as a subcategory under Biggins AddOns
-    if LibBigginsSuite then
-        addon.categoryID = LibBigginsSuite:RegisterSubcategory("PerfBiggins", panel, "Perf")
-    elseif Settings and Settings.RegisterCanvasLayoutCategory then
-        local category = Settings.RegisterCanvasLayoutCategory(panel, "Perf Biggins")
-        Settings.RegisterAddOnCategory(category)
-        addon.categoryID = category:GetID()
-    else
-        InterfaceOptions_AddCategory(panel)
-    end
-
-    addon:UpdateOptionsUI()
-end
-
--- Toggle Master HUD Visibility
-function addon:Toggle()
-    local db = PerfBigginsDB or DB_DEFAULTS
-    db.enabled = not db.enabled
-    addon:UpdateOptionsUI()
-    addon:UpdateLayout()
-    local status = db.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
-    PrintMsg("Performance HUD is now " .. status .. ".")
-end
-
--- Open Settings Panel
-function addon:OpenSettings()
-    addon:UpdateOptionsUI()
-    if addon.categoryID and Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory(addon.categoryID)
-    else
-        PrintMsg("Options available in Game Menu -> Options -> AddOns -> Perf Biggins.")
-    end
-end
-
--- ==============================================================================
--- 9. SLASH COMMAND HANDLER (/perfb)
--- ==============================================================================
 local function SlashHandler(msg)
     local cmd = string.lower(strtrim(msg or ""))
-    local db = PerfBigginsDB or DB_DEFAULTS
+    local db = PerfBigginsDB or addon.DB_DEFAULTS
 
     if cmd == "" or cmd == "options" or cmd == "config" then
         addon:OpenSettings()
@@ -859,25 +139,25 @@ local function SlashHandler(msg)
         addon:UpdateInteractivity()
         addon:UpdateOptionsUI()
         local status = db.locked and "|cFFFF0000Locked|r" or "|cFF00FF00Unlocked|r"
-        PrintMsg("Frame position is now " .. status .. ".")
+        addon:PrintMsg("Frame position is now " .. status .. ".")
     elseif cmd == "fps" then
         db.showFps = not db.showFps
         addon:UpdateOptionsUI()
         addon:UpdateLayout()
         local status = db.showFps and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
-        PrintMsg("FPS bar is now " .. status .. ".")
+        addon:PrintMsg("FPS bar is now " .. status .. ".")
     elseif cmd == "world" then
         db.showWorld = not db.showWorld
         addon:UpdateOptionsUI()
         addon:UpdateLayout()
         local status = db.showWorld and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
-        PrintMsg("World Latency bar is now " .. status .. ".")
+        addon:PrintMsg("World Latency bar is now " .. status .. ".")
     elseif cmd == "home" then
         db.showHome = not db.showHome
         addon:UpdateOptionsUI()
         addon:UpdateLayout()
         local status = db.showHome and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"
-        PrintMsg("Home Latency bar is now " .. status .. ".")
+        addon:PrintMsg("Home Latency bar is now " .. status .. ".")
     elseif cmd == "stack" or cmd == "mode" or cmd:find("^stack ") or cmd:find("^mode ") then
         local sub = cmd:match("^%S+%s+(.*)$")
         if sub == "horizontal" or sub == "horiz" or sub == "h" then
@@ -890,23 +170,23 @@ local function SlashHandler(msg)
         addon:UpdateOptionsUI()
         addon:UpdateLayout()
         local modeDesc = (db.stackingMode == "HORIZONTAL") and "Horizontal" or "Vertical"
-        PrintMsg("Stacking mode is now |cFF00FF00" .. modeDesc .. "|r.")
+        addon:PrintMsg("Stacking mode is now |cFF00FF00" .. modeDesc .. "|r.")
     elseif cmd == "combat" then
         db.hideInCombat = not db.hideInCombat
         addon:UpdateOptionsUI()
         addon:UpdateLayout()
         local status = db.hideInCombat and "|cFF00FF00Enabled (Hiding in combat)|r" or "|cFFFF0000Disabled (Always visible)|r"
-        PrintMsg("Hide in combat is now " .. status .. ".")
+        addon:PrintMsg("Hide in combat is now " .. status .. ".")
     elseif cmd:find("^spacing") or cmd:find("^gap") then
         local val = tonumber(cmd:match("%d+"))
         if val ~= nil then
-            val = math.max(0, math.min(50, math.floor(val + 0.5)))
+            val = math_max(0, math_min(50, math_floor(val + 0.5)))
             db.barSpacing = val
             addon:UpdateLayout()
             addon:UpdateOptionsUI()
-            PrintMsg("Bar spacing set to |cFF00FF00" .. val .. " px|r.")
+            addon:PrintMsg("Bar spacing set to |cFF00FF00" .. val .. " px|r.")
         else
-            PrintMsg("Current bar spacing is |cFF00FF00" .. (db.barSpacing or 4) .. " px|r. Usage: |cFFFFD100/perfb spacing <0-50>|r")
+            addon:PrintMsg("Current bar spacing is |cFF00FF00" .. (db.barSpacing or 4) .. " px|r. Usage: |cFFFFD100/perfb spacing <0-50>|r")
         end
     elseif cmd == "reset" then
         db.point = "CENTER"
@@ -914,10 +194,10 @@ local function SlashHandler(msg)
         db.xOfs = 0
         db.yOfs = -160
         addon:RestorePosition()
-        PrintMsg("Frame position reset to screen center.")
+        addon:PrintMsg("Frame position reset to screen center.")
     elseif cmd == "status" then
         local function ColorBool(val) return val and "|cFF00FF00[ON]|r" or "|cFFFF0000[OFF]|r" end
-        PrintMsg("Current Configuration:")
+        addon:PrintMsg("Current Configuration:")
         print(string.format("  Master Enable:    %s", ColorBool(db.enabled)))
         print(string.format("  Show FPS Bar:     %s", ColorBool(db.showFps)))
         print(string.format("  Show World Bar:   %s", ColorBool(db.showWorld)))
@@ -926,23 +206,23 @@ local function SlashHandler(msg)
         print(string.format("  Frame Locked:     %s", ColorBool(db.locked)))
         print(string.format("  Hide in Combat:   %s", ColorBool(db.hideInCombat)))
         print(string.format("  Auto-Detect FPS:  %s", ColorBool(db.autoFpsCap ~= false)))
-        print(string.format("  Active FPS Scale: %d FPS", math.floor(activeFpsCap)))
+        print(string.format("  Active FPS Scale: %d FPS", math_floor(addon.activeFpsCap)))
         print(string.format("  Bar Dimensions:   %d x %d px", db.barWidth, db.barHeight))
         print(string.format("  Bar Spacing:      %d px", db.barSpacing or 4))
         print(string.format("  Background Opacity: %d%%", db.bgAlpha ~= nil and db.bgAlpha or 25))
     elseif cmd:find("^opacity") or cmd:find("^alpha") or cmd:find("^bg") then
         local val = tonumber(cmd:match("%d+"))
         if val ~= nil then
-            val = math.max(0, math.min(100, math.floor(val + 0.5)))
+            val = math_max(0, math_min(100, math_floor(val + 0.5)))
             db.bgAlpha = val
             addon:UpdateLayout()
             addon:UpdateOptionsUI()
-            PrintMsg("Background opacity set to |cFF00FF00" .. val .. "%|r.")
+            addon:PrintMsg("Background opacity set to |cFF00FF00" .. val .. "%|r.")
         else
-            PrintMsg("Current background opacity is |cFF00FF00" .. (db.bgAlpha ~= nil and db.bgAlpha or 25) .. "%|r. Usage: |cFFFFD100/perfb opacity <0-100>|r")
+            addon:PrintMsg("Current background opacity is |cFF00FF00" .. (db.bgAlpha ~= nil and db.bgAlpha or 25) .. "%|r. Usage: |cFFFFD100/perfb opacity <0-100>|r")
         end
     elseif cmd == "help" or cmd == "?" then
-        PrintMsg("Commands:")
+        addon:PrintMsg("Commands:")
         print("  |cFFFFD100/perfb|r - Open settings panel")
         print("  |cFFFFD100/perfb toggle|r - Toggle performance HUD on/off")
         print("  |cFFFFD100/perfb lock|r - Toggle frame position lock")
@@ -957,7 +237,7 @@ local function SlashHandler(msg)
         print("  |cFFFFD100/perfb status|r - Display current configuration")
         print("  |cFFFFD100/perfb help|r or |cFFFFD100/perfb ?|r - Show this list of commands")
     else
-        PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/perfb help|r for available commands.")
+        addon:PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/perfb help|r for available commands.")
     end
 end
 
