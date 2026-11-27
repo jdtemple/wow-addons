@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    UI Biggins v1.1.0
+    UI Biggins v1.1.1
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+) & The War Within
@@ -27,7 +27,7 @@
 
 local addonName, addon = ...
 _G["UIBiggins"] = addon
-addon.version = "1.1.0"
+addon.version = "1.1.1"
 
 -- Cache upvalues
 local _G = _G
@@ -35,6 +35,7 @@ local pairs = pairs
 local CreateFrame = CreateFrame
 local GetCursorInfo = GetCursorInfo
 local Settings = Settings
+local LibBigginsSuite = LibBigginsSuite
 
 -- Configuration Defaults
 addon.DB_DEFAULTS = {
@@ -45,300 +46,8 @@ addon.DB_DEFAULTS = {
     hideKeybindText   = true,
 }
 
-local initialFlattenBars = nil
-local initialSkinTMW     = nil
-
 -- ==============================================================================
--- 1. SETTINGS PANEL (LibBigginsSuite & Blizzard Settings API)
--- ==============================================================================
-
-function addon:CreateSettingsPanel()
-    local panel = CreateFrame("Frame", "UIBigginsSettingsPanel", UIParent)
-    panel.name = "UI Biggins"
-
-    -- Title
-    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("|cFFFFD100UI Biggins|r")
-
-    -- Version
-    local ver = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    ver:SetPoint("LEFT", title, "RIGHT", 8, 0)
-    ver:SetText("v" .. addon.version)
-
-    -- Suite Logo Texture (Top Right)
-    local logo = panel:CreateTexture(nil, "ARTWORK")
-    logo:SetPoint("TOPRIGHT", -24, -16)
-    logo:SetSize(64, 64)
-    logo:SetTexture("Interface\\AddOns\\UIBiggins\\logo.jpg")
-
-    -- State tracking for bulk updates and reload detection
-    local checkboxes = {}
-    local sliders = {}
-    local sliderTMWOpacity
-    local UpdateReloadState
-
-    -- Top-Right Defaults Button
-    local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnDefaults:SetPoint("TOPRIGHT", logo, "BOTTOMRIGHT", 0, -8)
-    btnDefaults:SetSize(110, 22)
-    btnDefaults:SetText("Defaults")
-    btnDefaults:SetScript("OnClick", function()
-        if not UIBigginsDB then UIBigginsDB = {} end
-        for k, v in pairs(addon.DB_DEFAULTS) do
-            UIBigginsDB[k] = v
-        end
-        for key, cb in pairs(checkboxes) do
-            cb:SetChecked(UIBigginsDB[key])
-        end
-        for key, slider in pairs(sliders) do
-            slider:SetValue(UIBigginsDB[key])
-            if slider.valueText then
-                slider.valueText:SetText(tostring(UIBigginsDB[key]) .. "%")
-            end
-        end
-        local tmwEnabled = UIBigginsDB.skinTellMeWhen
-        if sliderTMWOpacity then
-            sliderTMWOpacity:SetEnabled(tmwEnabled)
-            sliderTMWOpacity:SetAlpha(tmwEnabled and 1.0 or 0.5)
-        end
-        if addon.TellMeWhen and addon.TellMeWhen.UpdateBarOpacity then
-            addon.TellMeWhen:UpdateBarOpacity()
-        end
-        if addon.ActionBars then
-            addon.ActionBars:UpdateAllText()
-        end
-        if UpdateReloadState then
-            UpdateReloadState()
-        end
-        print("|cFFFFD100UI Biggins:|r Settings reset to defaults.")
-    end)
-    btnDefaults:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Restore all UI Biggins settings back to default.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    btnDefaults:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    -- Description
-    local desc = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    desc:SetPoint("RIGHT", logo, "LEFT", -20)
-    desc:SetJustifyH("LEFT")
-    desc:SetWordWrap(true)
-    desc:SetText("Clean action bar and TellMeWhen customization matching modern Cooldown buttons and Biggins status bars.")
-
-    -- Helper to create styled checkboxes
-    local function CreateSettingCheckbox(key, label, tooltip, anchorPoint, relativeTo, relPoint, x, y, callback)
-        local cb = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-        cb:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
-        cb.Text:SetText(label)
-        cb.Text:SetFontObject("GameFontHighlight")
-        cb.tooltipText = tooltip
-        cb:SetChecked(UIBigginsDB and UIBigginsDB[key])
-        cb:SetScript("OnClick", function(self)
-            UIBigginsDB[key] = self:GetChecked()
-            if callback then callback(self:GetChecked()) end
-        end)
-        cb:SetScript("OnEnter", function(self)
-            if self.tooltipText then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
-                GameTooltip:Show()
-            end
-        end)
-        cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        checkboxes[key] = cb
-        return cb
-    end
-
-    -- Helper to create and bind sliders
-    local function CreateSettingSlider(key, label, tooltip, minVal, maxVal, step, anchorPoint, relativeTo, relPoint, x, y, unitSuffix)
-        local slider = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
-        slider:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
-        slider:SetSize(220, 16)
-        slider:SetMinMaxValues(minVal, maxVal)
-        slider:SetValueStep(step)
-        slider:SetObeyStepOnDrag(true)
-
-        local suffix = unitSuffix or " px"
-        local val = (UIBigginsDB and UIBigginsDB[key]) or addon.DB_DEFAULTS[key]
-        slider:SetValue(val)
-
-        local titleText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        titleText:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
-        titleText:SetText(label)
-
-        local valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        valueText:SetPoint("BOTTOMRIGHT", slider, "TOPRIGHT", 0, 4)
-        valueText:SetText(tostring(val) .. suffix)
-
-        if slider.Low then slider.Low:SetText(tostring(minVal)) end
-        if slider.High then slider.High:SetText(tostring(maxVal)) end
-
-        slider:SetScript("OnValueChanged", function(self, newVal)
-            newVal = math.floor(newVal + 0.5)
-            if not UIBigginsDB then UIBigginsDB = {} end
-            UIBigginsDB[key] = newVal
-            valueText:SetText(tostring(newVal) .. suffix)
-            if key == "tmwBarOpacity" and addon.TellMeWhen and addon.TellMeWhen.UpdateBarOpacity then
-                addon.TellMeWhen:UpdateBarOpacity()
-            end
-        end)
-        slider:SetScript("OnEnter", function(self)
-            if tooltip then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(tooltip, 1, 1, 1, true)
-                GameTooltip:Show()
-            end
-        end)
-        slider:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-        slider.titleText = titleText
-        slider.valueText = valueText
-        sliders[key] = slider
-        return slider
-    end
-
-    -- Reload UI elements
-    local reloadBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    local reloadNotice = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-
-    UpdateReloadState = function()
-        local changedBars = (UIBigginsDB.flattenActionBars ~= initialFlattenBars)
-        local changedTMW  = (UIBigginsDB.skinTellMeWhen ~= initialSkinTMW)
-        if changedBars or changedTMW then
-            reloadNotice:SetText("|cFFFF8000Requires UI Reload to take effect.|r")
-            reloadNotice:Show()
-        else
-            reloadNotice:Hide()
-        end
-    end
-
-    -- Action Bar Controls
-    local cbFlatten = CreateSettingCheckbox(
-        "flattenActionBars",
-        "Flatten Action Bar Buttons",
-        "Strips bulky metallic frames on action bars and standalone buttons (including Knowledge Biggins), preserving native squircle icons with a subtle drop shadow. Requires a UI reload to apply.",
-        "TOPLEFT", desc, "BOTTOMLEFT", 0, -18,
-        function()
-            UpdateReloadState()
-        end
-    )
-
-    local cbMacro = CreateSettingCheckbox(
-        "hideMacroText",
-        "Hide Macro Names (Reveals while dragging)",
-        "Hides macro names on action buttons during normal play for an uncluttered look, but automatically reveals them whenever you drag spells or macros.",
-        "TOPLEFT", cbFlatten, "BOTTOMLEFT", 0, -8,
-        function()
-            if addon.ActionBars then addon.ActionBars:UpdateAllText() end
-        end
-    )
-
-    local cbKeybind = CreateSettingCheckbox(
-        "hideKeybindText",
-        "Hide Keybind Labels (Reveals while dragging)",
-        "Hides hotkey labels on action buttons during normal play, but automatically reveals them whenever you drag spells or reorganize buttons.",
-        "TOPLEFT", cbMacro, "BOTTOMLEFT", 0, -8,
-        function()
-            if addon.ActionBars then addon.ActionBars:UpdateAllText() end
-        end
-    )
-
-    -- TellMeWhen Section
-    local tmwHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    tmwHeader:SetPoint("TOPLEFT", cbKeybind, "BOTTOMLEFT", 0, -18)
-    tmwHeader:SetText("TellMeWhen")
-
-    local cbTMW = CreateSettingCheckbox(
-        "skinTellMeWhen",
-        "Skin Icons & Bars",
-        "Skins TellMeWhen icons (with 45-degree chamfers and drop shadows) and status bars (matching LazySpeed and Perf gold-bordered styling). Requires a UI reload to apply.",
-        "TOPLEFT", tmwHeader, "BOTTOMLEFT", 16, -6,
-        function(checked)
-            UpdateReloadState()
-            if sliderTMWOpacity then
-                sliderTMWOpacity:SetEnabled(checked)
-                sliderTMWOpacity:SetAlpha(checked and 1.0 or 0.5)
-            end
-        end
-    )
-
-    sliderTMWOpacity = CreateSettingSlider(
-        "tmwBarOpacity",
-        "Bar Background Opacity",
-        "Adjust the background opacity of TellMeWhen status bars (0% - 100%). Default is 25%.",
-        0, 100, 1,
-        "TOPLEFT", cbTMW, "BOTTOMLEFT", 4, -22,
-        "%"
-    )
-    panel.sliderTMWOpacity = sliderTMWOpacity
-    local tmwEnabled = (UIBigginsDB and UIBigginsDB.skinTellMeWhen)
-    sliderTMWOpacity:SetEnabled(tmwEnabled)
-    sliderTMWOpacity:SetAlpha(tmwEnabled and 1.0 or 0.5)
-
-    -- Reload UI Button (dedicated, cleanly placed below the options)
-    reloadBtn:SetSize(120, 24)
-    reloadBtn:SetPoint("TOPLEFT", sliderTMWOpacity, "BOTTOMLEFT", -20, -22)
-    reloadBtn:SetText("Reload UI")
-    reloadBtn:SetScript("OnClick", function()
-        if C_UI and C_UI.Reload then
-            C_UI.Reload()
-        else
-            ReloadUI()
-        end
-    end)
-
-    reloadNotice:SetPoint("LEFT", reloadBtn, "RIGHT", 12, 0)
-    UpdateReloadState()
-
-    -- Slash Command Help Note
-    local helpNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    helpNote:SetPoint("TOPLEFT", reloadBtn, "BOTTOMLEFT", 0, -18)
-    helpNote:SetJustifyH("LEFT")
-    helpNote:SetText("Slash command: |cFFFFD100/uibiggins|r (Type |cFFFFD100/uibiggins ?|r for available commands)")
-
-    addon.settingsPanel = panel
-
-    panel:SetScript("OnShow", function()
-        for key, cb in pairs(checkboxes) do
-            cb:SetChecked(UIBigginsDB and UIBigginsDB[key])
-        end
-        for key, slider in pairs(sliders) do
-            local val = (UIBigginsDB and UIBigginsDB[key]) or addon.DB_DEFAULTS[key]
-            slider:SetValue(val)
-            if slider.valueText then
-                slider.valueText:SetText(tostring(val) .. "%")
-            end
-        end
-        local currentTMWEnabled = (UIBigginsDB and UIBigginsDB.skinTellMeWhen)
-        if sliderTMWOpacity then
-            sliderTMWOpacity:SetEnabled(currentTMWEnabled)
-            sliderTMWOpacity:SetAlpha(currentTMWEnabled and 1.0 or 0.5)
-        end
-        UpdateReloadState()
-    end)
-
-    -- Register with LibBigginsSuite or Settings API
-    local categoryID
-    if LibBigginsSuite then
-        categoryID = LibBigginsSuite:RegisterSubcategory("UIBiggins", panel, "UI")
-        _G["UIBiggins_CategoryID"] = categoryID
-        addon.categoryID = categoryID
-    elseif Settings and Settings.RegisterCanvasLayoutCategory then
-        local category = Settings.RegisterCanvasLayoutCategory(panel, "UI Biggins")
-        Settings.RegisterAddOnCategory(category)
-        categoryID = category:GetID()
-        _G["UIBiggins_CategoryID"] = categoryID
-        addon.categoryID = categoryID
-    else
-        InterfaceOptions_AddCategory(panel)
-    end
-end
-
--- ==============================================================================
--- 2. LIFECYCLE EVENT DISPATCHER
+-- LIFECYCLE EVENT DISPATCHER
 -- ==============================================================================
 
 local eventFrame = CreateFrame("Frame")
@@ -363,8 +72,8 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             if UIBigginsDB.skinTellMeWhen == nil and UIBigginsDB.flattenTellMeWhen ~= nil then
                 UIBigginsDB.skinTellMeWhen = UIBigginsDB.flattenTellMeWhen
             end
-            initialFlattenBars = UIBigginsDB.flattenActionBars
-            initialSkinTMW     = UIBigginsDB.skinTellMeWhen
+            addon.initialFlattenBars = UIBigginsDB.flattenActionBars
+            addon.initialSkinTMW     = UIBigginsDB.skinTellMeWhen
         elseif arg1 == "TellMeWhen" then
             if addon.TellMeWhen then
                 addon.TellMeWhen:Initialize()
@@ -395,7 +104,10 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
     end
 end)
 
--- Slash command
+-- ==============================================================================
+-- SLASH COMMANDS
+-- ==============================================================================
+
 SLASH_UIBIGGINS1 = "/uibiggins"
 SlashCmdList["UIBIGGINS"] = function(msg)
     local raw = string.gsub(msg or "", "^%s*(.-)%s*$", "%1")

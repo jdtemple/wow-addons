@@ -1,5 +1,13 @@
 # UI Biggins Changelog
 
+## v1.1.1 (2026-11-27)
+
+### Architecture Modularization & Settings Decoupling
+* **Dedicated Settings Module (`Core/Options.lua`):**
+  * Extracted options panel, interactive checkboxes, opacity sliders, and reload notification logic into `Core/Options.lua` to match suite-wide architecture.
+  * Streamlined `UIBiggins.lua` to serve as a focused lifecycle orchestrator and slash command router.
+  * Standardized load order across the Biggins Suite: `LibBigginsSuite.lua` -> `Core\*.lua` -> `Modules\*.lua` -> `<AddonName>.lua`.
+
 ## v1.1.0 (2026-11-27)
 
 ### TellMeWhen Customization & UI Options Polish
@@ -34,4 +42,4 @@
   * Integrated into Game Menu -> Options -> AddOns -> Biggins Suite -> UI (or `/uibiggins`).
   * Features live toggle callbacks and an explicit reload notification/button for frame-altering switches.
 * **Architecture:**
-  * Clean modular architecture split into `Core/Skinning.lua`, `Modules/ActionBars.lua`, `Modules/TellMeWhen.lua`, and `UIBiggins.lua`.
+  * Clean modular architecture split into `Core/Skinning.lua`, `Core/Options.lua`, `Modules/ActionBars.lua`, `Modules/TellMeWhen.lua`, and `UIBiggins.lua`.
