@@ -2,10 +2,13 @@
 ## Title: |cFFFFD100AutoJoin Biggins|r
 ## Notes: Lightweight, configurable auto-accept for party invitations from Guildmates, Friends, and Battle.net contacts.
 ## Author: Biggins
-## Version: 1.4.1
+## Version: 1.4.2
 ## SavedVariables: AutoJoinBigginsDB
 ## Category: Chat & Communication
 ## IconTexture: Interface\AddOns\AutoJoinBiggins\logo.jpg
 
 LibBigginsSuite.lua
+Core\Whitelist.lua
+Core\Options.lua
+Modules\Invite.lua
 AutoJoinBiggins.lua

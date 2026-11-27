@@ -1,3 +1,14 @@
+# AutoJoin Biggins v1.4.2 (2026-11-27)
+
+### Architecture Modularization & Settings Decoupling
+- **Modular File Structure:**
+  - Extracted name normalization, Guild membership verification, Character Friends list, Battle.net checks, and AFK safety gating into `Core/Whitelist.lua`.
+  - Extracted party invite handling, popup suppression, and automatic chat channel switching into `Modules/Invite.lua`.
+  - Extracted Blizzard Settings options canvas and control toggles into `Core/Options.lua`.
+  - Streamlined `AutoJoinBiggins.lua` as lifecycle event orchestrator and slash command router.
+- **Suite-Wide Architectural Consistency:**
+  - Standardized load order: `LibBigginsSuite.lua` -> `Core\*.lua` -> `Modules\*.lua` -> `<AddonName>.lua`.
+
 # AutoJoin Biggins v1.4.1
 
 ### Polish
