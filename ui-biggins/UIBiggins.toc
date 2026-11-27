@@ -2,7 +2,7 @@
 ## Title: |cFFFFD100UI Biggins|r
 ## Notes: Clean, flat action bar and TellMeWhen icons/bars matching modern cooldown buttons and Biggins status bars.
 ## Author: Biggins
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: UIBigginsDB
 ## Category: User Interface
 ## IconTexture: Interface\AddOns\UIBiggins\logo.jpg

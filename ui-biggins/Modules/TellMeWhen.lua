@@ -9,6 +9,7 @@ local hooksecurefunc = hooksecurefunc
 
 local TellMeWhen = {}
 addon.TellMeWhen = TellMeWhen
+TellMeWhen.skinnedBars = setmetatable({}, { __mode = "k" })
 
 -- Helper to check if TMW skinning is enabled
 local function IsEnabled()
@@ -47,19 +48,23 @@ function TellMeWhen:SkinBar(icon)
     local bar = timerBarModule and timerBarModule.bar
     if not bar then return end
 
+    self.skinnedBars[bar] = true
+
     local backdropModule = icon.Modules and icon.Modules.IconModule_Backdrop
+
+    local alpha = ((UIBigginsDB and UIBigginsDB.tmwBarOpacity ~= nil and UIBigginsDB.tmwBarOpacity) or (addon.DB_DEFAULTS and addon.DB_DEFAULTS.tmwBarOpacity) or 25) / 100
 
     -- 1. Dark background base and UI-StatusBar track directly on the bar frame
     -- bgBase is locked to bar with SetAllPoints(bar) so it stays strictly inside the frame without sticking out
     if not bar.__bigginsBgBase then
         local bgBase = bar:CreateTexture(nil, "BACKGROUND", nil, -8)
         bgBase:SetAllPoints(bar)
-        bgBase:SetColorTexture(0.05, 0.05, 0.05, 0.85)
+        bgBase:SetColorTexture(0.05, 0.05, 0.05, alpha)
         bar.__bigginsBgBase = bgBase
     else
         bar.__bigginsBgBase:ClearAllPoints()
         bar.__bigginsBgBase:SetAllPoints(bar)
-        bar.__bigginsBgBase:SetColorTexture(0.05, 0.05, 0.05, 0.85)
+        bar.__bigginsBgBase:SetColorTexture(0.05, 0.05, 0.05, alpha)
         bar.__bigginsBgBase:Show()
     end
 
@@ -68,12 +73,12 @@ function TellMeWhen:SkinBar(icon)
         local bg = bar:CreateTexture(nil, "BACKGROUND", nil, -7)
         bg:SetAllPoints(bar)
         bg:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
-        bg:SetVertexColor(0.05, 0.05, 0.05, 0.75)
+        bg:SetVertexColor(0.05, 0.05, 0.05, alpha * 0.88)
         bar.__bigginsBg = bg
     else
         bar.__bigginsBg:SetAllPoints(bar)
         bar.__bigginsBg:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
-        bar.__bigginsBg:SetVertexColor(0.05, 0.05, 0.05, 0.75)
+        bar.__bigginsBg:SetVertexColor(0.05, 0.05, 0.05, alpha * 0.88)
         bar.__bigginsBg:Show()
     end
 
@@ -140,6 +145,18 @@ function TellMeWhen:SkinBar(icon)
         if containerModule.border then
             containerModule.border:SetAlpha(0)
             containerModule.border:Hide()
+        end
+    end
+end
+
+function TellMeWhen:UpdateBarOpacity()
+    local alpha = ((UIBigginsDB and UIBigginsDB.tmwBarOpacity ~= nil and UIBigginsDB.tmwBarOpacity) or (addon.DB_DEFAULTS and addon.DB_DEFAULTS.tmwBarOpacity) or 25) / 100
+    for bar in pairs(self.skinnedBars) do
+        if bar.__bigginsBgBase then
+            bar.__bigginsBgBase:SetColorTexture(0.05, 0.05, 0.05, alpha)
+        end
+        if bar.__bigginsBg then
+            bar.__bigginsBg:SetVertexColor(0.05, 0.05, 0.05, alpha * 0.88)
         end
     end
 end

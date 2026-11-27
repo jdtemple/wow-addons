@@ -19,7 +19,7 @@ Part of the **Biggins Suite**, it modernizes your default action buttons and com
 * **Square Icons:** Applies matching 45-degree chamfer squircle masks and soft drop shadows to TellMeWhen icon groups while suppressing clunky stock square borders.
 * **Telemetry Status Bars:** Wraps TMW status bars (such as Rogue Energy bars) in the signature Biggins Suite gold tooltip border (`UI-Tooltip-Border`, edgeSize 12) with a smooth `UI-StatusBar` fill texture.
 * **Concealed Chamfers:** Borders cleanly sit on the outside of the bar at frame level `+2`, covering raw 90-degree square corners with 45-degree metallic corner bevels.
-* **High-Contrast Dark Track:** Consumed bar tracks render as a subtle dark telemetry track (`COLOR_TRACK_BG = { 0.05, 0.05, 0.05, 0.75 }`) over solid slate backing so world geometry does not show through depleted resources.
+* **Adjustable Background Opacity:** Features a 1% step slider (0% - 100%, default 25%) with real-time live preview matching LazySpeed and Perf Biggins dark telemetry tracks over solid slate backing.
 
 ### 3. Smart Macro Name Hiding
 * **Clutter-Free Gameplay:** Macro name text labels are completely hidden during normal gameplay for a clean, minimalist HUD.
@@ -41,13 +41,16 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
 
 ```
 /uibiggins
+/uibiggins opacity 25
 /uibiggins ?
 ```
 
 ### Configurable Options:
 1. **Flatten Action Bar Buttons:** Strips bulky metallic frames on action bars and standalone buttons (including Knowledge Biggins). *(Requires UI Reload)*
-2. **Skin TellMeWhen (Icons & Bars):** Applies 45-degree squircle masks to TMW icons and signature gold tooltip borders to status bars. *(Requires UI Reload)*
-3. **Hide Macro Names:** Hides macro text labels; automatically reveals them while dragging abilities. *(Live)*
-4. **Hide Keybind Labels:** Hides hotkey labels; automatically reveals them while dragging abilities. *(Live)*
+2. **Hide Macro Names:** Hides macro text labels; automatically reveals them while dragging abilities. *(Live)*
+3. **Hide Keybind Labels:** Hides hotkey labels; automatically reveals them while dragging abilities. *(Live)*
+4. **TellMeWhen:**
+   * **Skin Icons & Bars:** Applies 45-degree squircle masks to TMW icons and signature gold tooltip borders to status bars. *(Requires UI Reload)*
+   * **Bar Background Opacity:** Adjusts TellMeWhen status bar background opacity (0% - 100%, default 25%). *(Live)*
 5. **Defaults:** Restores all settings back to default.
 6. **Reload UI:** Dedicated button to immediately reload your interface and apply pending skin changes.

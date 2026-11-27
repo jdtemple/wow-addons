@@ -1,4 +1,4 @@
-# UI Biggins (v1.0.0)
+# UI Biggins (v1.1.0)
 
 A sleek, lightweight action bar and interface visual enhancer for *World of Warcraft: Midnight* (Patch 12.1+) and *The War Within*.
 
@@ -19,7 +19,7 @@ Part of the **Biggins Suite**, **UI Biggins** modernizes your default action but
 * **Square Icons:** Applies matching 45-degree chamfer squircle masks and soft drop shadows to TellMeWhen icon groups while suppressing clunky stock square borders.
 * **Telemetry Status Bars:** Wraps TMW status bars (such as Rogue Energy bars) in the signature Biggins Suite gold tooltip border (`UI-Tooltip-Border`, edgeSize 12) with a smooth `UI-StatusBar` fill texture.
 * **Concealed Chamfers:** Borders cleanly sit on the outside of the bar at frame level `+2`, covering raw 90-degree square corners with 45-degree metallic corner bevels.
-* **High-Contrast Dark Track:** Consumed bar tracks render as a subtle dark telemetry track (`COLOR_TRACK_BG = { 0.05, 0.05, 0.05, 0.75 }`) over solid slate backing so world geometry does not show through depleted resources.
+* **Adjustable Background Opacity:** Features a 1% step slider (0% - 100%, default 25%) with real-time live preview matching LazySpeed and Perf Biggins dark telemetry tracks over solid slate backing.
 
 ### 3. Smart Macro Name Hiding
 * **Clutter-Free Gameplay:** Macro name text labels are completely hidden during normal gameplay for a clean, minimalist HUD.
@@ -39,14 +39,16 @@ Part of the **Biggins Suite**, **UI Biggins** modernizes your default action but
 
 UI Biggins integrates directly into the official game menu (`Escape -> Options -> AddOns -> Biggins Suite -> UI` or `/uibiggins`):
 
-| Setting                            | Type     | Description                                                                                                              |
-| ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Flatten Action Bar Buttons**     | Checkbox | Strips bulky metallic frames on action bars and standalone buttons (including Knowledge Biggins). *(Requires UI Reload)* |
-| **Skin TellMeWhen (Icons & Bars)** | Checkbox | Applies 45-degree squircle masks to TMW icons and signature gold tooltip borders to status bars. *(Requires UI Reload)*  |
-| **Hide Macro Names**               | Checkbox | Hides macro text labels; automatically reveals them while dragging abilities. *(Live)*                                   |
-| **Hide Keybind Labels**            | Checkbox | Hides hotkey labels; automatically reveals them while dragging abilities. *(Live)*                                       |
-| **Defaults**                       | Button   | Restores all UI Biggins settings back to default.                                                                        |
-| **Reload UI**                      | Button   | Dedicated button to immediately reload your interface and apply pending skin changes.                                    |
+| Setting                        | Type     | Description                                                                                                              |
+| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Flatten Action Bar Buttons** | Checkbox | Strips bulky metallic frames on action bars and standalone buttons (including Knowledge Biggins). *(Requires UI Reload)* |
+| **Hide Macro Names**           | Checkbox | Hides macro text labels; automatically reveals them while dragging abilities. *(Live)*                                   |
+| **Hide Keybind Labels**        | Checkbox | Hides hotkey labels; automatically reveals them while dragging abilities. *(Live)*                                       |
+| **TellMeWhen**                 | Header   | Dedicated section grouping TellMeWhen visual enhancements.                                                               |
+| **Skin Icons & Bars**          | Checkbox | Applies 45-degree squircle masks to TMW icons and signature gold tooltip borders to status bars. *(Requires UI Reload)*  |
+| **Bar Background Opacity**     | Slider   | Adjusts TellMeWhen status bar background opacity (0% - 100%, default 25%). *(Live)*                                      |
+| **Defaults**                   | Button   | Restores all UI Biggins settings back to default.                                                                        |
+| **Reload UI**                  | Button   | Dedicated button to immediately reload your interface and apply pending skin changes.                                    |
 
 ---
 
@@ -54,10 +56,11 @@ UI Biggins integrates directly into the official game menu (`Escape -> Options -
 
 The settings panel and help can be accessed via `/uibiggins`:
 
-| Command        | Action                                               |
-| -------------- | ---------------------------------------------------- |
-| `/uibiggins`   | Opens the UI Biggins settings panel in the game menu |
-| `/uibiggins ?` | Displays available slash commands in chat            |
+| Command                      | Action                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| `/uibiggins`                 | Opens the UI Biggins settings panel in the game menu                     |
+| `/uibiggins opacity <0-100>` | Sets TellMeWhen status bar background opacity (or shows current opacity) |
+| `/uibiggins ?`               | Displays available slash commands in chat                                |
 
 ---
 

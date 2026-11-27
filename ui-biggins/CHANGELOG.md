@@ -1,5 +1,19 @@
 # UI Biggins Changelog
 
+## v1.1.0 (2026-11-27)
+
+### TellMeWhen Customization & UI Options Polish
+* **Customizable Status Bar Background Opacity:**
+  * Added a 1% step slider (0% - 100%, default 25%) for TellMeWhen status bar background opacity, matching LazySpeed and Perf Biggins visual styling.
+  * Real-time live updates immediately apply opacity changes without requiring a UI reload.
+  * Automatically dims and disables when TellMeWhen skinning is unchecked.
+* **Reorganized Options Panel:**
+  * Added a dedicated "TellMeWhen" parent section header.
+  * Neatly indented "Skin Icons & Bars" and the new "Bar Background Opacity" slider under the TellMeWhen section.
+  * Action bar options are cleanly grouped at the top.
+* **Slash Commands:**
+  * Added `/uibiggins opacity <0-100>` to inspect or configure TellMeWhen bar background opacity directly from chat.
+
 ## v1.0.0 (2026-11-26)
 
 ### Initial Release
