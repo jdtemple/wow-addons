@@ -1,3 +1,8 @@
+# Knowledge Biggins v1.3.3
+
+### Refactor
+- **Architecture Modularization:** Refactored monolithic codebase into dedicated `Core/` and `Modules/` subsystems (`Core/Detection.lua`, `Core/Options.lua`, `Modules/Button.lua`), aligning with Biggins Suite architectural standards while preserving 100% identical runtime behavior and secure combat mitigation.
+
 # Knowledge Biggins v1.3.2
 
 ### Fixed

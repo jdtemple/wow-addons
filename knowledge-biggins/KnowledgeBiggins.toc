@@ -2,10 +2,13 @@
 ## Title: Knowledge Biggins
 ## Notes: Lightweight popup button to instantly study and consume profession knowledge items from your bags without menu diving.
 ## Author: Biggins
-## Version: 1.3.2
+## Version: 1.3.3
 ## SavedVariables: KnowledgeBigginsDB
 ## Category: Professions
 ## IconTexture: Interface\Icons\INV_Misc_Book_11
 
 LibBigginsSuite.lua
+Core\Detection.lua
+Modules\Button.lua
+Core\Options.lua
 KnowledgeBiggins.lua
