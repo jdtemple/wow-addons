@@ -12,6 +12,7 @@ on:
       - 'perf-biggins/**'
       - 'saferelease-biggins/**'
       - 'summonpet-biggins/**'
+      - 'ui-biggins/**'
       - 'lib-biggins-suite/**'
   workflow_dispatch:
     inputs:
@@ -30,6 +31,7 @@ on:
           - perf-biggins
           - saferelease-biggins
           - summonpet-biggins
+          - ui-biggins
       releaseType:
         description: 'Release Channel'
         required: true

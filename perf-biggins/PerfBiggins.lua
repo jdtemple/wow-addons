@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    Perf Biggins v1.4.0 - High-Performance FPS & Dual-Latency HUD
+    Perf Biggins v1.7.0 - High-Performance FPS & Dual-Latency HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: The War Within / Midnight (Patch 11.x - 12.x / 12.1.7)
@@ -28,7 +28,7 @@
 
 local addonName, addon = ...
 _G["PerfBiggins"] = addon
-addon.version = "1.6.0"
+addon.version = "1.7.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_PERFBIGGINS_HEADER"] = "Perf Biggins"
@@ -85,6 +85,7 @@ local DB_DEFAULTS = {
     barWidth     = 180,
     barHeight    = 18,
     barSpacing   = 4,
+    bgAlpha      = 25,
     locked       = false,
     hideInCombat = false,
     point        = "CENTER",
@@ -329,6 +330,13 @@ function addon:UpdateLayout()
         prevContainer = c
     end
 
+    -- Apply background opacity to containers and tracks
+    local bgAlpha = (db.bgAlpha ~= nil and db.bgAlpha or 25) / 100
+    for _, b in ipairs({ barFps, barWorld, barHome }) do
+        b.container:SetBackdropColor(0.05, 0.05, 0.05, bgAlpha)
+        b.bg:SetVertexColor(0.05, 0.05, 0.05, bgAlpha * 0.88)
+    end
+
     -- Mouse interactivity based on lock status
     local mouseEnabled = not db.locked
     mainFrame:EnableMouse(mouseEnabled)
@@ -546,6 +554,13 @@ function addon:UpdateOptionsUI()
             uiWidgets.sliderSpacing.valueText:SetText(tostring(PerfBigginsDB.barSpacing or 4) .. " px")
         end
     end
+    if uiWidgets.sliderBgAlpha then
+        local bgVal = PerfBigginsDB.bgAlpha ~= nil and PerfBigginsDB.bgAlpha or 25
+        uiWidgets.sliderBgAlpha:SetValue(bgVal)
+        if uiWidgets.sliderBgAlpha.valueText then
+            uiWidgets.sliderBgAlpha.valueText:SetText(tostring(bgVal) .. "%")
+        end
+    end
 
     -- Gray out child controls when disabled
     local childWidgets = {
@@ -553,7 +568,7 @@ function addon:UpdateOptionsUI()
         uiWidgets.stackHeader, uiWidgets.rbVertical, uiWidgets.rbHorizontal,
         uiWidgets.cbAutoFps,
         uiWidgets.cbLocked, uiWidgets.cbCombat,
-        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.sliderSpacing, uiWidgets.btnResetPos
+        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.sliderSpacing, uiWidgets.sliderBgAlpha, uiWidgets.btnResetPos
     }
     for _, w in ipairs(childWidgets) do
         if w then
@@ -759,9 +774,12 @@ function addon:RegisterOptions()
     local sliderSpacing = CreateSettingSlider("barSpacing", "Bar Spacing", "Adjust the spacing between adjacent telemetry bars in pixels (0 - 50 px).", 0, 50, 1, "TOPLEFT", sliderHeight, "BOTTOMLEFT", 0, -24)
     uiWidgets.sliderSpacing = sliderSpacing
 
+    local sliderBgAlpha = CreateSettingSlider("bgAlpha", "Background Opacity", "Adjust the opacity of the dark background and depleted bar tracks (0% - 100%).", 0, 100, 1, "TOPLEFT", sliderSpacing, "BOTTOMLEFT", 0, -24, "%")
+    uiWidgets.sliderBgAlpha = sliderBgAlpha
+
     -- Reset Position Button
     local btnResetPos = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnResetPos:SetPoint("TOPLEFT", sliderSpacing, "BOTTOMLEFT", 0, -20)
+    btnResetPos:SetPoint("TOPLEFT", sliderBgAlpha, "BOTTOMLEFT", 0, -20)
     btnResetPos:SetSize(160, 24)
     btnResetPos:SetText("Reset Position")
     btnResetPos:SetScript("OnClick", function()
@@ -911,6 +929,18 @@ local function SlashHandler(msg)
         print(string.format("  Active FPS Scale: %d FPS", math.floor(activeFpsCap)))
         print(string.format("  Bar Dimensions:   %d x %d px", db.barWidth, db.barHeight))
         print(string.format("  Bar Spacing:      %d px", db.barSpacing or 4))
+        print(string.format("  Background Opacity: %d%%", db.bgAlpha ~= nil and db.bgAlpha or 25))
+    elseif cmd:find("^opacity") or cmd:find("^alpha") or cmd:find("^bg") then
+        local val = tonumber(cmd:match("%d+"))
+        if val ~= nil then
+            val = math.max(0, math.min(100, math.floor(val + 0.5)))
+            db.bgAlpha = val
+            addon:UpdateLayout()
+            addon:UpdateOptionsUI()
+            PrintMsg("Background opacity set to |cFF00FF00" .. val .. "%|r.")
+        else
+            PrintMsg("Current background opacity is |cFF00FF00" .. (db.bgAlpha ~= nil and db.bgAlpha or 25) .. "%|r. Usage: |cFFFFD100/perfb opacity <0-100>|r")
+        end
     elseif cmd == "help" or cmd == "?" then
         PrintMsg("Commands:")
         print("  |cFFFFD100/perfb|r - Open settings panel")
@@ -921,6 +951,7 @@ local function SlashHandler(msg)
         print("  |cFFFFD100/perfb home|r - Toggle Home latency bar visibility")
         print("  |cFFFFD100/perfb stack [horiz|vert]|r - Switch horizontal or vertical layout")
         print("  |cFFFFD100/perfb spacing <0-50>|r - Adjust spacing between stacked bars in pixels")
+        print("  |cFFFFD100/perfb opacity <0-100>|r - Adjust background opacity percentage")
         print("  |cFFFFD100/perfb combat|r - Toggle auto-hiding during combat")
         print("  |cFFFFD100/perfb reset|r - Reset frame position to center")
         print("  |cFFFFD100/perfb status|r - Display current configuration")

@@ -1,4 +1,4 @@
-# LazySpeed Biggins (v4.1.1)
+# LazySpeed Biggins (v4.3.0)
 
 A high-performance speedometer, flight, and swim gauge for *World of Warcraft: Midnight* (Patch 12.1+).
 
@@ -62,9 +62,11 @@ LazySpeed Biggins integrates directly into the official game menu (`Escape -> Op
 * **Kilometers per Hour (km/h)**
 * **Percentage (%)**
 
-### 4. Custom Sizing Sliders
+### 4. Custom Sizing & Appearance Sliders
 * **Bar Width** *(100px - 300px, 1px step, Default: 180px)*
 * **Bar Height** *(14px - 36px, 1px step, Default: 22px)* - with automatic dynamic font scaling!
+* **Bar Spacing** *(0px - 50px, 1px step, Default: 4px)*
+* **Background Opacity** *(0% - 100%, 1% step, Default: 25%)* - adjust transparency from floating glass to solid dark plate!
 
 ### 5. Reset to Defaults
 * **Reset to Defaults Button:** Native button in the settings panel (or `/lazyspeedb defaults`) that restores all triggers, speed measurement units, and bar dimensions back to default.
@@ -82,6 +84,8 @@ Commands are available via `/lazyspeedb`. In-game command help is available at a
 | `/lazyspeedb vigor`                 | Toggles the Skyriding Vigor bar on or off                  |
 | `/lazyspeedb glow` (or `/aura`)     | Toggles recharge buff glow on or off                       |
 | `/lazyspeedb stack [horiz/vert]`    | Switches between vertical and horizontal stacking modes    |
+| `/lazyspeedb spacing <0-50>`        | Adjusts spacing between stacked bars in pixels             |
+| `/lazyspeedb opacity <0-100>`       | Adjusts background opacity percentage                      |
 | `/lazyspeedb lock`                  | Toggles locking frame position                             |
 | `/lazyspeedb reset`                 | Resets frame position to center                            |
 | `/lazyspeedb status`                | Displays current configuration in chat                     |

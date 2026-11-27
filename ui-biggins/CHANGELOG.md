@@ -1,0 +1,23 @@
+# UI Biggins Changelog
+
+## v1.0.0 (2026-11-26)
+
+### Initial Release
+* **Flatten Action Bar Buttons:**
+  * Strips bulky metallic bezels, background slot art, and decorative bevels across all 8 standard action bars, pet action bar, stance bar, possess bar, extra action buttons, and spell flyouts (leaving the circular vehicle exit button untouched).
+  * Preserves native icon sizing, proportions, and 45-degree chamfered squircle corners.
+  * Adds a soft, subtle drop shadow strictly behind each button on the `BACKGROUND` layer matching modern Blizzard Cooldown Manager buttons.
+* **Knowledge Biggins Integration:**
+  * Automatically flattens the floating popup consumer button in `Knowledge Biggins`, removing the metallic bezel, expanding the icon to fill the frame, applying squircle masking, and adding matching drop shadows.
+* **Skin TellMeWhen (Icons & Bars):**
+  * Applies 45-degree chamfer squircle masks and soft drop shadows to square TellMeWhen icons while suppressing stock square borders.
+  * Wraps TMW status bars (e.g. Rogue Energy bar) in the signature Biggins Suite gold tooltip border (`UI-Tooltip-Border`) with smooth `UI-StatusBar` fill and dark telemetry tracks (`COLOR_TRACK_BG = { 0.05, 0.05, 0.05, 0.75 }`).
+  * Seamlessly covers 90-degree square corners with 45-degree chamfered corner bevels.
+* **Smart Macro & Keybind Text Management:**
+  * Hides macro name and keybind labels during normal gameplay for an uncluttered screen.
+  * Automatically reveals text labels whenever abilities, macros, or items are dragged (`ACTIONBAR_SHOWGRID` / cursor pickup).
+* **Blizzard Settings Integration:**
+  * Integrated into Game Menu -> Options -> AddOns -> Biggins Suite -> UI (or `/uibiggins`).
+  * Features live toggle callbacks and an explicit reload notification/button for frame-altering switches.
+* **Architecture:**
+  * Clean modular architecture split into `Core/Skinning.lua`, `Modules/ActionBars.lua`, `Modules/TellMeWhen.lua`, and `UIBiggins.lua`.

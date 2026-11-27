@@ -1,3 +1,9 @@
+# LazySpeed Biggins v4.3.0
+
+### Added
+- **Background Opacity Slider:** Added a dedicated 1% step slider (0% - 100%, default 25%) to customize the opacity of the dark container backdrop and depleted status bar tracks. Supports anywhere from fully transparent floating bars (showing only the gold border, active bar fill, and text) to a completely opaque dark plate.
+- **New Slash Command:** Added `/lazyspeedb opacity <0-100>` (aliases `/lazyspeedb alpha`, `/lazyspeedb bg`) to configure background opacity directly from chat.
+
 # LazySpeed Biggins v4.2.0
 
 ### Added

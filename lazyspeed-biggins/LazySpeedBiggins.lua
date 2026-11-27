@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeedBiggins v4.1.1 - High-Performance Speedometer & Skyriding Vigor HUD
+    LazySpeedBiggins v4.3.0 - High-Performance Speedometer & Skyriding Vigor HUD
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+)
@@ -32,7 +32,7 @@
 
 local addonName, addon = ...
 _G["LazySpeedBiggins"] = addon
-addon.version = "4.2.0"
+addon.version = "4.3.0"
 
 -- ==============================================================================
 -- 1. LOCAL UPVALUE CACHING & RESTRICTION HELPERS (Performance & Safety)
@@ -247,6 +247,7 @@ local DB_DEFAULTS = {
     barWidth      = 180,         -- Frame width in pixels (Range: 100 - 300)
     barHeight     = 22,          -- Frame height in pixels (Range: 14 - 36)
     barSpacing    = 4,           -- Spacing between stacked HUD bars in pixels (Range: 0 - 50)
+    bgAlpha       = 25,          -- Background opacity percentage (Range: 0 - 100)
     point         = "CENTER",
     relativePoint = "CENTER",
     xOfs          = 0,
@@ -591,6 +592,13 @@ function addon:UpdateLayout()
         prevContainer = c
     end
 
+    -- Apply background opacity to containers and tracks
+    local bgAlpha = (db.bgAlpha ~= nil and db.bgAlpha or 25) / 100
+    for _, b in ipairs({ barSpeed, barVigor }) do
+        b.container:SetBackdropColor(COLOR_CONTAINER_BG[1], COLOR_CONTAINER_BG[2], COLOR_CONTAINER_BG[3], bgAlpha)
+        b.bg:SetVertexColor(COLOR_TRACK_BG[1], COLOR_TRACK_BG[2], COLOR_TRACK_BG[3], bgAlpha * 0.8)
+    end
+
     UpdateMouseInteractivity()
     LazySpeed_StartEngine()
 end
@@ -929,13 +937,20 @@ local function UpdateOptionsUI()
             uiWidgets.sliderSpacing.valueText:SetText(tostring(LazySpeedBigginsDB.barSpacing or 4) .. " px")
         end
     end
+    if uiWidgets.sliderBgAlpha then
+        local bgVal = LazySpeedBigginsDB.bgAlpha ~= nil and LazySpeedBigginsDB.bgAlpha or 25
+        uiWidgets.sliderBgAlpha:SetValue(bgVal)
+        if uiWidgets.sliderBgAlpha.valueText then
+            uiWidgets.sliderBgAlpha.valueText:SetText(tostring(bgVal) .. "%")
+        end
+    end
 
     -- Gray out child controls when disabled
     local childWidgets = {
         uiWidgets.cbFlying, uiWidgets.cbSwimming, uiWidgets.cbGround, uiWidgets.cbVigor, uiWidgets.cbHideVigorFull, uiWidgets.cbVigorGlow, uiWidgets.cbCombat, uiWidgets.cbLocked,
         uiWidgets.stackHeader, uiWidgets.rbVertical, uiWidgets.rbHorizontal,
         uiWidgets.unitHeader, uiWidgets.radioMPH, uiWidgets.radioYS, uiWidgets.radioKMH, uiWidgets.radioPCT,
-        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.sliderSpacing, uiWidgets.btnResetPos
+        uiWidgets.sliderWidth, uiWidgets.sliderHeight, uiWidgets.sliderSpacing, uiWidgets.sliderBgAlpha, uiWidgets.btnResetPos
     }
     for _, w in ipairs(childWidgets) do
         if w then
@@ -958,7 +973,7 @@ local function ResetAllToDefaults()
     DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: All options have been reset to default.")
 end
 
-_G["LazySpeedBiggins_Version"] = "4.1.1"
+_G["LazySpeedBiggins_Version"] = "4.3.0"
 
 local function InitializeBlizzardSettings()
     local panel = CreateFrame("Frame", "LazySpeedBigginsOptionsPanel", UIParent)
@@ -1139,7 +1154,7 @@ local function InitializeBlizzardSettings()
     uiWidgets.radioPCT = radioPCT
 
     -- Helper to create and bind sliders
-    local function CreateSettingSlider(key, label, tooltip, minVal, maxVal, step, anchorPoint, relativeTo, relPoint, x, y)
+    local function CreateSettingSlider(key, label, tooltip, minVal, maxVal, step, anchorPoint, relativeTo, relPoint, x, y, unitSuffix)
         local slider = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
         slider:SetPoint(anchorPoint, relativeTo, relPoint, x, y)
         slider:SetSize(220, 16)
@@ -1147,6 +1162,7 @@ local function InitializeBlizzardSettings()
         slider:SetValueStep(step)
         slider:SetObeyStepOnDrag(true)
 
+        local suffix = unitSuffix or " px"
         local val = (LazySpeedBigginsDB and LazySpeedBigginsDB[key]) or DB_DEFAULTS[key]
         slider:SetValue(val)
 
@@ -1156,16 +1172,16 @@ local function InitializeBlizzardSettings()
 
         local valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
         valueText:SetPoint("BOTTOMRIGHT", slider, "TOPRIGHT", 0, 4)
-        valueText:SetText(tostring(val) .. " px")
+        valueText:SetText(tostring(val) .. suffix)
 
-        if slider.Low then slider.Low:SetText(tostring(minVal)) end
-        if slider.High then slider.High:SetText(tostring(maxVal)) end
+        if slider.Low then slider.Low:SetText(tostring(minVal) .. suffix) end
+        if slider.High then slider.High:SetText(tostring(maxVal) .. suffix) end
 
         slider:SetScript("OnValueChanged", function(self, newVal)
             newVal = floor(newVal + 0.5)
             if not LazySpeedBigginsDB then LazySpeedBigginsDB = {} end
             LazySpeedBigginsDB[key] = newVal
-            valueText:SetText(tostring(newVal) .. " px")
+            valueText:SetText(tostring(newVal) .. suffix)
             addon:UpdateLayout()
         end)
         slider:SetScript("OnEnter", function(self)
@@ -1192,9 +1208,12 @@ local function InitializeBlizzardSettings()
     local sliderSpacing = CreateSettingSlider("barSpacing", "Bar Spacing", "Adjust spacing between adjacent HUD bars in pixels (0 - 50 px).", 0, 50, 1, "TOPLEFT", sliderHeight, "BOTTOMLEFT", 0, -24)
     uiWidgets.sliderSpacing = sliderSpacing
 
+    local sliderBgAlpha = CreateSettingSlider("bgAlpha", "Background Opacity", "Adjust the opacity of the dark background and depleted bar tracks (0% - 100%).", 0, 100, 1, "TOPLEFT", sliderSpacing, "BOTTOMLEFT", 0, -24, "%")
+    uiWidgets.sliderBgAlpha = sliderBgAlpha
+
     -- Reset Position Button
     local btnResetPos = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnResetPos:SetPoint("TOPLEFT", sliderSpacing, "BOTTOMLEFT", 0, -20)
+    btnResetPos:SetPoint("TOPLEFT", sliderBgAlpha, "BOTTOMLEFT", 0, -20)
     btnResetPos:SetSize(160, 24)
     btnResetPos:SetText("Reset Position")
     btnResetPos:SetScript("OnClick", function()
@@ -1441,6 +1460,18 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Measurement Unit: %s", modeLabels[db.unitMode or 4] or "%"))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Dimensions:   %d x %d px", db.barWidth or 180, db.barHeight or 22))
         DEFAULT_CHAT_FRAME:AddMessage(string.format("  Bar Spacing:      %d px", db.barSpacing or 4))
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  Background Opacity: %d%%", db.bgAlpha ~= nil and db.bgAlpha or 25))
+    elseif command:find("^opacity") or command:find("^alpha") or command:find("^bg") then
+        local val = tonumber(command:match("%d+"))
+        if val ~= nil then
+            val = math.max(0, math.min(100, math.floor(val + 0.5)))
+            db.bgAlpha = val
+            addon:UpdateLayout()
+            UpdateOptionsUI()
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Background opacity set to |cFF00FF00" .. val .. "%|r.")
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins|r: Current background opacity is |cFF00FF00" .. (db.bgAlpha ~= nil and db.bgAlpha or 25) .. "%|r. Usage: |cFFFFD100/lazyspeedb opacity <0-100>|r")
+        end
     elseif command == "help" or command == "?" then
         DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD100LazySpeed Biggins:|r Commands:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb|r - Open options menu")
@@ -1450,6 +1481,7 @@ SlashCmdList["LAZYSPEED"] = function(msg)
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb glow|r (or |cFFFFD100/lazyspeedb aura|r) - Toggle recharge buff glow on/off")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb stack [horiz/vert]|r - Switch horizontal or vertical layout")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb spacing <0-50>|r - Adjust spacing between stacked bars in pixels")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb opacity <0-100>|r - Adjust background opacity percentage")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb lock|r - Toggle locking frame position")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb reset|r - Reset frame position to center")
         DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFD100/lazyspeedb defaults|r - Reset all options to default")

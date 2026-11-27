@@ -1,3 +1,9 @@
+# Perf Biggins v1.7.0
+
+### Added
+- **Background Opacity Slider:** Added a dedicated 1% step slider (0% - 100%, default 25%) to customize the opacity of the dark container backdrop and depleted status bar tracks. Supports anywhere from fully transparent floating bars (showing only the gold border and active bar fill) to a completely opaque dark plate.
+- **New Slash Command:** Added `/perfb opacity <0-100>` (aliases `/perfb alpha`, `/perfb bg`) to configure background opacity directly from chat.
+
 # Perf Biggins v1.6.0
 
 ### Added

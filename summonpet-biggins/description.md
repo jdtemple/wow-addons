@@ -39,7 +39,7 @@ While legacy companion summoners rely on continuous movement key hooking (`MoveF
   * **Regular Dungeons** *(Default: OFF)*
   * **Delves & Labyrinths** *(Default: OFF)*
 * **Smart Stealth Dismissal:** Automatically dismisses your companion the instant you enter Stealth (Rogues and Druids) and re-summons upon exiting stealth.
-* **Mounted Summoning & Touchdown Watcher:** Optional "Summon Companion While Mounted (Ground Only)" setting allows your companion to run alongside ground mounts. Features an intelligent touchdown watcher that seamlessly summons your pet the instant you touch down from flight while continuously running.
+* **Mounted Summoning & Touchdown Watcher:** Optional "Summon Companion While Mounted (Ground Only)" setting (disabled by default) allows your companion to run alongside ground mounts. Features an intelligent touchdown watcher that summons your pet when touching down on foot. Warning: can disrupt stealth abilities if stealth is activated immediately upon landing.
 
 ---
 

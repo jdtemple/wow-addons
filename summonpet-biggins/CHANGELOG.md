@@ -1,3 +1,8 @@
+# SummonPet Biggins v1.5.4
+
+### Changed
+- **Mounted Summoning Stealth Warning:** Added an explicit warning to the "Summon Companion While Mounted (Ground Only)" setting tooltip informing users that this setting can disrupt stealth abilities when stealth is used immediately upon landing. The option remains disabled by default for maximum combat stability.
+
 # SummonPet Biggins v1.5.3
 
 ### Polish

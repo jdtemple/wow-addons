@@ -31,6 +31,8 @@ Commands are available via `/perfb`. In-game command help is available at any ti
 | `/perfb world`            | Toggles the World Latency status bar on or off             |
 | `/perfb home`             | Toggles the Home Latency status bar on or off              |
 | `/perfb stack`            | Toggles Stacking Mode between Vertical and Horizontal      |
+| `/perfb spacing <0-50>`   | Adjusts spacing between stacked bars in pixels             |
+| `/perfb opacity <0-100>`  | Adjusts background opacity percentage                      |
 | `/perfb lock`             | Toggles frame position lock (prevents/enables dragging)    |
 | `/perfb combat`           | Toggles automatically hiding the HUD while in combat       |
 | `/perfb reset`            | Resets the frame position to the center of your screen     |

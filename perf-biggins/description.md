@@ -9,6 +9,7 @@
 - **Zero Garbage Collection:** Uses pre-cached format pointers and native C++ formatting with zero Lua string allocations.
 - **Configurable Stacking Mode:** Switch effortlessly between classic **Vertical** (nameplate stack) and **Horizontal** (side-by-side ribbon) layouts with unified frame dragging.
 - **Independent Bar Toggles:** Turn off any bar you don't need; visible bars collapse seamlessly and the container resizes automatically.
+- **Background Opacity Slider:** 1% step slider (0% - 100%) to customize background transparency, supporting transparent floating glass or solid dark backing.
 - **Draggable & Lockable:** Drag anywhere on screen with Left-Click and lock in place via settings.
 - **Blizzard Gold Styling:** Styled to match the dark slate and metallic gold aesthetic of LazySpeed Biggins.
 - **Native Settings UI:** Full configuration panel under **Game Menu -> Options -> AddOns -> Biggins AddOns -> Perf**.

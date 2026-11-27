@@ -5,7 +5,7 @@
 
 local addonName, addon = ...
 _G["SummonPetBiggins"] = addon
-addon.version = "1.5.3"
+addon.version = "1.5.4"
 
 -- Localize Keybinding Labels in WoW Settings
 _G["BINDING_HEADER_SUMMONPETBIGGINS_HEADER"] = "SummonPet Biggins"
@@ -896,6 +896,7 @@ function addon:RegisterOptions()
         cb.tooltipText = tooltip
         local currentVal = (SummonPetBigginsDB and SummonPetBigginsDB[key] ~= nil) and SummonPetBigginsDB[key] or defaults[key]
         cb:SetChecked(currentVal)
+        cb:SetHitRectInsets(0, -320, 0, 0)
         cb:SetScript("OnClick", function(self)
             if not SummonPetBigginsDB then SummonPetBigginsDB = {} end
             SummonPetBigginsDB[key] = self:GetChecked()
@@ -905,7 +906,10 @@ function addon:RegisterOptions()
         cb:SetScript("OnEnter", function(self)
             if self.tooltipText then
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(self.tooltipText, 1, 1, 1, true)
+                GameTooltip:ClearLines()
+                for line in string.gmatch(self.tooltipText, "[^\r\n]+") do
+                    GameTooltip:AddLine(line, 1, 1, 1, true)
+                end
                 GameTooltip:Show()
             end
         end)
@@ -956,7 +960,7 @@ function addon:RegisterOptions()
     uiWidgets.cbDelve = cbDelve
 
     -- Mount Checkbox (Level 1 Indent: back to 20px)
-    local cbMount = CreateSettingCheckbox("summonWhileMounted", "Summon Companion While Mounted (Ground Only)", "When enabled, companion pets will summon while mounted on the ground and run alongside you.", "TOPLEFT", cbDelve, "BOTTOMLEFT", -20, -8, function(val)
+    local cbMount = CreateSettingCheckbox("summonWhileMounted", "Summon Companion While Mounted (Ground Only)", "When enabled, companion pets will summon while mounted on the ground and run alongside you.\n|cFFFF8000Warning:|r Can sometimes disrupt stealth abilities when stealth is used immediately upon landing.", "TOPLEFT", cbDelve, "BOTTOMLEFT", -20, -8, function(val)
         if val then
             if IsMounted() then
                 StartMountWatcher()
@@ -969,7 +973,16 @@ function addon:RegisterOptions()
     end)
     uiWidgets.cbMount = cbMount
 
-    local cbPrint = CreateSettingCheckbox("printStatus", "Show Chat Status on Toggle", "Print a chat notification whenever companion auto-summoning is toggled.", "TOPLEFT", cbMount, "BOTTOMLEFT", 0, -6)
+    -- Visible warning subtext directly beneath the checkbox
+    local mountWarn = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    mountWarn:SetPoint("TOPLEFT", cbMount.Text, "BOTTOMLEFT", 0, -3)
+    mountWarn:SetPoint("RIGHT", panel, "RIGHT", -24)
+    mountWarn:SetJustifyH("LEFT")
+    mountWarn:SetWordWrap(true)
+    mountWarn:SetText("|cFFFF8000Warning:|r Can sometimes disrupt stealth abilities when stealth is used immediately upon landing.")
+    uiWidgets.mountWarn = mountWarn
+
+    local cbPrint = CreateSettingCheckbox("printStatus", "Show Chat Status on Toggle", "Print a chat notification whenever companion auto-summoning is toggled.", "TOPLEFT", cbMount, "BOTTOMLEFT", 0, -28)
     uiWidgets.cbPrint = cbPrint
 
     -- Mode Section

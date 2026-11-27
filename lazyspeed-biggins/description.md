@@ -60,9 +60,11 @@ Configure your preferences via the native Blizzard Settings panel (**Game Menu -
    * **Yards per Second (y/s)**
    * **Kilometers per Hour (km/h)**
    * **Percentage (%)**
-2. **Custom Sizing Sliders:**
+2. **Custom Sizing & Appearance Sliders:**
    * **Bar Width:** 100px - 300px (1px step)
    * **Bar Height:** 14px - 36px (1px step) with dynamic proportional font scaling
+   * **Bar Spacing:** 0px - 50px (1px step)
+   * **Background Opacity:** 0% - 100% (1% step) from floating glass to solid dark plate
 3. **Behavioral Triggers & Telemetry:**
    * Toggle Skyriding / Flight visibility
    * Toggle Swimming visibility
@@ -91,8 +93,10 @@ Commands are available via `/lazyspeedb`. In-game command help is available at a
 | `/lazyspeedb vigorfull`             | Toggles hiding the Vigor bar when full on or off           |
 | `/lazyspeedb glow` (or `/aura`)     | Toggles recharge buff glow on or off                       |
 | `/lazyspeedb stack [horiz/vert]`    | Switches between vertical and horizontal stacking modes    |
+| `/lazyspeedb spacing <0-50>`        | Adjusts spacing between stacked bars in pixels             |
+| `/lazyspeedb opacity <0-100>`       | Adjusts background opacity percentage                      |
 | `/lazyspeedb lock`                  | Toggles locking frame position                             |
 | `/lazyspeedb reset`                 | Resets frame position to center                            |
-| `/lazyspeedb status`                | Displays current configuration in chat                     |
 | `/lazyspeedb defaults`              | Resets all settings to defaults                            |
+| `/lazyspeedb status`                | Displays current configuration in chat                     |
 | `/lazyspeedb help`, `/lazyspeedb ?` | Displays available in-game slash commands and descriptions |
