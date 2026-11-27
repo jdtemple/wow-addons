@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 7
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 8
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -164,6 +164,11 @@ function Suite:GetOrCreateParentCategory(addonDir)
             name  = "SummonPetBiggins",
             title = "SummonPet Biggins",
             desc  = "Ultra-lightweight companion pet summoner with native keybind & smart auto-dismiss.",
+        },
+        {
+            name  = "UIBiggins",
+            title = "UI Biggins",
+            desc  = "Flat squircle action bars, drop shadows, TellMeWhen skinning, and smart macro/keybind hiding.",
         },
     }
 

@@ -224,11 +224,13 @@ function addon:CreateSettingsPanel()
     if LibBigginsSuite then
         categoryID = LibBigginsSuite:RegisterSubcategory("UIBiggins", panel, "UI")
         _G["UIBiggins_CategoryID"] = categoryID
+        addon.categoryID = categoryID
     elseif Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, "UI Biggins")
         Settings.RegisterAddOnCategory(category)
         categoryID = category:GetID()
         _G["UIBiggins_CategoryID"] = categoryID
+        addon.categoryID = categoryID
     else
         InterfaceOptions_AddCategory(panel)
     end

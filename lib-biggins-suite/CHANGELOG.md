@@ -1,5 +1,10 @@
 # LibBigginsSuite Changelog
 
+## v1.0.8
+
+### Added
+- **UI Biggins Integration:** Registered UI Biggins to the suite overview module roster on the main Biggins AddOns settings canvas, with dynamic version tracking, description, and direct subcategory configuration navigation.
+
 ## v1.0.7
 
 ### Added
