@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    UI Biggins v1.1.1
+    UI Biggins v1.2.0
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+) & The War Within
@@ -27,7 +27,7 @@
 
 local addonName, addon = ...
 _G["UIBiggins"] = addon
-addon.version = "1.1.1"
+addon.version = "1.2.0"
 
 -- Cache upvalues
 local _G = _G
@@ -44,6 +44,7 @@ addon.DB_DEFAULTS = {
     tmwBarOpacity     = 25,
     hideMacroText     = true,
     hideKeybindText   = true,
+    fontChoice        = "default",
 }
 
 -- ==============================================================================
@@ -53,6 +54,7 @@ addon.DB_DEFAULTS = {
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ACTIONBAR_SHOWGRID")
 eventFrame:RegisterEvent("ACTIONBAR_HIDEGRID")
 eventFrame:RegisterEvent("CURSOR_CHANGED")
@@ -74,6 +76,10 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             end
             addon.initialFlattenBars = UIBigginsDB.flattenActionBars
             addon.initialSkinTMW     = UIBigginsDB.skinTellMeWhen
+            addon.initialFontChoice  = UIBigginsDB.fontChoice or "default"
+            if addon.Fonts then
+                addon.Fonts:Initialize()
+            end
         elseif arg1 == "TellMeWhen" then
             if addon.TellMeWhen then
                 addon.TellMeWhen:Initialize()
@@ -83,7 +89,15 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
                 addon.ActionBars:SkinKnowledgeBiggins()
             end
         end
+
+        -- Re-apply typography when Load-On-Demand Blizzard addons load (e.g. Blizzard_ObjectiveTracker)
+        if addon.Fonts and UIBigginsDB and UIBigginsDB.fontChoice and UIBigginsDB.fontChoice ~= "default" then
+            addon.Fonts:ApplyFont(UIBigginsDB.fontChoice)
+        end
     elseif event == "PLAYER_LOGIN" then
+        if addon.Fonts then
+            addon.Fonts:Initialize()
+        end
         if addon.ActionBars then
             addon.ActionBars:Initialize()
             addon.ActionBars:SkinKnowledgeBiggins()
@@ -92,6 +106,10 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             addon.TellMeWhen:Initialize()
         end
         addon:CreateSettingsPanel()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        if addon.Fonts then
+            addon.Fonts:Initialize()
+        end
     elseif event == "ACTIONBAR_SHOWGRID" then
         if addon.ActionBars then addon.ActionBars:SetDragging(true) end
     elseif event == "ACTIONBAR_HIDEGRID" then
@@ -117,8 +135,48 @@ SlashCmdList["UIBIGGINS"] = function(msg)
     if cmd == "?" or cmd == "help" then
         print("|cFFFFD100UI Biggins|r v" .. addon.version .. " commands:")
         print("  |cFFFFD100/uibiggins|r - Open settings panel")
+        print("  |cFFFFD100/uibiggins font <default|roboto|firasans|oxanium|sharetech>|r - Set global UI typography")
         print("  |cFFFFD100/uibiggins opacity <0-100>|r - Set TellMeWhen status bar background opacity")
         print("  |cFFFFD100/uibiggins ?|r or |cFFFFD100/uibiggins help|r - Show available commands")
+        return
+    end
+
+    if cmd == "font" then
+        local choice = string.lower(string.gsub(arg1 or "", "^%s*(.-)%s*$", "%1"))
+        local targetInfo
+        if addon.FontRegistry then
+            for _, item in ipairs(addon.FontRegistry) do
+                if item.id == choice then
+                    targetInfo = item
+                    break
+                end
+            end
+        end
+
+        if targetInfo then
+            if not UIBigginsDB then UIBigginsDB = {} end
+            UIBigginsDB.fontChoice = choice
+            if choice ~= "default" and addon.Fonts and addon.Fonts.ApplyFont then
+                addon.Fonts:ApplyFont(choice)
+            end
+            if addon.settingsPanel and addon.settingsPanel.fontDropdown and addon.settingsPanel.fontDropdown.SetDefaultText then
+                addon.settingsPanel.fontDropdown:SetDefaultText(targetInfo.name)
+            end
+            if choice == "default" then
+                print("|cFFFFD100UI Biggins:|r Font replacement |cFFFFD100disabled|r (Blizzard Default). Type |cFFFFD100/reload|r to restore stock fonts.")
+            else
+                print("|cFFFFD100UI Biggins:|r Global UI font set to |cFFFFD100" .. targetInfo.name .. "|r. (A UI reload is recommended for complete redraw).")
+            end
+        else
+            local list = {}
+            if addon.FontRegistry then
+                for _, item in ipairs(addon.FontRegistry) do
+                    table.insert(list, item.id)
+                end
+            end
+            local cur = (UIBigginsDB and UIBigginsDB.fontChoice) or "default"
+            print("|cFFFFD100UI Biggins:|r Current UI font is |cFFFFD100" .. cur .. "|r. Available: |cFFFFD100" .. table.concat(list, ", ") .. "|r.")
+        end
         return
     end
 

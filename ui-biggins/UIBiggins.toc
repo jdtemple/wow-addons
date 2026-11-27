@@ -1,8 +1,8 @@
 ## Interface: 120107, 120105
 ## Title: |cFFFFD100UI Biggins|r
-## Notes: Clean, flat action bar and TellMeWhen icons/bars matching modern cooldown buttons and Biggins status bars.
+## Notes: Clean, flat action bar and TellMeWhen styling, with global modern font replacement.
 ## Author: Biggins
-## Version: 1.1.1
+## Version: 1.2.0
 ## SavedVariables: UIBigginsDB
 ## Category: User Interface
 ## IconTexture: Interface\AddOns\UIBiggins\logo.jpg
@@ -11,6 +11,7 @@
 LibBigginsSuite.lua
 Core\Skinning.lua
 Core\Options.lua
+Modules\Fonts.lua
 Modules\ActionBars.lua
 Modules\TellMeWhen.lua
 UIBiggins.lua

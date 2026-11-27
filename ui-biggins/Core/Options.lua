@@ -21,6 +21,10 @@ local ReloadUI        = ReloadUI
 local C_UI            = C_UI
 
 function addon:CreateSettingsPanel()
+    if self.settingsPanel then
+        return self.settingsPanel
+    end
+
     local panel = CreateFrame("Frame", "UIBigginsSettingsPanel", UIParent)
     panel.name = "UI Biggins"
 
@@ -64,6 +68,9 @@ function addon:CreateSettingsPanel()
             if slider.valueText then
                 slider.valueText:SetText(tostring(UIBigginsDB[key]) .. "%")
             end
+        end
+        if panel.UpdateDropdownVisual then
+            panel.UpdateDropdownVisual("default")
         end
         local tmwEnabled = UIBigginsDB.skinTellMeWhen
         if sliderTMWOpacity then
@@ -175,10 +182,12 @@ function addon:CreateSettingsPanel()
     UpdateReloadState = function()
         local initialBars = addon.initialFlattenBars
         local initialTMW  = addon.initialSkinTMW
+        local initialFont = addon.initialFontChoice
         local changedBars = (initialBars ~= nil and UIBigginsDB.flattenActionBars ~= initialBars)
         local changedTMW  = (initialTMW ~= nil and UIBigginsDB.skinTellMeWhen ~= initialTMW)
-        if changedBars or changedTMW then
-            reloadNotice:SetText("|cFFFF8000Requires UI Reload to take effect.|r")
+        local changedFont = (initialFont ~= nil and UIBigginsDB.fontChoice ~= initialFont)
+        if changedBars or changedTMW or changedFont then
+            reloadNotice:SetText("|cFFFF8000Requires UI Reload to take full effect.|r")
             reloadNotice:Show()
         else
             reloadNotice:Hide()
@@ -216,9 +225,127 @@ function addon:CreateSettingsPanel()
         end
     )
 
+    -- Typography & Font Replacement Section
+    local fontHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    fontHeader:SetPoint("TOPLEFT", cbKeybind, "BOTTOMLEFT", 0, -18)
+    fontHeader:SetText("Typography & Fonts")
+
+    local fontDesc = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    fontDesc:SetPoint("TOPLEFT", fontHeader, "BOTTOMLEFT", 0, -4)
+    fontDesc:SetText("Select an in-game typeface or choose Blizzard Default to disable replacement. Requires a UI reload.")
+
+    -- Dedicated, immutable font objects for the dropdown menu & button preview
+    local menuFontObjects = {}
+    local function GetMenuFontObject(item)
+        if not item then return nil end
+        local id = item.id
+        if not menuFontObjects[id] then
+            local fontObj = CreateFont("UIBigginsMenuFont_" .. id)
+            local fontPath = item.path or "Fonts\\FRIZQT__.TTF"
+            local ok = pcall(fontObj.SetFont, fontObj, fontPath, 12, "")
+            if not ok then
+                pcall(fontObj.SetFont, fontObj, "Fonts\\FRIZQT__.TTF", 12, "")
+            end
+            fontObj:SetTextColor(1, 1, 1, 1)
+            fontObj:SetShadowOffset(1, -1)
+            fontObj:SetShadowColor(0, 0, 0, 1)
+            menuFontObjects[id] = fontObj
+        end
+        return menuFontObjects[id]
+    end
+
+    local fontDropdown = CreateFrame("DropdownButton", "UIBigginsFontDropdown", panel, "WowStyle1DropdownTemplate")
+    fontDropdown:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", 0, -8)
+    fontDropdown:SetSize(180, 24)
+
+    -- Configure dropdown button text geometry so custom font metrics aren't clipped by the default 10px height
+    if fontDropdown.Text then
+        fontDropdown.Text:SetHeight(20)
+        fontDropdown.Text:ClearAllPoints()
+        fontDropdown.Text:SetPoint("LEFT", fontDropdown, "LEFT", 10, 0)
+        if fontDropdown.Arrow then
+            fontDropdown.Text:SetPoint("RIGHT", fontDropdown.Arrow, "LEFT", -4, 0)
+        else
+            fontDropdown.Text:SetPoint("RIGHT", fontDropdown, "RIGHT", -24, 0)
+        end
+        fontDropdown.Text:SetJustifyH("LEFT")
+        fontDropdown.Text:SetJustifyV("MIDDLE")
+    end
+
+    local function UpdateDropdownVisual(choiceId)
+        local info
+        if addon.FontRegistry then
+            for _, item in ipairs(addon.FontRegistry) do
+                if item.id == choiceId then
+                    info = item
+                    break
+                end
+            end
+        end
+        info = info or (addon.FontRegistry and addon.FontRegistry[1])
+        local displayName = info and info.name or "Blizzard Default"
+
+        if fontDropdown.SetDefaultText then
+            fontDropdown:SetDefaultText(displayName)
+        end
+        if fontDropdown.SetText then
+            fontDropdown:SetText(displayName)
+        end
+
+        local fontObj = GetMenuFontObject(info)
+        if fontObj and fontDropdown.Text and fontDropdown.Text.SetFontObject then
+            fontDropdown.Text:SetFontObject(fontObj)
+            fontDropdown.Text:SetText(displayName)
+            fontDropdown.Text:SetHeight(20)
+        end
+    end
+    panel.UpdateDropdownVisual = UpdateDropdownVisual
+
+    if fontDropdown.SetupMenu then
+        fontDropdown:SetupMenu(function(btn, rootDescription)
+            rootDescription:SetTag("UIBIGGINS_FONT_DROPDOWN")
+            if addon.FontRegistry then
+                for _, item in ipairs(addon.FontRegistry) do
+                    local isSelected = function()
+                        local cur = (UIBigginsDB and UIBigginsDB.fontChoice) or "default"
+                        return cur == item.id
+                    end
+                    local setSelected = function()
+                        if not UIBigginsDB then UIBigginsDB = {} end
+                        UIBigginsDB.fontChoice = item.id
+                        UpdateDropdownVisual(item.id)
+                        if item.id ~= "default" and addon.Fonts and addon.Fonts.ApplyFont then
+                            addon.Fonts:ApplyFont(item.id)
+                        end
+                        if UpdateReloadState then
+                            UpdateReloadState()
+                        end
+                    end
+                    local radio = rootDescription:CreateRadio(item.name, isSelected, setSelected, item.id)
+                    if radio and radio.AddInitializer then
+                        local thisItem = item
+                        radio:AddInitializer(function(button)
+                            local fontObj = GetMenuFontObject(thisItem)
+                            local fs = button.fontString or button.Text
+                            if fs and fs.SetFontObject and fontObj then
+                                fs:SetFontObject(fontObj)
+                                if fs.SetTextToFit then
+                                    fs:SetTextToFit(thisItem.name)
+                                else
+                                    fs:SetText(thisItem.name)
+                                end
+                            end
+                        end)
+                    end
+                end
+            end
+        end)
+    end
+    panel.fontDropdown = fontDropdown
+
     -- TellMeWhen Section
     local tmwHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    tmwHeader:SetPoint("TOPLEFT", cbKeybind, "BOTTOMLEFT", 0, -18)
+    tmwHeader:SetPoint("TOPLEFT", fontDropdown, "BOTTOMLEFT", 0, -18)
     tmwHeader:SetText("TellMeWhen")
 
     local cbTMW = CreateSettingCheckbox(
@@ -287,6 +414,8 @@ function addon:CreateSettingsPanel()
             sliderTMWOpacity:SetEnabled(currentTMWEnabled)
             sliderTMWOpacity:SetAlpha(currentTMWEnabled and 1.0 or 0.5)
         end
+        local curChoice = (UIBigginsDB and UIBigginsDB.fontChoice) or "default"
+        UpdateDropdownVisual(curChoice)
         UpdateReloadState()
     end)
 

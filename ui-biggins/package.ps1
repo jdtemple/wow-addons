@@ -62,7 +62,7 @@ foreach ($file in $releaseFiles) {
 }
 
 # Copy subdirectories (Core, Modules)
-$subDirs = @('Core', 'Modules')
+$subDirs = @('Core', 'Modules', 'Fonts')
 foreach ($dir in $subDirs) {
     $sourceDir = Join-Path $addonDir $dir
     if (Test-Path $sourceDir) {
