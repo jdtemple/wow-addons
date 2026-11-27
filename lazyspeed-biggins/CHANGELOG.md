@@ -1,3 +1,8 @@
+# LazySpeed Biggins v4.3.1
+
+### Refactor
+- **Architecture Modularization:** Refactored monolithic codebase into dedicated `Core/` and `Modules/` subsystems (`Core/Constants.lua`, `Core/Engine.lua`, `Core/Options.lua`, `Modules/HUD.lua`), aligning with Biggins Suite architectural standards while preserving 100% identical runtime behavior and zero-allocation 20 FPS telemetry loop.
+
 # LazySpeed Biggins v4.3.0
 
 ### Added

@@ -46,13 +46,22 @@ if (Test-Path $stagingDir) {
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 
 # Copy release files
-$releaseFiles = @('LazySpeedBiggins.lua', 'LazySpeedBiggins.toc', 'logo.jpg', 'README.md', 'CHANGELOG.md')
+$releaseFiles = @('LazySpeedBiggins.lua', 'LazySpeedBiggins.toc', 'logo.jpg', 'README.md', 'CHANGELOG.md', 'description.md')
 foreach ($file in $releaseFiles) {
     $sourcePath = Join-Path $addonDir $file
     if (Test-Path $sourcePath) {
         Copy-Item -Path $sourcePath -Destination $stagingDir -Force
     } else {
         Write-Warning "File not found: $sourcePath"
+    }
+}
+
+# Copy subdirectories (Core, Modules)
+$subDirs = @('Core', 'Modules')
+foreach ($dir in $subDirs) {
+    $sourceDir = Join-Path $addonDir $dir
+    if (Test-Path $sourceDir) {
+        Copy-Item -Path $sourceDir -Destination $stagingDir -Recurse -Force
     }
 }
 
