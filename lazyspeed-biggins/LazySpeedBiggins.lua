@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    LazySpeed Biggins v4.3.1 - High-Performance Movement & Flight Telemetry HUD
+    LazySpeed Biggins v4.3.2 - High-Performance Movement & Flight Telemetry HUD
     ------------------------------------------------------------------------------
     Author: Biggins (Original logic by Darthterac)
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
@@ -8,8 +8,8 @@
 
 local addonName, addon = ...
 _G["LazySpeedBiggins"] = addon
-addon.version = "4.3.1"
-_G["LazySpeedBiggins_Version"] = "4.3.1"
+addon.version = "4.3.2"
+_G["LazySpeedBiggins_Version"] = "4.3.2"
 
 -- Cache global functions
 local CreateFrame         = CreateFrame

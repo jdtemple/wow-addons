@@ -1,3 +1,8 @@
+# LazySpeed Biggins v4.3.2
+
+### Changed
+- **Dynamic Bar Typography:** Status bar font strings now dynamically query active engine font configuration (`STANDARD_TEXT_FONT` / `GameFontHighlight`) on creation and layout updates, automatically inheriting global typography changes from UIBiggins or suite settings.
+
 # LazySpeed Biggins v4.3.1
 
 ### Refactor

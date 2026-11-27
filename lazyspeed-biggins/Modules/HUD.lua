@@ -16,7 +16,6 @@ local floor               = math.floor
 local pi                  = math.pi
 local ipairs              = ipairs
 local table_insert        = table.insert
-local STANDARD_TEXT_FONT  = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 
 local C_Texture           = C_Texture
 local GetGlidingInfo      = C_PlayerInfo and C_PlayerInfo.GetGlidingInfo
@@ -92,9 +91,9 @@ local function CreateTelemetryBar(barName, defaultText)
     bar.bg = bg
 
     -- Centered text overlay
-    local text = bar:CreateFontString(nil, "OVERLAY")
+    local text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     text:SetPoint("CENTER", bar, "CENTER", 0, 0)
-    text:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+    text:SetFont(GameFontHighlight:GetFont(), 12, "OUTLINE")
     text:SetTextColor(1, 1, 1, 1)
     text:SetShadowOffset(1, -1)
     text:SetShadowColor(0, 0, 0, 1)
@@ -355,6 +354,7 @@ function addon:UpdateLayout()
 
     -- Dynamic font scaling with bar height
     local fontSize = min(max(floor(height * 0.55), 9), 20)
+    local font = GameFontHighlight:GetFont()
     local prevContainer = nil
 
     for i, bar in ipairs(visibleBars) do
@@ -365,7 +365,7 @@ function addon:UpdateLayout()
         bar:ClearAllPoints()
         bar:SetPoint("CENTER", c, "CENTER", 0, 0)
         bar:SetSize(max(1, width - 6), max(1, height - 6))
-        bar.text:SetFont(STANDARD_TEXT_FONT, fontSize, "OUTLINE")
+        bar.text:SetFont(font, fontSize, "OUTLINE")
 
         if i == 1 then
             c:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 0, 0)
