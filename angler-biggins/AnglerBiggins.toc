@@ -2,10 +2,14 @@
 ## Title: |cFFFFD100Angler Biggins|r
 ## Notes: Complete dual-rod fishing suite with dynamic action bar swapping, Underlight Angler water walking & fish form automation, and underwater gathering recovery.
 ## Author: Biggins
-## Version: 2.2.1
+## Version: 2.2.2
 ## SavedVariables: AnglerBigginsDB
 ## Category: Professions
 ## IconTexture: Interface\AddOns\AnglerBiggins\logo.jpg
 
 LibBigginsSuite.lua
+Core\State.lua
+Modules\Equipment.lua
+Modules\Macro.lua
+Core\Options.lua
 AnglerBiggins.lua

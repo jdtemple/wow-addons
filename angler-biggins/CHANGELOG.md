@@ -1,3 +1,8 @@
+# Angler Biggins v2.2.2
+
+### Refactor
+- **Architecture Modularization:** Refactored monolithic codebase into dedicated `Core/` and `Modules/` subsystems (`Core/State.lua`, `Core/Options.lua`, `Modules/Equipment.lua`, `Modules/Macro.lua`), aligning with Biggins Suite architectural standards while preserving 100% identical runtime behavior and zero combat taint.
+
 # Angler Biggins v2.2.1
 
 ### Polish
