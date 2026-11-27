@@ -2,7 +2,7 @@
 ## Title: |cFFFFD100UI Biggins|r
 ## Notes: Clean, flat action bar and TellMeWhen styling, with global modern font replacement.
 ## Author: Biggins
-## Version: 1.2.0
+## Version: 1.2.1
 ## SavedVariables: UIBigginsDB
 ## Category: User Interface
 ## IconTexture: Interface\AddOns\UIBiggins\logo.jpg

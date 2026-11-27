@@ -72,10 +72,8 @@ function addon:CreateSettingsPanel()
         if panel.UpdateDropdownVisual then
             panel.UpdateDropdownVisual("default")
         end
-        local tmwEnabled = UIBigginsDB.skinTellMeWhen
-        if sliderTMWOpacity then
-            sliderTMWOpacity:SetEnabled(tmwEnabled)
-            sliderTMWOpacity:SetAlpha(tmwEnabled and 1.0 or 0.5)
+        if panel.UpdateTMWControlsState then
+            panel.UpdateTMWControlsState()
         end
         if addon.TellMeWhen and addon.TellMeWhen.UpdateBarOpacity then
             addon.TellMeWhen:UpdateBarOpacity()
@@ -348,17 +346,66 @@ function addon:CreateSettingsPanel()
     tmwHeader:SetPoint("TOPLEFT", fontDropdown, "BOTTOMLEFT", 0, -18)
     tmwHeader:SetText("TellMeWhen")
 
-    local cbTMW = CreateSettingCheckbox(
+    local tmwStatusNote = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    tmwStatusNote:SetPoint("LEFT", tmwHeader, "RIGHT", 8, 0)
+
+    local function GetTMWStatus()
+        local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("TellMeWhen"))
+                         or (IsAddOnLoaded and IsAddOnLoaded("TellMeWhen"))
+        if isLoaded then
+            return "LOADED", nil
+        end
+
+        local exists = (C_AddOns and C_AddOns.DoesAddOnExist and C_AddOns.DoesAddOnExist("TellMeWhen"))
+        if not exists and GetAddOnInfo then
+            local name = GetAddOnInfo("TellMeWhen")
+            exists = (name ~= nil)
+        end
+
+        if exists then
+            return "DISABLED", "Installed, but disabled in your AddOns list"
+        else
+            return "NOT_INSTALLED", "Not installed"
+        end
+    end
+
+    local cbTMW
+    local UpdateTMWControlsState = function()
+        local status, message = GetTMWStatus()
+        if status ~= "LOADED" then
+            tmwStatusNote:SetText("|cFFFF8000(" .. message .. ")|r")
+            tmwStatusNote:Show()
+            if cbTMW then
+                cbTMW:SetEnabled(false)
+                cbTMW:SetAlpha(0.4)
+            end
+            if sliderTMWOpacity then
+                sliderTMWOpacity:SetEnabled(false)
+                sliderTMWOpacity:SetAlpha(0.4)
+            end
+        else
+            tmwStatusNote:Hide()
+            if cbTMW then
+                cbTMW:SetEnabled(true)
+                cbTMW:SetAlpha(1.0)
+            end
+            local currentTMWEnabled = (UIBigginsDB and UIBigginsDB.skinTellMeWhen)
+            if sliderTMWOpacity then
+                sliderTMWOpacity:SetEnabled(currentTMWEnabled)
+                sliderTMWOpacity:SetAlpha(currentTMWEnabled and 1.0 or 0.4)
+            end
+        end
+    end
+    panel.UpdateTMWControlsState = UpdateTMWControlsState
+
+    cbTMW = CreateSettingCheckbox(
         "skinTellMeWhen",
         "Skin Icons & Bars",
         "Skins TellMeWhen icons (with 45-degree chamfers and drop shadows) and status bars (matching LazySpeed and Perf gold-bordered styling). Requires a UI reload to apply.",
         "TOPLEFT", tmwHeader, "BOTTOMLEFT", 16, -6,
         function(checked)
             UpdateReloadState()
-            if sliderTMWOpacity then
-                sliderTMWOpacity:SetEnabled(checked)
-                sliderTMWOpacity:SetAlpha(checked and 1.0 or 0.5)
-            end
+            UpdateTMWControlsState()
         end
     )
 
@@ -371,9 +418,7 @@ function addon:CreateSettingsPanel()
         "%"
     )
     panel.sliderTMWOpacity = sliderTMWOpacity
-    local tmwEnabled = (UIBigginsDB and UIBigginsDB.skinTellMeWhen)
-    sliderTMWOpacity:SetEnabled(tmwEnabled)
-    sliderTMWOpacity:SetAlpha(tmwEnabled and 1.0 or 0.5)
+    UpdateTMWControlsState()
 
     -- Reload UI Button (dedicated, cleanly placed below the options)
     reloadBtn:SetSize(120, 24)
@@ -409,10 +454,8 @@ function addon:CreateSettingsPanel()
                 slider.valueText:SetText(tostring(val) .. "%")
             end
         end
-        local currentTMWEnabled = (UIBigginsDB and UIBigginsDB.skinTellMeWhen)
-        if sliderTMWOpacity then
-            sliderTMWOpacity:SetEnabled(currentTMWEnabled)
-            sliderTMWOpacity:SetAlpha(currentTMWEnabled and 1.0 or 0.5)
+        if panel.UpdateTMWControlsState then
+            panel.UpdateTMWControlsState()
         end
         local curChoice = (UIBigginsDB and UIBigginsDB.fontChoice) or "default"
         UpdateDropdownVisual(curChoice)

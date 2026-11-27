@@ -1,5 +1,5 @@
 --[[ ==============================================================================
-    UI Biggins v1.2.0
+    UI Biggins v1.2.1
     ------------------------------------------------------------------------------
     Author: Biggins (US-Whisperwind)
     Compatibility: World of Warcraft: Midnight (Patch 12.1.7 / 12.1+) & The War Within
@@ -27,7 +27,7 @@
 
 local addonName, addon = ...
 _G["UIBiggins"] = addon
-addon.version = "1.2.0"
+addon.version = "1.2.1"
 
 -- Cache upvalues
 local _G = _G

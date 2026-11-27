@@ -1,5 +1,10 @@
 # UI Biggins Changelog
 
+## v1.2.1 (2026-11-27)
+
+### Settings & Usability
+* **Context-Aware TellMeWhen Settings:** Option controls dynamically detect whether TellMeWhen is actively loaded, disabled in character select, or uninstalled, cleanly locking and dimming settings with informative status tags when unavailable.
+
 ## v1.2.0 (2026-11-27)
 
 ### Global Typography & Modern Font Replacement
@@ -8,15 +13,12 @@
   * Preserves native Blizzard font scaling, outlines, and shadow offsets for crisp rendering without layout distortion.
   * Extensible drop-in architecture: easily drop additional `.ttf` font files into `Fonts/` and register them with a single line of Lua.
 * **Open-Source Font Bundling:**
-  * Sourced and bundled Share Tech (Carrois Apostrophe / SIL Open Font License 1.1).
-* Sourced and bundled Oxanium (Severin Meyer / SIL Open Font License 1.1) featuring chamfered geometric glyphs and baked dotted zeros.
-* Sourced and bundled Roboto (Google Fonts / Apache License 2.0).
-  * Sourced and bundled Fira Sans Medium (Google Fonts / SIL Open Font License 1.1) for technical precision and coding aesthetic.
+  * Sourced and bundled a curated selection of open-source typefaces (Roboto, Fira Sans, Oxanium, Share Tech) alongside native Blizzard Default.
   * Included `Fonts/LICENSE-FONTS.md` citing upstream authors, licenses, and repositories.
 * **Blizzard Settings Integration:**
-  * Added a dedicated "Typography & Fonts" section with modern `WowStyle1DropdownTemplate` dropdown selector to easily switch between Blizzard Default and Roboto.
+  * Added a dedicated "Typography & Fonts" section with modern dropdown selector rendering each font choice in its respective typeface.
   * Fully integrated into the "Reset Defaults" action and UI reload warning system.
-  * Added `/uibiggins font <default|roboto>` chat command for direct typography switching.
+  * Added `/uibiggins font` chat commands for direct typography switching.
 
 ## v1.1.1 (2026-11-27)
 
