@@ -1,3 +1,14 @@
+# SafeRelease Biggins v1.1.2 (2026-11-27)
+
+### Architecture Modularization & Settings Decoupling
+- **Modular File Structure:**
+  - Extracted configuration defaults, instance scope evaluations, modifier key logic, and raid wipe detection into `Core/State.lua`.
+  - Extracted click-interception overlay button, countdown timer, modifier bypass, and StaticPopup hooks into `Modules/Overlay.lua`.
+  - Extracted Blizzard Settings options canvas and control toggles into `Core/Options.lua`.
+  - Streamlined `SafeReleaseBiggins.lua` as lifecycle event orchestrator and slash command router.
+- **Suite-Wide Architectural Consistency:**
+  - Standardized load order: `LibBigginsSuite.lua` -> `Core\*.lua` -> `Modules\*.lua` -> `<AddonName>.lua`.
+
 # SafeRelease Biggins v1.1.1
 
 ### Polish
