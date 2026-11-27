@@ -61,6 +61,16 @@ foreach ($file in $releaseFiles) {
     }
 }
 
+# Copy subdirectories (Core, Modules)
+$subDirs = @('Core', 'Modules')
+foreach ($dir in $subDirs) {
+    $sourceDir = Join-Path $addonDir $dir
+    if (Test-Path $sourceDir) {
+        $destDir = Join-Path $stagingDir $dir
+        Copy-Item -Path $sourceDir -Destination $stagingDir -Recurse -Force
+    }
+}
+
 # Pull shared suite library and assets from canonical source of truth into staging
 $canonicalSuiteDir = Join-Path (Split-Path $addonDir -Parent) 'lib-biggins-suite'
 if (Test-Path $canonicalSuiteDir) {

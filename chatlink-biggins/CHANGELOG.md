@@ -1,3 +1,15 @@
+# ChatLink Biggins v1.2.2 (2026-11-27)
+
+### Architecture Modularization & Settings Decoupling
+- **Modular File Structure:**
+  - Extracted URL formatting, single-pattern isolation, sender GUID caching, and chat event filters into `Core/Links.lua`.
+  - Extracted draggable Blizzard Factory copy dialog and position persistence into `Modules/Dialog.lua`.
+  - Extracted player name hover tooltips, unit token resolution, and chat frame hooks into `Modules/Tooltips.lua`.
+  - Extracted Blizzard Settings options canvas and controls into `Core/Options.lua`.
+  - Streamlined `ChatLinkBiggins.lua` as lifecycle event orchestrator and slash command router.
+- **Suite-Wide Architectural Consistency:**
+  - Standardized load order: `LibBigginsSuite.lua` -> `Core\*.lua` -> `Modules\*.lua` -> `<AddonName>.lua`.
+
 # ChatLink Biggins v1.2.1
 
 ### Polish
