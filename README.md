@@ -37,19 +37,18 @@ An ultra-lightweight chat utility designed to make web URLs in chat clickable fo
 * **Pipe Escape Protection:** Safely respects WoW `|` escape sequences, protecting adjacent item links, spell links, and player names.
 * **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> ChatLink` with top-right `[ Defaults ]` button and master toggle.
 
-### 4. [Knowledge Biggins (v1.1.0)](./knowledge-biggins)
+### 4. [Knowledge Biggins (v1.4.0)](./knowledge-biggins)
 An ultra-lightweight popup button to study and consume profession knowledge items (shards, treatises, skill books) directly from your bags without menu diving.
 * **Universal Tooltip Detection:** Uses `C_TooltipInfo` to automatically detect any consumable item granting profession knowledge or skill across all professions and expansions with zero hardcoded databases.
-* **Drag & Drop Allow List:** Drop any click-to-use item directly onto the button to immediately allow it for consumption.
-* **Alt + Right-Click Block List:** Quickly block unwanted items from showing or reserve items for later with an instant click shortcut.
+* **Alt + Right-Click Block List:** Quickly block unwanted items from showing or reserve items for later with an instant click shortcut or settings drag-and-drop.
 * **Full Reagent Bag Compatibility:** Automatically scans all bags including Bag 5 (Reagent Bag), providing full support for unified inventory addons (Baganator, Bagnon).
 * **Native Blizzard Keybindings:** Assign dedicated keyboard shortcuts in `Options -> Keybindings -> Knowledge Biggins`.
-* **Visual Settings Trays:** Manage active allow and block lists in the Settings panel with mouseover tooltips and right-click removal.
+* **Visual Settings Tray:** Manage blocked items in the Settings panel with mouseover tooltips, right-click unblocking, and drag-and-drop support.
 * **One-Click Secure Action Button:** Styled to match Blizzard's native action bars with stack counts and instant one-click consumption.
 * **Shift + Drag Positioning & Lock Protection:** Drag freely with `Shift + Left-Click Drag` when unlocked. The button can be locked to prevent accidental movement and optionally set to always show even with empty bags.
 * **Native Blizzard UI Scaling:** Fully parented to `UIParent` to automatically inherit and scale with Blizzard's Graphics -> UI Scale slider.
 * **Zero Combat Taint:** Strictly respects Blizzard combat lockdown (`InCombatLockdown`), queueing updates until combat drops.
-* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Knowledge` with top-right `[ Defaults ]` button, position reset, allow/block list trays, and granular lock/visibility toggles.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> Knowledge` with top-right `[ Defaults ]` button, position reset, block list tray, and granular lock/visibility toggles.
 
 ### 5. [LazySpeed Biggins (v4.0.0)](./lazyspeed-biggins)
 A high-performance flight, swim, and movement speedometer featuring a sleek nameplate-style HUD, dynamic color gradients, and zero Lua garbage generation.
@@ -85,11 +84,21 @@ An ultra-lightweight, event-driven companion pet summoner designed to keep your 
 * **Multi-Tier Instance Auto-Dismiss:** Granular hierarchy for Raids, Mythic+ Dungeons, Regular Dungeons, and Delves & Labyrinths.
 * **Modern Canvas Settings UI:** Multi-tier nested hierarchy with top-level master toggle and top-right `[ Defaults ]` button.
 
+### 9. [UI Biggins (v1.2.1)](./ui-biggins)
+A sleek, lightweight action bar and interface visual enhancer featuring flat squircle geometry, soft drop shadows, TellMeWhen skinning, macro/keybind text hiding, and global modern font replacement.
+* **Flatten Action Bar Buttons:** Strips bulky metallic bezels, background slot art, and decorative bevels across standard action bars, pet bar, stance bar, possess bar, extra action buttons, spell flyouts, and Knowledge Biggins.
+* **45-Degree Chamfer Squircles & Soft Shadows:** Preserves native icon sizing and aspect ratio with modern 45-degree chamfered squircle corners and subtle drop shadows on the `BACKGROUND` layer.
+* **Skin TellMeWhen (Icons & Bars):** Applies squircle masks and soft drop shadows to TellMeWhen icon groups, and wraps status bars in the signature Biggins Suite gold tooltip border with adjustable background opacity.
+* **Smart Macro & Keybind Text Hiding:** Keeps action buttons clean during normal gameplay while automatically revealing macro labels and keybinding text during drag-and-drop / ability pickup.
+* **Global Modern Font Replacement:** Swaps legacy game fonts with clean, readable modern typography across the interface.
+* **100% Non-Invasive Architecture:** Never touches Edit Mode, unit frames, nameplates, chat, CVars, or combat dispel color coding.
+* **Modern Canvas Settings UI:** Integrated under `Options -> AddOns -> Biggins AddOns -> UI` with live opacity slider, defaults reset, and reload prompt.
+
 ---
 
 ## Unified In-Game Settings (`Biggins AddOns`)
 
-All eight addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
+All nine addons automatically register under a unified parent category in the native Blizzard settings menu (`Escape -> Options -> AddOns`):
 
 ```text
 [-] Biggins AddOns
@@ -101,6 +110,7 @@ All eight addons automatically register under a unified parent category in the n
     Perf
     SafeRelease
     SummonPet
+    UI
 ```
 
 * **Parent Landing Page:** Clicking `Biggins AddOns` presents the suite overview, character portrait, and quick-jump navigation buttons to each installed addon.

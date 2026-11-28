@@ -26,16 +26,17 @@ This repository uses a native **GitHub Actions CI/CD Pipeline** that automatical
 
 Each addon folder in this monorepo maps to a specific numeric **Project ID** on CurseForge, configured in [`scripts/addons-config.json`](file:///C:/Code/wow-addons/scripts/addons-config.json):
 
-| Addon Directory       | Public Display Name | CurseForge Project ID | Primary Category          |
-| :-------------------- | :------------------ | :-------------------- | :------------------------ |
-| `angler-biggins`      | Angler Biggins      | `1790339`             | Professions / Fishing     |
-| `autojoin-biggins`    | AutoJoin Biggins    | `1760364`             | Chat & Communication      |
-| `chatlink-biggins`    | ChatLink Biggins    | `1763882`             | Chat & Communication      |
-| `knowledge-biggins`   | Knowledge Biggins   | `TBD`                 | Professions / Utility     |
-| `lazyspeed-biggins`   | LazySpeed Biggins   | `1678350`             | Action Bars / Movement    |
-| `perf-biggins`        | Perf Biggins        | `1760380`             | Unit Frames / Performance |
-| `saferelease-biggins` | SafeRelease Biggins | `1763542`             | Buffs & Debuffs / Utility |
-| `summonpet-biggins`   | SummonPet Biggins   | `1747339`             | Pet Battles / Companions  |
+| Addon Directory       | Public Display Name | CurseForge Project ID | Primary Category                           |
+| :-------------------- | :------------------ | :-------------------- | :----------------------------------------- |
+| `angler-biggins`      | Angler Biggins      | `1790339`             | Professions / Fishing                      |
+| `autojoin-biggins`    | AutoJoin Biggins    | `1760364`             | Chat & Communication                       |
+| `chatlink-biggins`    | ChatLink Biggins    | `1763882`             | Chat & Communication                       |
+| `knowledge-biggins`   | Knowledge Biggins   | `1810767`             | Professions / Utility                      |
+| `lazyspeed-biggins`   | LazySpeed Biggins   | `1678350`             | Action Bars / Movement                     |
+| `perf-biggins`        | Perf Biggins        | `1760380`             | Unit Frames / Performance                  |
+| `saferelease-biggins` | SafeRelease Biggins | `1763542`             | Buffs & Debuffs / Utility                  |
+| `summonpet-biggins`   | SummonPet Biggins   | `1747339`             | Pet Battles / Companions                   |
+| `ui-biggins`          | UI Biggins          | `1834817`             | User Interface / Action Bars & Unit Frames |
 
 ---
 
@@ -150,7 +151,7 @@ Commit your code changes, the bumped `.toc`, and `CHANGELOG.md`, then push to `m
 ### Step 4: GitHub Actions Deploys Automatically
 1. The **`detect-changes`** job checks which files were modified.
 2. If only `perf-biggins/` changed, only `perf-biggins` is queued.
-3. If [`lib-biggins-suite/`](file:///C:/Code/wow-addons/lib-biggins-suite) changed, the pipeline automatically packages and publishes **all 6 addons** in parallel.
+3. If [`lib-biggins-suite/`](file:///C:/Code/wow-addons/lib-biggins-suite) changed, the pipeline automatically packages and publishes **all 9 addons** in parallel.
 4. The **`publish`** matrix job runs, executes `package.ps1` in an isolated VM, and streams the `.zip` directly to CurseForge via REST API.
 5. Upon a successful CurseForge upload, the pipeline automatically creates and pushes the matching Git release tag (e.g. `perf-biggins-1.4.0`) to your GitHub repository.
 
