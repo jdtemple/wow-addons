@@ -5,7 +5,7 @@
     Compatibility: World of Warcraft: Midnight / The War Within (Patch 11.x - 12.x)
 ============================================================================== ]]--
 
-local MAJOR, MINOR = "LibBigginsSuite-1.0", 8
+local MAJOR, MINOR = "LibBigginsSuite-1.0", 9
 local Suite = _G["LibBigginsSuite"]
 if Suite and Suite.minor and Suite.minor >= MINOR then return end
 
@@ -266,12 +266,23 @@ function Suite:GetOrCreateParentCategory(addonDir)
     return parentCategory
 end
 
+local function SortSubcategories(parent)
+    if parent and parent.subcategories and #parent.subcategories > 1 then
+        table.sort(parent.subcategories, function(a, b)
+            local nameA = (a.GetName and a:GetName()) or a.name or ""
+            local nameB = (b.GetName and b:GetName()) or b.name or ""
+            return nameA:lower() < nameB:lower()
+        end)
+    end
+end
+
 function Suite:RegisterSubcategory(addonDir, panel, shortName)
     local subcatID = nil
     if Settings and Settings.RegisterCanvasLayoutSubcategory then
         local parent = self:GetOrCreateParentCategory(addonDir)
         local subcategory = Settings.RegisterCanvasLayoutSubcategory(parent, panel, shortName)
         subcatID = subcategory:GetID()
+        SortSubcategories(parent)
     elseif Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name or shortName)
         Settings.RegisterAddOnCategory(category)
@@ -293,6 +304,9 @@ end
 local suiteEventFrame = CreateFrame("Frame")
 suiteEventFrame:RegisterEvent("PLAYER_LOGIN")
 suiteEventFrame:SetScript("OnEvent", function(frameSelf, event)
+    if Suite.parentCategory then
+        SortSubcategories(Suite.parentCategory)
+    end
     if Suite.Refresh then
         Suite:Refresh()
     end

@@ -1,8 +1,8 @@
 --[[ ==============================================================================
     Knowledge Biggins - Detection Engine
     ------------------------------------------------------------------------------
-    Universal profession knowledge and skill item detection via item spells,
-    instant item classes, and dynamic tooltip line scanning.
+    Universal profession knowledge and skill item detection via dynamic tooltip line
+    scanning and instant block list exclusion.
 ============================================================================== ]]--
 
 local addonName, addon = ...
@@ -17,65 +17,10 @@ local C_Container              = C_Container
 local C_TooltipInfo            = C_TooltipInfo
 local C_Item                   = C_Item
 local TooltipUtil              = TooltipUtil
-local Enum                     = Enum
 
-local ITEM_SPELL_TRIGGER_ONUSE     = ITEM_SPELL_TRIGGER_ONUSE
-local ITEM_OPENABLE                = ITEM_OPENABLE
-local ITEM_CAN_BE_READ             = ITEM_CAN_BE_READ
 local NUM_TOTAL_EQUIPPED_BAG_SLOTS = NUM_TOTAL_EQUIPPED_BAG_SLOTS
 
 addon.knowledgeItemCache = {}
-
-function addon:HasItemUseEffect(itemID, itemLink)
-    if not itemID then return false end
-    if C_Item and C_Item.GetItemSpell and C_Item.GetItemSpell(itemID) then
-        return true
-    end
-    -- Check item class from synchronous instant info (Consumables & Containers/Caches/Satchels)
-    if C_Item and C_Item.GetItemInfoInstant then
-        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(itemID)
-        if classID == 0 or classID == 1 or (Enum.ItemClass and (classID == Enum.ItemClass.Consumable or classID == Enum.ItemClass.Container)) then
-            return true
-        end
-    end
-    if C_TooltipInfo then
-        local tooltipData
-        if itemLink then
-            tooltipData = C_TooltipInfo.GetHyperlink(itemLink)
-        else
-            tooltipData = C_TooltipInfo.GetItemByID(itemID)
-        end
-        if tooltipData and tooltipData.lines then
-            if TooltipUtil and TooltipUtil.SurfaceArgs then
-                TooltipUtil.SurfaceArgs(tooltipData)
-            end
-            local usePrefix = ITEM_SPELL_TRIGGER_ONUSE or "Use:"
-            local openPrefix = ITEM_OPENABLE or "<Right Click to Open>"
-            local readPrefix = ITEM_CAN_BE_READ or "<Right Click to Read>"
-            for _, line in ipairs(tooltipData.lines) do
-                local text = line.leftText
-                if not text and line.args then
-                    for _, arg in ipairs(line.args) do
-                        if arg and arg.stringVal and type(arg.stringVal) == "string" and arg.stringVal ~= "" then
-                            text = arg.stringVal
-                            break
-                        end
-                    end
-                end
-                if text and type(text) == "string" then
-                    local lower = text:lower()
-                    if text:find("^" .. usePrefix) or text:find("^Use:") or
-                       text:find(openPrefix, 1, true) or lower:find("right click to open", 1, true) or
-                       text:find(readPrefix, 1, true) or lower:find("right click to read", 1, true) or
-                       lower:find("<right click", 1, true) then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-    return false
-end
 
 function addon:IsDefaultKnowledgeItem(bag, slot, itemID, itemLink)
     if not itemID then return false end
@@ -145,17 +90,12 @@ function addon:IsKnowledgeItem(bag, slot, itemID, itemLink)
         return false
     end
 
-    -- 2. Whitelist / Allow List Check (User curated)
-    if db.whitelist and db.whitelist[itemID] then
-        return true
-    end
-
-    -- 3. Cache Check (Instant hit for confirmed knowledge items)
+    -- 2. Cache Check (Instant hit for confirmed knowledge items)
     if addon.knowledgeItemCache[itemID] then
         return true
     end
 
-    -- 4. Dynamic Tooltip Evaluation (Do NOT cache false so asynchronous loads are never poisoned)
+    -- 3. Dynamic Tooltip Evaluation (Do NOT cache false so asynchronous loads are never poisoned)
     if addon:IsDefaultKnowledgeItem(bag, slot, itemID, itemLink) then
         addon.knowledgeItemCache[itemID] = true
         return true

@@ -1,3 +1,12 @@
+# Knowledge Biggins v1.4.0
+
+### Removed
+- **Custom Allow List Removed:** Completely removed the custom allow list and combine heuristics due to reliability and scope issues. Knowledge Biggins refocuses on its core, zero-maintenance purpose: 100% reliable detection and consumption of true profession knowledge and skill items.
+
+### Changed
+- **Item-Specific Stack Count:** The popup button counter now strictly reflects the quantity of the currently displayed item in your bags, rather than summing across all queued items.
+- **Streamlined Settings Panel:** Removed the allow list tray from the settings panel, giving the Block List full prominence with direct drag-and-drop blocking support.
+
 # Knowledge Biggins v1.3.3
 
 ### Refactor

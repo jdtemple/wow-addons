@@ -31,13 +31,12 @@ addon.defaults = {
     scale = 1.0,
     locked = false,
     alwaysShow = false,
-    whitelist = {},
     blacklist = {},
 }
 
 local KnowledgeBiggins = {}
 _G["KnowledgeBiggins"] = KnowledgeBiggins
-KnowledgeBiggins.version = "1.3.3"
+KnowledgeBiggins.version = "1.4.0"
 
 -- Native Blizzard Keybinding strings
 _G["BINDING_HEADER_KNOWLEDGEBIGGINS_HEADER"] = "Knowledge Biggins"
@@ -100,7 +99,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         addon:UpdateKnowledgeButton()
         if C_Timer and C_Timer.After then
             C_Timer.After(0.5, function()
-                if not InCombatLockdown() and addon.UpdateKnowledgeButton then
+                if not InCombatLockdown and addon.UpdateKnowledgeButton then
                     addon:UpdateKnowledgeButton()
                 end
             end)
@@ -109,7 +108,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, ...)
         addon:UpdateKnowledgeButton()
         if C_Timer and C_Timer.After then
             C_Timer.After(0.25, function()
-                if not InCombatLockdown() and addon.UpdateKnowledgeButton then
+                if not InCombatLockdown and addon.UpdateKnowledgeButton then
                     addon:UpdateKnowledgeButton()
                 end
             end)
@@ -164,52 +163,44 @@ SlashCmdList["KNOWLEDGEBIGGINS"] = function(msg)
         if addon.optionsPanel and addon.optionsPanel.RefreshControls then
             addon.optionsPanel.RefreshControls()
         end
-    elseif cmd == "ignore" or cmd == "blacklist" or cmd == "block" then
-        if addon.currentLootedItem then
-            local targetItemID = addon.currentLootedItem.itemID
-            local targetLink = addon.currentLootedItem.link
-            local db = KnowledgeBigginsDB or addon.defaults
-            local wasAllowed = db.whitelist and db.whitelist[targetItemID]
-            if wasAllowed then
-                db.whitelist[targetItemID] = nil
-            end
-
-            local isDefaultKnowledge = addon:IsDefaultKnowledgeItem(addon.currentLootedItem.bag, addon.currentLootedItem.slot, targetItemID)
-            PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-
-            if isDefaultKnowledge then
-                db.blacklist = db.blacklist or {}
-                db.blacklist[targetItemID] = true
-                addon.knowledgeItemCache[targetItemID] = false
-                addon:PrintMsg("Added " .. (targetLink or ("item " .. targetItemID)) .. " to block list.")
-            else
-                addon.knowledgeItemCache[targetItemID] = nil
-                addon:PrintMsg("Removed " .. (targetLink or ("item " .. targetItemID)) .. " from custom allow list.")
-            end
-
-            addon:UpdateKnowledgeButton()
-            if addon.optionsPanel and addon.optionsPanel.RefreshTrays then
-                addon.optionsPanel.RefreshTrays()
-            end
-        else
-            addon:PrintMsg("No item currently active to dismiss/block. Hold Alt + Right-Click the button when an item appears.")
-        end
-    elseif cmd:find("^unignore%s*") or cmd:find("^whitelist%s*") or cmd:find("^allow%s*") then
+    elseif cmd:find("^ignore%s*") or cmd:find("^blacklist%s*") or cmd:find("^block%s*") then
         local arg = cmd:match("^%S+%s*(.*)$")
         local itemID = tonumber(arg) or (arg and tonumber(arg:match("item:(%d+)")))
         local itemLink = (arg and arg:find("%|Hitem:")) and arg or nil
+
         if itemID then
-            addon:AddItemToWhitelist(itemID, itemLink)
+            addon:AddItemToBlacklist(itemID, itemLink)
+        elseif addon.currentLootedItem then
+            addon:AddItemToBlacklist(addon.currentLootedItem.itemID, addon.currentLootedItem.link)
         else
-            addon:PrintMsg("Usage: /knowledgeb allow <itemID|itemLink>")
+            addon:PrintMsg("Usage: /knowledgeb block <itemID> (or hold Alt + Right-Click on an active button)")
         end
-    elseif cmd == "clear" or cmd == "resetlists" then
+    elseif cmd:find("^unignore%s*") or cmd:find("^unblock%s*") then
+        local arg = cmd:match("^%S+%s*(.*)$")
+        local itemID = tonumber(arg) or (arg and tonumber(arg:match("item:(%d+)")))
+        if itemID then
+            local db = KnowledgeBigginsDB or addon.defaults
+            if db.blacklist and db.blacklist[itemID] then
+                db.blacklist[itemID] = nil
+                addon.knowledgeItemCache[itemID] = nil
+                PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+                addon:PrintMsg("Unblocked item " .. itemID .. ".")
+                addon:UpdateKnowledgeButton()
+                if addon.optionsPanel and addon.optionsPanel.RefreshTrays then
+                    addon.optionsPanel.RefreshTrays()
+                end
+            else
+                addon:PrintMsg("Item " .. itemID .. " is not on the block list.")
+            end
+        else
+            addon:PrintMsg("Usage: /knowledgeb unblock <itemID>")
+        end
+    elseif cmd == "clear" or cmd == "resetblock" then
         local db = KnowledgeBigginsDB or addon.defaults
-        db.whitelist = {}
         db.blacklist = {}
         addon.knowledgeItemCache = {}
         PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-        addon:PrintMsg("Cleared all custom allow and block list items.")
+        addon:PrintMsg("Cleared all blocked items.")
         addon:UpdateKnowledgeButton()
         if addon.optionsPanel and addon.optionsPanel.RefreshTrays then
             addon.optionsPanel.RefreshTrays()
@@ -225,14 +216,11 @@ SlashCmdList["KNOWLEDGEBIGGINS"] = function(msg)
         print("  |cFFFFD100/knowledgeb toggle|r - Toggle addon enabled/disabled")
         print("  |cFFFFD100/knowledgeb lock|r - Toggle button lock/unlock")
         print("  |cFFFFD100/knowledgeb show|r - Toggle always showing button")
-        print("  |cFFFFD100/knowledgeb ignore|r or |cFFFFD100/knowledgeb block|r - Block the currently displayed item")
-        print("  |cFFFFD100/knowledgeb allow <id>|r - Manually add item to allow list")
-        print("  |cFFFFD100/knowledgeb clear|r - Clear all custom allow and block list items")
-        print("  |cFFFFD100/knowledgeb reset|r - Reset button position to center")
-        print("  |cFFFFD100/knowledgeb scan|r - Force a bag scan for knowledge items")
-        print("  |cFFFFD100/knowledgeb help|r or |cFFFFD100/knowledgeb ?|r - Show this list of commands")
-        print("  |cFF888888Shortcuts: Shift+Drag to move | Alt+Right-Click to block item | Drop item to allow|r")
+        print("  |cFFFFD100/knowledgeb block [id]|r - Block the current or specified item")
+        print("  |cFFFFD100/knowledgeb unblock <id>|r - Remove item from block list")
+        print("  |cFFFFD100/knowledgeb clear|r - Clear all blocked items")
+        print("  |cFFFFD100/knowledgeb reset|r - Reset button position to default")
     else
-        addon:PrintMsg("Unknown command '|cFFFFD100" .. cmd .. "|r'. Type |cFFFFD100/knowledgeb help|r for available commands.")
+        addon:PrintMsg("Unknown command. Type |cFFFFD100/knowledgeb help|r for available commands.")
     end
 end

@@ -2,7 +2,7 @@
     Knowledge Biggins - Options Panel (Blizzard Settings Integration)
     ------------------------------------------------------------------------------
     Canvas settings panel providing checkboxes, position controls, and visual
-    interactive trays for custom allow-listed and block-listed items.
+    interactive tray for block-listed items.
 ============================================================================== ]]--
 
 local addonName, addon = ...
@@ -46,7 +46,7 @@ function addon:RegisterSettingsUI()
     desc:SetPoint("RIGHT", logo, "LEFT", -20)
     desc:SetJustifyH("LEFT")
     desc:SetWordWrap(true)
-    desc:SetText("Automatically detects and queues profession knowledge and skill items out of the box with zero setup.\n\nThe Allow List and Block List below let you tailor behavior for your character: any click-to-use item can be added by dropping it onto the floating button, and unwanted items can be blocked with Alt + Right-Click.")
+    desc:SetText("Automatically detects and queues profession knowledge and skill items out of the box with zero setup.\n\nThe Block List below lets you hide any unwanted items: hold Alt + Right-Click on the floating popup button or drop items directly into the tray below.")
 
     -- Top-Right Defaults Button
     local btnDefaults = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -133,123 +133,10 @@ function addon:RegisterSettingsUI()
     end)
 
     -- --------------------------------------------------------------------------
-    -- Custom Allow List Tray
-    -- --------------------------------------------------------------------------
-    local wlHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    wlHeader:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", -20, -16)
-    wlHeader:SetText("Custom Allow List (Drop items here or onto floating button to add):")
-
-    local btnResetWl = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    btnResetWl:SetPoint("TOPRIGHT", -24, 0)
-    btnResetWl:SetPoint("TOP", wlHeader, "TOP", 0, 4)
-    btnResetWl:SetSize(115, 20)
-    btnResetWl:SetText("Reset Allow List")
-
-    local function TryDropItemOnWhitelist()
-        local cursorType, itemID, itemLink = GetCursorInfo()
-        if cursorType == "item" and itemID then
-            ClearCursor()
-            addon:AddItemToWhitelist(itemID, itemLink, false)
-            return true
-        end
-        return false
-    end
-
-    local wlDropZone = CreateFrame("Button", nil, panel)
-    wlDropZone:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -4)
-    wlDropZone:SetSize(420, 34)
-    wlDropZone:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    wlDropZone:SetScript("OnReceiveDrag", TryDropItemOnWhitelist)
-    wlDropZone:SetScript("OnClick", function()
-        TryDropItemOnWhitelist()
-    end)
-
-    local wlEmpty = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    wlEmpty:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -6)
-    wlEmpty:SetText("(No custom items in allow list - drag & drop items here to add)")
-
-    local wlTiles = {}
-    for i = 1, 12 do
-        local tile = CreateFrame("Button", nil, panel)
-        tile:SetSize(30, 30)
-        tile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-        tile:SetFrameLevel(wlDropZone:GetFrameLevel() + 2)
-        if i == 1 then
-            tile:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -6)
-        else
-            tile:SetPoint("LEFT", wlTiles[i - 1], "RIGHT", 4, 0)
-        end
-
-        local icon = tile:CreateTexture(nil, "ARTWORK")
-        icon:SetPoint("TOPLEFT", 2, -2)
-        icon:SetPoint("BOTTOMRIGHT", -2, 2)
-        tile.icon = icon
-
-        local border = tile:CreateTexture(nil, "OVERLAY")
-        border:SetAllPoints(tile)
-        if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("UI-HUD-ActionBar-IconFrame") then
-            border:SetAtlas("UI-HUD-ActionBar-IconFrame")
-        else
-            border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-        end
-
-        tile:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-
-        tile:SetScript("OnEnter", function(self)
-            if self.itemID then
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetItemByID(self.itemID)
-                GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("|cFFFF5555Right-Click to remove from allow list|r")
-                GameTooltip:Show()
-            end
-        end)
-        tile:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        tile:SetScript("OnReceiveDrag", TryDropItemOnWhitelist)
-        tile:SetScript("OnClick", function(self, btn)
-            if TryDropItemOnWhitelist() then return end
-            if self.itemID and (btn == "RightButton" or not IsShiftKeyDown()) then
-                local db = KnowledgeBigginsDB or addon.defaults
-                local id = self.itemID
-                if db.whitelist then db.whitelist[id] = nil end
-                addon.knowledgeItemCache[id] = nil
-                PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-                local displayName = self.itemLink
-                if not displayName then
-                    local _, link = C_Item.GetItemInfo(id)
-                    displayName = link or (C_Item.GetItemLinkByItemID and C_Item.GetItemLinkByItemID(id)) or ("item " .. id)
-                end
-                addon:PrintMsg("Removed " .. displayName .. " from custom allow list.")
-                addon:UpdateKnowledgeButton()
-                if panel.RefreshTrays then panel.RefreshTrays() end
-                GameTooltip:Hide()
-            end
-        end)
-        tile:Hide()
-        wlTiles[i] = tile
-    end
-
-    btnResetWl:SetScript("OnClick", function()
-        local db = KnowledgeBigginsDB or addon.defaults
-        db.whitelist = {}
-        addon.knowledgeItemCache = {}
-        PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-        addon:PrintMsg("Custom allow list cleared.")
-        addon:UpdateKnowledgeButton()
-        if panel.RefreshTrays then panel.RefreshTrays() end
-    end)
-    btnResetWl:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Clear all items from the custom allow list.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    btnResetWl:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    -- --------------------------------------------------------------------------
     -- Block List Tray
     -- --------------------------------------------------------------------------
     local blHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    blHeader:SetPoint("TOPLEFT", wlHeader, "BOTTOMLEFT", 0, -42)
+    blHeader:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", -20, -20)
     blHeader:SetText("Block List (Drop items here or Alt + Right-Click floating button to block):")
 
     local btnResetBl = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -313,7 +200,7 @@ function addon:RegisterSettingsUI()
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 GameTooltip:SetItemByID(self.itemID)
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("|cFF00FF00Right-Click to unblock (restore)|r")
+                GameTooltip:AddLine("|cFFFF5555Right-Click to unblock|r")
                 GameTooltip:Show()
             end
         end)
@@ -332,7 +219,7 @@ function addon:RegisterSettingsUI()
                     local _, link = C_Item.GetItemInfo(id)
                     displayName = link or (C_Item.GetItemLinkByItemID and C_Item.GetItemLinkByItemID(id)) or ("item " .. id)
                 end
-                addon:PrintMsg("Unblocked " .. displayName .. " from block list.")
+                addon:PrintMsg("Unblocked " .. displayName .. ".")
                 addon:UpdateKnowledgeButton()
                 if panel.RefreshTrays then panel.RefreshTrays() end
                 GameTooltip:Hide()
@@ -391,44 +278,6 @@ function addon:RegisterSettingsUI()
     function panel.RefreshTrays()
         local db = KnowledgeBigginsDB or addon.defaults
 
-        -- Refresh Whitelist Tray
-        local wlItems = {}
-        if db.whitelist then
-            for id, enabled in pairs(db.whitelist) do
-                if enabled then table_insert(wlItems, id) end
-            end
-        end
-        table_sort(wlItems)
-
-        if #wlItems == 0 then
-            wlEmpty:Show()
-            for i = 1, 12 do
-                wlTiles[i].itemID = nil
-                wlTiles[i].itemLink = nil
-                wlTiles[i]:Hide()
-            end
-        else
-            wlEmpty:Hide()
-            for i = 1, 12 do
-                if i <= #wlItems then
-                    local id = wlItems[i]
-                    wlTiles[i].itemID = id
-                    if C_Item and C_Item.RequestLoadItemDataByID then
-                        C_Item.RequestLoadItemDataByID(id)
-                    end
-                    local _, itemLink = C_Item.GetItemInfo(id)
-                    wlTiles[i].itemLink = itemLink or (C_Item.GetItemLinkByItemID and C_Item.GetItemLinkByItemID(id))
-                    local iconFile = C_Item.GetItemIconByID(id) or 134400
-                    wlTiles[i].icon:SetTexture(iconFile)
-                    wlTiles[i]:Show()
-                else
-                    wlTiles[i].itemID = nil
-                    wlTiles[i].itemLink = nil
-                    wlTiles[i]:Hide()
-                end
-            end
-        end
-
         -- Refresh Blacklist Tray
         local blItems = {}
         if db.blacklist then
@@ -473,6 +322,7 @@ function addon:RegisterSettingsUI()
         panel.RefreshTrays()
     end)
 
+    -- Register subcategory with LibBigginsSuite
     if LibBigginsSuite and LibBigginsSuite.RegisterSubcategory then
         KnowledgeBiggins.categoryID = LibBigginsSuite:RegisterSubcategory("KnowledgeBiggins", panel, "Knowledge")
     elseif Settings and Settings.RegisterCanvasLayoutCategory then

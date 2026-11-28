@@ -1,5 +1,10 @@
 # LibBigginsSuite Changelog
 
+## v1.0.9
+
+### Fixed
+- **Alphabetical Settings Subcategory Sorting:** Automatically alphabetizes subcategories under the Biggins AddOns parent settings panel both during registration and at `PLAYER_LOGIN`. Modules that initialize at `PLAYER_LOGIN` (such as Angler, Knowledge, and UI) now sort into their exact alphabetical position in the Blizzard Settings navigation tree alongside early-loading modules.
+
 ## v1.0.8
 
 ### Added

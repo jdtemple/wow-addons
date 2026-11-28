@@ -1,8 +1,8 @@
 --[[ ==============================================================================
     Knowledge Biggins - Secure Action Button Module
     ------------------------------------------------------------------------------
-    Secure popup consumer button with native action bar styling, drag-and-drop
-    item allowance, Alt + Right-Click dismissal, and dynamic combat mitigation.
+    Secure popup consumer button with native action bar styling, Alt + Right-Click
+    dismissal, and dynamic combat mitigation.
 ============================================================================== ]]--
 
 local addonName, addon = ...
@@ -12,17 +12,16 @@ local CreateFrame                  = CreateFrame
 local InCombatLockdown             = InCombatLockdown
 local IsShiftKeyDown               = IsShiftKeyDown
 local IsAltKeyDown                 = IsAltKeyDown
-local GetCursorInfo                = GetCursorInfo
-local ClearCursor                  = ClearCursor
 local PlaySound                    = PlaySound
 local SOUNDKIT                     = SOUNDKIT
 local GameTooltip                  = GameTooltip
 local GameTooltip_SetDefaultAnchor = GameTooltip_SetDefaultAnchor
 local UIParent                     = UIParent
-local ipairs                       = ipairs
 local string_format                = string.format
 
 local C_Texture                    = C_Texture
+local C_Item                       = C_Item
+local GetItemCount                 = GetItemCount
 
 -- Secure Action Button Creation
 local button = CreateFrame("Button", "KnowledgeBigginsButton", UIParent, "SecureActionButtonTemplate")
@@ -95,55 +94,6 @@ button:SetScript("OnDragStop", function(self)
     db.yOfs = yOfs or -140
 end)
 
--- Allow list helper
-function addon:AddItemToWhitelist(itemID, itemLink, deferUpdate)
-    if not itemID then return false end
-
-    local db = KnowledgeBigginsDB or addon.defaults
-    local isDefault = addon:IsDefaultKnowledgeItem(nil, nil, itemID, itemLink)
-
-    if isDefault then
-        -- Check if it was blocked; dragging/allowing it should unblock it
-        if db.blacklist and db.blacklist[itemID] then
-            db.blacklist[itemID] = nil
-            if db.whitelist then db.whitelist[itemID] = nil end
-            addon.knowledgeItemCache[itemID] = true
-            PlaySound(SOUNDKIT.IG_BACKPACK_COIN_OK)
-            addon:PrintMsg("Unblocked " .. (itemLink or ("item " .. itemID)) .. " (automatically detected by default).")
-            if not deferUpdate then
-                addon:UpdateKnowledgeButton()
-            end
-            if addon.optionsPanel and addon.optionsPanel.RefreshTrays then
-                addon.optionsPanel.RefreshTrays()
-            end
-            return true
-        else
-            PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-            addon:PrintMsg((itemLink or ("item " .. itemID)) .. " is already automatically detected by default.")
-            return false
-        end
-    end
-
-    db.whitelist = db.whitelist or {}
-    if not db.whitelist[itemID] then
-        db.whitelist[itemID] = true
-        if db.blacklist then db.blacklist[itemID] = nil end
-        addon.knowledgeItemCache[itemID] = true
-        PlaySound(SOUNDKIT.IG_BACKPACK_COIN_OK)
-        addon:PrintMsg("Added " .. (itemLink or ("item " .. itemID)) .. " to custom allow list.")
-        if not deferUpdate then
-            addon:UpdateKnowledgeButton()
-        end
-        if addon.optionsPanel and addon.optionsPanel.RefreshTrays then
-            addon.optionsPanel.RefreshTrays()
-        end
-        return true
-    else
-        addon:PrintMsg((itemLink or ("Item " .. itemID)) .. " is already on custom allow list.")
-        return false
-    end
-end
-
 -- Block list helper
 function addon:AddItemToBlacklist(itemID, itemLink)
     if not itemID then return false end
@@ -151,7 +101,6 @@ function addon:AddItemToBlacklist(itemID, itemLink)
     db.blacklist = db.blacklist or {}
     if not db.blacklist[itemID] then
         db.blacklist[itemID] = true
-        if db.whitelist then db.whitelist[itemID] = nil end
         addon.knowledgeItemCache[itemID] = false
         PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
         addon:PrintMsg("Added " .. (itemLink or ("item " .. itemID)) .. " to block list.")
@@ -166,40 +115,13 @@ function addon:AddItemToBlacklist(itemID, itemLink)
     end
 end
 
--- Drag and drop item onto button to allow
-button:SetScript("OnReceiveDrag", function(self)
-    if InCombatLockdown() then return end
-    local cursorType, itemID, itemLink = GetCursorInfo()
-    if cursorType == "item" and itemID then
-        ClearCursor()
-        addon:AddItemToWhitelist(itemID, itemLink, false)
-    end
-end)
-
--- Intercept drops via click or Alt + Right-Click to block
+-- PreClick: Alt + Right-Click to block current item
 button:SetScript("PreClick", function(self, btn, down)
     if InCombatLockdown() then return end
 
-    -- Check if cursor is dropping an item via click
-    local cursorType, itemID, itemLink = GetCursorInfo()
-    if cursorType == "item" and itemID then
-        -- CRITICAL: Instantly disarm the secure button so this click CANNOT consume the dropped or queued item
-        self.droppingItem = true
-        self:SetAttribute("type", nil)
-        self:SetAttribute("type1", nil)
-        self:SetAttribute("type2", nil)
-        self:SetAttribute("macrotext", nil)
-        self:SetAttribute("macrotext1", nil)
-        self:SetAttribute("macrotext2", nil)
-        ClearCursor()
-        addon:AddItemToWhitelist(itemID, itemLink, true) -- defer UpdateKnowledgeButton until PostClick
-        return
-    end
-
-    -- Alt + Right-Click to block current item from showing
     if btn == "RightButton" and IsAltKeyDown() then
         -- Disarm attributes so right-click cannot trigger secure action
-        self.droppingItem = true
+        self.blockingItem = true
         self:SetAttribute("type", nil)
         self:SetAttribute("type1", nil)
         self:SetAttribute("type2", nil)
@@ -207,46 +129,20 @@ button:SetScript("PreClick", function(self, btn, down)
         self:SetAttribute("macrotext1", nil)
         self:SetAttribute("macrotext2", nil)
 
-        -- Only execute the block/dismiss mutation on mouse button release (not down) to prevent firing twice per click
         if not down and addon.currentLootedItem then
             local targetItemID = addon.currentLootedItem.itemID
             local targetLink = addon.currentLootedItem.link
-            local db = KnowledgeBigginsDB or addon.defaults
-            local wasAllowed = db.whitelist and db.whitelist[targetItemID]
-            if wasAllowed then
-                db.whitelist[targetItemID] = nil
-            end
-
-            -- Test if item naturally matches default knowledge criteria
-            local isDefaultKnowledge = addon:IsDefaultKnowledgeItem(addon.currentLootedItem.bag, addon.currentLootedItem.slot, targetItemID)
-
-            PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-
-            if isDefaultKnowledge then
-                -- Naturally matches default criteria: must add to block list so dynamic scanner won't pick it up again
-                db.blacklist = db.blacklist or {}
-                db.blacklist[targetItemID] = true
-                addon.knowledgeItemCache[targetItemID] = false
-                addon:PrintMsg("Added " .. (targetLink or ("item " .. targetItemID)) .. " to block list.")
-            else
-                -- Custom allowed item: removing from allow list is sufficient to prevent it from ever showing
-                addon.knowledgeItemCache[targetItemID] = nil
-                addon:PrintMsg("Removed " .. (targetLink or ("item " .. targetItemID)) .. " from custom allow list.")
-            end
-
-            if addon.optionsPanel and addon.optionsPanel.RefreshTrays then
-                addon.optionsPanel.RefreshTrays()
-            end
+            addon:AddItemToBlacklist(targetItemID, targetLink)
         end
         return
     end
 end)
 
--- PostClick: safely re-arm the button after the click event has completely resolved
+-- PostClick: safely re-arm the button after click event has completely resolved
 button:SetScript("PostClick", function(self, btn)
     if InCombatLockdown() then return end
-    if self.droppingItem then
-        self.droppingItem = nil
+    if self.blockingItem then
+        self.blockingItem = nil
         addon:UpdateKnowledgeButton()
     end
 end)
@@ -269,11 +165,7 @@ button:SetScript("OnEnter", function(self)
         else
             GameTooltip:AddLine("|cFF888888Position Locked (Unlock in Settings to move)|r")
         end
-        if db.whitelist and db.whitelist[currentLootedItem.itemID] and not addon:IsDefaultKnowledgeItem(currentLootedItem.bag, currentLootedItem.slot, currentLootedItem.itemID) then
-            GameTooltip:AddLine("|cFFFF5555Alt + Right-Click:|r Remove from Allow List")
-        else
-            GameTooltip:AddLine("|cFFFF5555Alt + Right-Click:|r Block Item from Showing")
-        end
+        GameTooltip:AddLine("|cFFFF5555Alt + Right-Click:|r Block Item from Showing")
     else
         GameTooltip:AddLine("|cFFFFD100Knowledge Biggins|r")
         GameTooltip:AddLine("No unconsumed knowledge items in your bags.", 1, 1, 1)
@@ -283,7 +175,7 @@ button:SetScript("OnEnter", function(self)
         else
             GameTooltip:AddLine("|cFF888888Position Locked (Unlock in Settings to move)|r")
         end
-        GameTooltip:AddLine("|cFF888888Tip: Drop any click-to-use item here to allow it.|r")
+        GameTooltip:AddLine("|cFF888888Tip: Alt + Right-Click on an item to block it from showing.|r")
     end
     GameTooltip:Show()
 end)
@@ -337,14 +229,10 @@ function addon:UpdateKnowledgeButton()
     button.Icon:SetDesaturated(false)
     button.Icon:SetTexture(currentLootedItem.icon or 134400)
 
-    -- Count total knowledge items in bags
-    local totalCount = 0
-    for _, itm in ipairs(items) do
-        totalCount = totalCount + (itm.count or 1)
-    end
-
-    if totalCount > 1 then
-        button.Count:SetText(totalCount)
+    -- Count total quantity of this specific item in bags
+    local itemCount = (C_Item and C_Item.GetItemCount and C_Item.GetItemCount(currentLootedItem.itemID)) or (GetItemCount and GetItemCount(currentLootedItem.itemID)) or (currentLootedItem.count or 1)
+    if itemCount > 1 then
+        button.Count:SetText(itemCount)
     else
         button.Count:SetText("")
     end
